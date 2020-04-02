@@ -1,2 +1,2 @@
 # eid-minidplus-web
-Registrering av minid-pluss brukere.
+Innlogging og glemt passord for minid-pluss brukere.
