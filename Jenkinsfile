@@ -7,5 +7,5 @@ pipelineWithMavenAndDocker {
     gitSshKey = 'ssh.github.com'
     puppetModules = 'minidplus_authentication'
     librarianModules = 'DIFI-minidplus_authentication'
-    puppetApplyList = ['eid-systest-web01.dmz.local baseconfig,minidplus_authentication']
+    puppetApplyList = ['eid-systest-oidc-app01 baseconfig,minidplus_authentication']
 }
