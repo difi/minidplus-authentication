@@ -1,0 +1,13 @@
+auditlog:
+  dir: <%= @auditlog_dir %>
+  file: <%= @auditlog_file %>
+
+## Tomcat access log
+server:
+  port: <%= @server_port %>
+  tomcat:
+    basedir: <%= @tomcat_tmp_dir %>
+    accesslog:
+      directory: <%= @log_root%><%= @application %>
+    max-threads: <%= @server_tomcat_max_threads%>
+    min-spare-threads: <%= @server_tomcat_min_spare_threads%>

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+version=DEV-SNAPSHOT
+registry=local
+localConfig=$1
+stackName=minidplus-authentication
+
+rm -rf docker/minidplus-authentication/puppet_hiera/*  docker/minidplus-authentication/puppet_modules/* docker/minidplus-authentication/war/*|| exit 1
+mvn package -DskipTests || exit 1
+docker/build-images ${registry} ${version} ${localConfig}|| exit 1
+echo "LOG_ENV=$(whoami)" > docker/log_config
+VERSION=${version} REGISTRY=${registry} docker stack deploy -c docker/stack.yml --resolve-image=never ${stackName} || exit 1
+rm docker/log_config
+

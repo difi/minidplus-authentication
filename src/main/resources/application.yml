@@ -1,0 +1,16 @@
+project:
+  version: @project.version@
+
+management:
+  health:
+    diskspace:
+      enabled: false
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: "version, health, info"
+  endpoint:
+    health:
+      show-details: always
+      enabled: true
