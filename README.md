@@ -1,3 +1,3 @@
 # eid-minidplus-web
 Innlogging og glemt passord for minid-pluss brukere.
-Korona
+Også kjent som kriseId
