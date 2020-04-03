@@ -1,5 +1,14 @@
 project:
   version: @project.version@
+spring:
+  mvc:
+    view:
+      prefix: /WEB-INF/jsp/
+      suffix: .jsp
+  security:
+    user:
+      name: user
+      password: password
 
 management:
   health:
@@ -14,3 +23,6 @@ management:
     health:
       show-details: always
       enabled: true
+
+idporten:
+  redirecturl: http://localhost:8080/redirecturl
