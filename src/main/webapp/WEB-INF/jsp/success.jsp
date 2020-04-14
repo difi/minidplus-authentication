@@ -1,5 +1,4 @@
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
+
 <jsp:include page="sections/header.jsp" />
 
 <jsp:include page="sections/minidplusheader.jsp"></jsp:include>
@@ -10,7 +9,7 @@
             <h1>SUCCESS!</h1>
             <h2>But not really. A placeholder for redirect tilbake til tjenestetilbyder</h2>
             <div>
-                <img  src="<c:url value='/images/corona.jpg' />" alt="image" />
+                <img  src="../images/corona.jpg" alt="image" />
             </div>
 
         </div>
