@@ -8,7 +8,7 @@
         <jsp:include page="sections/box-header.jsp" />
         <div class="Box_main" id="minidpluswrapper">
             <h1>SUCCESS!</h1>
-            <h2>Placeholder for redirect tilbake til tjenestetilbyder</h2>
+            <h2>But not really. A placeholder for redirect tilbake til tjenestetilbyder</h2>
             <div>
                 <img  src="<c:url value='/images/corona.jpg' />" alt="image" />
             </div>
