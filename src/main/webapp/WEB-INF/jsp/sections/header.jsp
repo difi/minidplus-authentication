@@ -4,10 +4,12 @@
 <head>
     <title>Test for idporten</title>
 
-    <link rel="stylesheet" type="text/css" href="css/font-awesome.css">
-    <link rel="stylesheet" type="text/css" href="css/open-sans.css">
-    <link rel="stylesheet" type="text/css" href="css/style.min.css">
-    <link rel="stylesheet" type="text/css" href="css/idporten-difi-minidpluss.css">
+    <link rel="stylesheet" href="../../fonts/open-sans/open-sans.css">
+    <link rel="stylesheet" href="../../font-awesome/css/font-awesome.min.css">
+
+    <!-- todo: Place favicon.ico and apple-touch-icon.png in the root directory -->
+
+    <link type="text/css" rel="stylesheet" href="../../css/style.css" />
 
     <meta charset="utf-8">
 

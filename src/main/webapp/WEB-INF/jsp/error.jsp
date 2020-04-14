@@ -1,5 +1,5 @@
 
-<jsp:include page="header.jsp" />
+<jsp:include page="sections/header.jsp" />
 
 <main id="minidpluss-main">
     <section class="Box">

@@ -5,6 +5,6 @@ package no.idporten.ui.impl;
  */
 public enum IDPortenInputType {
 
-    CONTACTINFO_MOBILE, SOCIAL_SECURITY_NUMBER
+    PERSONAL_ID_NUMBER, PIN_CODE, PASSWORD
 
 }

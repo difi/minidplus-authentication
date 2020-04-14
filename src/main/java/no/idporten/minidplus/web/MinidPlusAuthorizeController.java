@@ -35,12 +35,14 @@ public class MinidPlusAuthorizeController {
     protected static final int STATE_ERROR = 3;
 
     private static final String SERVICE_PARAMETER_NAME = "service";
-    private final String IDPORTEN_INPUT_PREFIX = "idporten.input.";
-    private final String IDPORTEN_FEEDBACK_PREFIX = "idporten.feedback.";
-    private final String MOBILE_NUMBER = "mobileNumber";
-    private final String SOCIAL_SECURITY_NUMBER = "socialSecurityNumber";
-    private final String EMAIL_ADDRESS = "emailAddress";
-    private final String IDPORTEN_INPUTBUTTON_PREFIX = "idporten.inputbutton.";
+    private static final String IDPORTEN_INPUT_PREFIX = "idporten.input.";
+    private static final String IDPORTEN_FEEDBACK_PREFIX = "idporten.feedback.";
+    private static final String MOBILE_NUMBER = "mobileNumber";
+    private static final String PERSONAL_ID_NUMBER = "personalIdNumber";
+    private static final String PIN_CODE = "pinCode";
+    private static final String PASSWORD = "password";
+    private static final String EMAIL_ADDRESS = "emailAddress";
+    private static final String IDPORTEN_INPUTBUTTON_PREFIX = "idporten.inputbutton.";
 
     private final LocaleResolver localeResolver;
 
@@ -50,6 +52,7 @@ public class MinidPlusAuthorizeController {
     @GetMapping
     public ModelAndView doGet(HttpServletRequest request, HttpServletResponse response) {
         request.getSession().invalidate();
+        setSessionState(request, STATE_USERDATA);
         //request.getSession().setAttribute("locale", request.getParameter("locale"));
         return new ModelAndView("minidplus_enter_credentials");
     }
@@ -59,11 +62,24 @@ public class MinidPlusAuthorizeController {
                                HttpServletResponse response) throws URISyntaxException, IOException {
         try {
             int state = (int) request.getSession().getAttribute(MinIdPlusProperties.HTTP_SESSION_STATE);
-        } finally {
-            //all roads lead to error
+            if (state == STATE_USERDATA) {
+                return getNextView(request, response, handleUserdataInput(request));
+            }else if(state == STATE_VERIFICATION_CODE){
+                return getNextView(request, response, handleOtpInput(request));
+            }
+        } catch (Exception e) {
+            //todo
             prepareErrorPage("501", request);
-            return new ModelAndView("error");
         }
+        return getNextView(request, response, STATE_ERROR);
+    }
+
+    private int handleOtpInput(HttpServletRequest request) {
+        return STATE_AUTHENTICATED; //todo
+    }
+
+    private int handleUserdataInput(HttpServletRequest request) {
+        return STATE_VERIFICATION_CODE; //todo
     }
 
 
@@ -74,7 +90,22 @@ public class MinidPlusAuthorizeController {
         return STATE_ERROR;
     }
 
-
+    private ModelAndView getNextView(HttpServletRequest request, HttpServletResponse response, int state) throws IOException {
+        setSessionState(request, state);
+        if (state == STATE_VERIFICATION_CODE) {
+            return new ModelAndView("minidplus_enter_otp");
+        } else if (state == STATE_USERDATA) {
+            return new ModelAndView("minidplus_enter_credentials");
+        } else if (state == STATE_ERROR) {
+            return new ModelAndView("error");
+        } else if (state == STATE_AUTHENTICATED ) {
+            return new ModelAndView("success");
+          /*  log.debug("RedirectUrl: " + request.getSession().getAttribute("redirectUrl"));
+            response.sendRedirect((String) request.getSession().getAttribute("redirectUrl"));*/
+        } else {
+            return new ModelAndView("error");
+        }
+    }
     private void setFeedback(HttpServletRequest request, Enum feedbackType, String messageId) {
         request.getSession().setAttribute(IDPORTEN_FEEDBACK_PREFIX + feedbackType.toString(), messageId);
     }

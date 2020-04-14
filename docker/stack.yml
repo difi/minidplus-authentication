@@ -17,7 +17,7 @@ services:
         constraints:
           - node.labels.atest == true
   web:
-    image: eid-jenkins02.dmz.local:8081/web:latest
+    image: eid-jenkins02.dmz.local:8082/web:latest
     extra_hosts:
       - "eid-elk-app01.dmz.local:10.243.220.21"
     configs:
