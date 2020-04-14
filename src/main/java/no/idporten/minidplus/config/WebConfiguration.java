@@ -22,7 +22,7 @@ public class WebConfiguration implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/js/**")
+        registry.addResourceHandler("/static/js/**")
                 .addResourceLocations("/WEB-INF/js/");
 
     }
