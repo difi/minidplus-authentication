@@ -3,12 +3,12 @@
 <!DOCTYPE html>
 <head>
     <title>Test for idporten</title>
-    <link rel="stylesheet" href="fonts/open-sans/open-sans.css">
-    <link rel="stylesheet" href="font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/fonts/open-sans/open-sans.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/font-awesome/css/font-awesome.min.css">
 
     <!-- todo: Place favicon.ico and apple-touch-icon.png in the root directory -->
 
-    <link type="text/css" rel="stylesheet" href="css/style.css" />
+    <link type="text/css" rel="stylesheet" href="${pageContext.request.contextPath}/css/style.css" />
 
     <meta charset="utf-8">
 
