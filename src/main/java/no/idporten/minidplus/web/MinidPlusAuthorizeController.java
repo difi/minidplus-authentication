@@ -7,7 +7,9 @@ import no.idporten.minidplus.util.MinIdPlusProperties;
 import no.idporten.ui.impl.IDPortenButtonType;
 import no.idporten.ui.impl.IDPortenInputType;
 import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -49,6 +51,9 @@ public class MinidPlusAuthorizeController {
     @Value("${idporten.redirecturl}")
     private String redirectUrl;
 
+    @Autowired
+    private ApplicationContext context;
+
     @GetMapping
     public ModelAndView doGet(HttpServletRequest request, HttpServletResponse response) {
         request.getSession().invalidate();
@@ -79,6 +84,8 @@ public class MinidPlusAuthorizeController {
     }
 
     private int handleUserdataInput(HttpServletRequest request) {
+        //eksempel
+        String message = context.getMessage("no.idporten.module.minid.step2.otc.info", null, request.getLocale());
         return STATE_VERIFICATION_CODE; //todo
     }
 

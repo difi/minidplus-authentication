@@ -9,7 +9,7 @@
             <h1>SUCCESS!</h1>
             <h2>But not really. A placeholder for redirect tilbake til tjenestetilbyder</h2>
             <div>
-                <img  src="../images/corona.jpg" alt="image" />
+                <img  src="images/corona.jpg" alt="image" />
             </div>
 
         </div>

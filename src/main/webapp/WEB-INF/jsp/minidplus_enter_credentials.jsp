@@ -1,8 +1,10 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
+
 <jsp:include page="sections/header.jsp" />
 
-<jsp:include page="sections/minidplusheader.jsp"></jsp:include>
+<jsp:include page="sections/minidplusheader.jsp"/>
+
 <main id="minidplus-main">
     <section class="Box">
         <jsp:include page="sections/box-header.jsp" />
@@ -46,15 +48,15 @@
                                         autocomplete="off" />
                             </div>
                             <div class='fm-form_link with-Link'>
-                                <a href='#'><span>Forgotten password?</span></a>
+                                <a href='#'><span><spring:message code="no.idporten.module.minid.settings.menu.fgtpwd" text="Glemt passord?"/></span></a>
                             </div>
                         </div>
                     </fieldset>
-                <jsp:include page="sections/controls.jsp"></jsp:include>
+                <jsp:include page="sections/controls.jsp"/>
                 </form>
 
         </div>
     </section>
 </main>
 
-<jsp:include page="sections/footer.jsp"></jsp:include>
+<jsp:include page="sections/footer.jsp"/>
