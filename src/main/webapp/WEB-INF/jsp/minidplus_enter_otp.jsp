@@ -1,5 +1,6 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
+<%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
 
 <jsp:include page="sections/header.jsp" />
 
@@ -14,33 +15,30 @@
                 <div class="fm-Progress_Dot"></div>
             </div>
 
-            <c:set var ="warningCode" scope = "session" value='<%= request.getSession().getAttribute("idporten.feedback.WARNING") %>'/>
 
-            <c:if test="${warningCode != null}">
-                <div class="notification notification-error with-Icon icon-error">
-                    <spring:message code="${warningCode}" text="Feil input"/>
-                </div>
-            </c:if>
-            <form id="complete" action="#" class="login js-makeProgress-2" method="post">
+            <form:form id="complete" action="#" modelAttribute="oneTimePassword" class="login js-makeProgress-2" method="post">
+                <form:errors path="*" class="notification notification-error with-Icon icon-error" element="div"/>
                     <fieldset>
                         <div class="fm-Fields">
-                            <c:set var ="errorPinCode" scope = "session" value='<%= request.getSession().getAttribute("idporten.input.PIN_CODE") %>'/>
-                            <div class="fm-Field ${errorPinCode != null ? ' error' : ''}">
-                                <label for="idporten.input.PIN_CODE"><spring:message code="auth.ui.prompt.otc" text="Kode fra SMS"/></label>
-                                <input  tabindex="1"
+                            <spring:message code='auth.ui.inputhelp.onetimecode'
+                                            text='Skriv inn pinkode' var="pincodeHelpText"/>
+
+                            <div class="fm-Field">
+                                <label for="otpCode"><spring:message code="auth.ui.prompt.otc" text="Kode fra SMS"/></label>
+                                <form:input tabindex="1"
                                         maxlength="5"
-                                        name="idporten.input.PIN_CODE"
+                                        path="otpCode"
                                         type="tel"
-                                        id="idporten.input.PIN_CODE"
-                                        placeholder="<spring:message code="auth.ui.inputhelp.onetimecode" text="(5 siffer)"/>"
-                                        value="${requestScope.personalIdNumber}"
+                                        id="otpCode"
+                                        placeholder="${pincodeHelpText}"
+                                        value="${otpCode}"
                                         autocomplete="off" />
                             </div>
 
                         </div>
                     </fieldset>
                 <jsp:include page="sections/controls.jsp"/>
-                </form>
+                </form:form>
 
         </div>
     </section>

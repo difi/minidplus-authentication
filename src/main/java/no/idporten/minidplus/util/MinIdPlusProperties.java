@@ -3,8 +3,6 @@ package no.idporten.minidplus.util;
 import lombok.Getter;
 import org.springframework.stereotype.Component;
 
-import javax.servlet.http.HttpServletRequest;
-
 /**
  * Contains constants for names in the MinidPlus module properties-file.
  */
@@ -18,13 +16,4 @@ public class MinIdPlusProperties {
         public static final String HTTP_SESSION_STATE = "session.state";
 
 
-        public String getLocale(HttpServletRequest request) {
-                String locale = LanguageUtils.getLanguage(request);
-                if (LanguageUtils.LANGUAGE_EN.equals(locale)){
-                        return MINIDPLUS_LOCALE_ENGLISH;
-                }else {
-                        return MINIDPLUS_LOCALE_NORWEGIAN;
-                }
-
-        }
 }
