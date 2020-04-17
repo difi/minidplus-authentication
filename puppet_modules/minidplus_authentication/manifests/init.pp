@@ -14,7 +14,7 @@ class minidplus_authentication (
   String $auditlog_dir                             = $minidplus_authentication::params::auditlog_dir,
   String $auditlog_file                            = $minidplus_authentication::params::auditlog_file,
   String $tomcat_tmp_dir                           = $minidplus_authentication::params::tomcat_tmp_dir,
-
+  Integer $token_lifetime_seconds                  = $minidplus_authentication::params::token_lifetime_seconds,
 )inherits minidplus_authentication::params {
 
   include platform

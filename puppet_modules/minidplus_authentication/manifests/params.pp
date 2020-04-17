@@ -16,4 +16,5 @@ class minidplus_authentication::params {
   $auditlog_dir                     = '/var/log/minidplus-authentication/audit/'
   $auditlog_file                    = 'audit.log'
   $tomcat_tmp_dir                   = '/opt/minidplus-authentication/tmp'
+  $token_lifetime_seconds           = 600
 }

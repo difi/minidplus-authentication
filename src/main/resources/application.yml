@@ -30,5 +30,6 @@ idporten:
   redirecturl: http://localhost:8080/redirecturl
 
 minid-plus:
+  token-lifetime-seconds: 600
   logging:
     categoryname: minidplus

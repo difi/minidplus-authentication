@@ -11,3 +11,6 @@ server:
       directory: <%= @log_root%><%= @application %>
     max-threads: <%= @server_tomcat_max_threads%>
     min-spare-threads: <%= @server_tomcat_min_spare_threads%>
+
+minid-plus:
+  token-lifetime-seconds: <%= @token_lifetime_seconds%>
