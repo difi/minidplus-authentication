@@ -28,3 +28,7 @@ management:
 
 idporten:
   redirecturl: http://localhost:8080/redirecturl
+
+minid-plus:
+  logging:
+    categoryname: minidplus

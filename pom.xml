@@ -13,13 +13,14 @@
     <packaging>war</packaging>
     <version>DEV-SNAPSHOT</version>
     <name>minidplus-authentication</name>
-    <description>Demo project for Spring Boot</description>
+    <description>Minid Plus</description>
 
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <artifactory.url>http://eid-artifactory.dmz.local:8080/artifactory</artifactory.url>
         <logstash.logback.version>5.2</logstash.logback.version>
+        <eid.common.version>2020-04-16-0822-bb49ff9</eid.common.version>
     </properties>
 
     <dependencies>
@@ -111,6 +112,11 @@
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>no.difi.common</groupId>
+            <artifactId>idporten-lib-common-pojo</artifactId>
+            <version>${eid.common.version}</version>
         </dependency>
     </dependencies>
 
