@@ -3,7 +3,7 @@ classes:
 - minidplus_authentication
 - filebeat
 
-minidplus_authentication::server_port: 8080
+minidplus_authentication::server_port: "8080"
 minidplus_authentication::tomcat_tmp_dir: '/opt/minidplus-authentication/tmp'
 
 platform::logstash_enabled:    false

@@ -6,7 +6,7 @@ class minidplus_authentication (
   String $group_id                                 = $minidplus_authentication::params::group_id,
   String $artifact_id                              = $minidplus_authentication::params::artifact_id,
   String $service_name                             = $minidplus_authentication::params::service_name,
-  Integer $server_port                             = $minidplus_authentication::params::server_port,
+  String $server_port                             = $minidplus_authentication::params::server_port,
   String $application                              = $minidplus_authentication::params::application,
   Integer $server_tomcat_max_threads               = $minidplus_authentication::params::server_tomcat_max_threads,
   Integer $server_tomcat_min_spare_threads         = $minidplus_authentication::params::server_tomcat_min_spare_threads,
