@@ -56,7 +56,7 @@ public class MinidPlusAuthorizeController {
     private String redirectUrl;
 
     @GetMapping(produces = "text/html; charset=utf-8")
-    public String doGet(HttpServletRequest request, HttpServletResponse response, /*@Valid*/ AuthorizationRequest authorizationRequest, Model model) throws IOException {
+    public String doGet(HttpServletRequest request, HttpServletResponse response, /* //todo comment back in when ready @Valid*/ AuthorizationRequest authorizationRequest, Model model) throws IOException {
         request.getSession().invalidate();
         request.getSession().setAttribute(MinidPlusSessionAttributes.HTTP_SESSION_AUTH_TYPE, AuthType.MINID_PLUS);
         request.getSession().setAttribute(MinidPlusSessionAttributes.HTTP_SESSION_SID, UUID.randomUUID().toString());

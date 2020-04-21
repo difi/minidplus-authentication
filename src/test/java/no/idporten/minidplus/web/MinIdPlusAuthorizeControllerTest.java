@@ -31,7 +31,7 @@ public class MinIdPlusAuthorizeControllerTest {
 
         MvcResult mvcResult = this.mockMvc.perform(get("/authorize")
                 .param(MinidPlusSessionAttributes.HTTP_SESSION_REDIRECT_URL, ar.getRedirectUrl())
-                .param(MinidPlusSessionAttributes.HTTP_SESSION_FORCE_AUTH, ar.getForceAuth())
+                .param(MinidPlusSessionAttributes.HTTP_SESSION_FORCE_AUTH, ar.getForceAuth().toString())
                 .param(MinidPlusSessionAttributes.HTTP_SESSION_GOTO, ar.getGotoParam())
                 .param(MinidPlusSessionAttributes.HTTP_SESSION_LOCALE, ar.getLocale())
                 .param(MinidPlusSessionAttributes.HTTP_SESSION_GX_CHARSET, ar.getGx_charset())
@@ -56,7 +56,7 @@ public class MinIdPlusAuthorizeControllerTest {
         AuthorizationRequest ar = new AuthorizationRequest();
         ar.setRedirectUrl("http://localhost");
         ar.setLocale("nb_no");
-        ar.setForceAuth("true");
+        ar.setForceAuth(true);
         ar.setGotoParam("hello");
         ar.setGx_charset("dunno");
         ar.setService("myService");
