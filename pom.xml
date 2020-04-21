@@ -20,7 +20,14 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <artifactory.url>http://eid-artifactory.dmz.local:8080/artifactory</artifactory.url>
         <logstash.logback.version>5.2</logstash.logback.version>
+        <org.projectlombok>1.18.12</org.projectlombok>
         <eid.common.version>2020-04-16-0822-bb49ff9</eid.common.version>
+        <org.springframework.ldap>2.3.2.RELEASE</org.springframework.ldap>
+        <no.idporten>2019-12-17-0851-b193609</no.idporten>
+        <org.apache.client>4.5.12</org.apache.client>
+        <org.apache.core>4.4.13</org.apache.core>
+        <commons-lang>2.6</commons-lang>
+        <javax.jms>2.0.1</javax.jms>
     </properties>
 
     <dependencies>
@@ -53,6 +60,47 @@
             <artifactId>tomcat-embed-jasper</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>no.difi.common</groupId>
+            <artifactId>kontaktinfo-lib-common</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-databind</artifactId>
+                </exclusion>
+            </exclusions>
+            <version>${eid.common.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>no.difi.common</groupId>
+            <artifactId>minid-lib-ldap</artifactId>
+            <version>${eid.common.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.jms</groupId>
+            <artifactId>javax.jms-api</artifactId>
+            <version>${javax.jms}</version>
+        </dependency>
+        <dependency>
+            <groupId>no.difi.common</groupId>
+            <artifactId>idporten-lib-common-pojo</artifactId>
+            <version>${eid.common.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpcore</artifactId>
+            <version>${org.apache.core}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+            <version>${commons-lang}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>${org.apache.client}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>

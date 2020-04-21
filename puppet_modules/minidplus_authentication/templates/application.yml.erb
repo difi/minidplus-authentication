@@ -12,5 +12,24 @@ server:
     max-threads: <%= @server_tomcat_max_threads%>
     min-spare-threads: <%= @server_tomcat_min_spare_threads%>
 
+sms:
+  pswincom:
+    url: <%= @pswincom_url %>
+    username: <%= @pswincom_username %>
+    password: <%= @pswincom_password %>
+
+spring:
+  ldap:
+    urls: <%= @ldap_url %>
+    username: <%= @ldap_userdn %>
+    password: <%= @ldap_password %>
+    base: <%= @ldap_base_minid %>
+    maxConnections: 10
+    maxWait: 5000
+
+event:
+  jmsUrl: <%= @eventlog_jms_url %>
+  jmsQueue: <%= @eventlog_jms_queuename %>
+
 minid-plus:
   token-lifetime-seconds: <%= @token_lifetime_seconds%>

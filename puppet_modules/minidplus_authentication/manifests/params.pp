@@ -9,6 +9,11 @@ class minidplus_authentication::params {
   $artifact_id                      = 'minidplus-web-authentication'
   $service_name                     = 'minidplus-authentication'
   $server_port                      = ''
+  $sms_onetimepassword_ttl          = 600
+  $sms_sendernumber                 = 'Digdir'
+  $pswincom_username                = hiera('common::pswincom_account')
+  $pswincom_password                = hiera('common::pswincom_password')
+  $pswincom_url                     = hiera('common::pswincom_url')
   $application                      = 'minidplus-authentication'
   $server_tomcat_max_threads        = 200
   $server_tomcat_min_spare_threads  = 10
@@ -17,4 +22,10 @@ class minidplus_authentication::params {
   $auditlog_file                    = 'audit.log'
   $tomcat_tmp_dir                   = '/opt/minidplus-authentication/tmp'
   $token_lifetime_seconds           = 600
+  $ldap_url                         = hiera('idporten_opensso_opendj::url')
+  $ldap_userdn                      = hiera('idporten_opensso_opendj::dn')
+  $ldap_password                    = hiera('idporten_opensso_opendj::password')
+  $ldap_base_minid                  = hiera('idporten_opensso_opendj::minid_base')
+  $eventlog_jms_queuename           = hiera('idporten_logwriter::jms_queueName')
+  $eventlog_jms_url                 = hiera('platform::jms_url')
 }

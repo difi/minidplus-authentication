@@ -11,10 +11,19 @@ spring:
     user:
       name: user
       password: password
+  ldap:
+    urls: ldap://eid-systest-ldap01.dmz.local:389
+    username: cn=directory manager
+    password: password
+    base: dc=norge,dc=no
+    maxConnections: 10
+    maxWait: 5000
 
 management:
   health:
     diskspace:
+      enabled: false
+    jms:
       enabled: false
   endpoints:
     web:
@@ -28,8 +37,21 @@ management:
 
 idporten:
   redirecturl: http://localhost:8080/redirecturl
-
+  serviceprovider:
+    default-name: Ukjent tjenesteeier
+sms:
+  sendernumber: Digdir
+  authorized-numbers-list: difi-mobile-numbers.txt
+  onetimepassword-ttl: 600 #Seconds
+  pswincom:
+    url: https://gw2-d01-fro.pswin.com:8443
+    username: difistaging
+    password: ixxFg3Kgg4
 minid-plus:
   token-lifetime-seconds: 600
   logging:
     categoryname: minidplus
+
+eventlogger:
+  jmsUrl: tcp://eid-systest-admin01.dmz.local:61616
+  jmsQueue: logqueue
