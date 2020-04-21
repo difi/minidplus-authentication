@@ -51,7 +51,9 @@ minid-plus:
   token-lifetime-seconds: 600
   logging:
     categoryname: minidplus
-
+  cache:
+    otp-ttl-in-s: 600
+    code-ttl-in-s: 6
 eventlogger:
   jmsUrl: tcp://eid-systest-admin01.dmz.local:61616
   jmsQueue: logqueue

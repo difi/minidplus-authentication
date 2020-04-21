@@ -13,6 +13,7 @@ server:
     min-spare-threads: <%= @server_tomcat_min_spare_threads%>
 
 sms:
+  onetimepassword-ttl: <%= @sms_onetimepassword_ttl %>
   pswincom:
     url: <%= @pswincom_url %>
     username: <%= @pswincom_username %>
@@ -33,3 +34,5 @@ event:
 
 minid-plus:
   token-lifetime-seconds: <%= @token_lifetime_seconds%>
+  cache:
+     otp-ttl-in-ms: <%= @sms_onetimepassword_ttl %>

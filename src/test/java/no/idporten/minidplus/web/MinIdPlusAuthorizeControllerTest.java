@@ -3,10 +3,12 @@ package no.idporten.minidplus.web;
 import no.idporten.domain.auth.AuthType;
 import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
+import no.idporten.minidplus.service.MinidPlusCache;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -15,7 +17,6 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(MinidPlusAuthorizeController.class)
@@ -25,11 +26,14 @@ public class MinIdPlusAuthorizeControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @MockBean
+    MinidPlusCache minidPlusCache;
+
     @Test
     public void test_authorization_session_parameters_set() throws Exception {
         AuthorizationRequest ar = getAuthorizationRequest();
 
-        MvcResult mvcResult = this.mockMvc.perform(get("/authorize")
+        MvcResult mvcResult = mockMvc.perform(get("/authorize")
                 .param(MinidPlusSessionAttributes.HTTP_SESSION_REDIRECT_URL, ar.getRedirectUrl())
                 .param(MinidPlusSessionAttributes.HTTP_SESSION_FORCE_AUTH, ar.getForceAuth().toString())
                 .param(MinidPlusSessionAttributes.HTTP_SESSION_GOTO, ar.getGotoParam())
@@ -37,7 +41,8 @@ public class MinIdPlusAuthorizeControllerTest {
                 .param(MinidPlusSessionAttributes.HTTP_SESSION_GX_CHARSET, ar.getGx_charset())
                 .param(MinidPlusSessionAttributes.HTTP_SESSION_SERVICE, ar.getService())
                 .param(MinidPlusSessionAttributes.HTTP_SESSION_START_SERVICE, ar.getStartService())
-        ).andDo(print()).andExpect(status().isOk())
+        )//.andDo(print())
+                .andExpect(status().isOk())
                 .andExpect(view().name("minidplus_enter_credentials"))
                 .andExpect(content().string(containsString("")))
                 .andExpect(model().attributeExists("authorizationRequest"))
@@ -48,8 +53,6 @@ public class MinIdPlusAuthorizeControllerTest {
                 .andExpect(model().attribute("authorizationRequest", equalTo(ar)))
                 .andReturn();
         assertEquals("nb_no", mvcResult.getResponse().getLocale().toString());
-
-
     }
 
     private AuthorizationRequest getAuthorizationRequest() {

@@ -8,6 +8,7 @@ import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.UserCredentials;
+import no.idporten.minidplus.service.MinidPlusCache;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
@@ -19,11 +20,15 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.LocaleResolver;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -52,6 +57,8 @@ public class MinidPlusAuthorizeController {
 
     private final LocaleResolver localeResolver;
 
+    private final MinidPlusCache minidPlusCache;
+
     @Value("${idporten.redirecturl}")
     private String redirectUrl;
 
@@ -72,7 +79,7 @@ public class MinidPlusAuthorizeController {
 
     private void setLocale(HttpServletRequest request, HttpServletResponse response, AuthorizationRequest authorizationRequest) {
         String locale = authorizationRequest.getLocale();
-        if(StringUtils.isEmpty(locale)){
+        if (StringUtils.isEmpty(locale)) {
             locale = request.getLocale().toString();
         }
         localeResolver.setLocale(request, response, new Locale(locale));
@@ -81,8 +88,9 @@ public class MinidPlusAuthorizeController {
 
     @PostMapping
     public String postUserCredentials(HttpServletRequest request, @Valid @ModelAttribute("userCredentials") UserCredentials userCredentials, BindingResult result, Model model) throws IOException {
-        //eksempel
+
         int state = (int) request.getSession().getAttribute(MinidPlusSessionAttributes.HTTP_SESSION_STATE);
+        String sid = (String) request.getSession().getAttribute(MinidPlusSessionAttributes.HTTP_SESSION_SID);
         if (state == STATE_USERDATA) {
             if (result.hasErrors()) {
                 return getNextView(request, STATE_USERDATA);
@@ -92,7 +100,10 @@ public class MinidPlusAuthorizeController {
                 result.addError(objectError);
                 return getNextView(request, STATE_USERDATA);
             }
-            OneTimePassword oneTimePassword = new OneTimePassword();
+            minidPlusCache.putSSN(sid, "55555555555"); //to real ssn
+            //todo get real otp
+            minidPlusCache.putOTP(sid, "12345");
+            OneTimePassword oneTimePassword = new OneTimePassword("12345");
             model.addAttribute(oneTimePassword);
             return getNextView(request, STATE_VERIFICATION_CODE);
         } else {
@@ -101,10 +112,19 @@ public class MinidPlusAuthorizeController {
     }
 
     @PostMapping(params = "otpCode")
-    public String postOTP(HttpServletRequest request, @Valid @ModelAttribute("oneTimePassword") OneTimePassword oneTimePassword, BindingResult result ) throws IOException {
+    public String postOTP(HttpServletRequest request, @Valid @ModelAttribute("oneTimePassword") OneTimePassword oneTimePassword, BindingResult result) throws IOException {
         try {
             int state = (int) request.getSession().getAttribute(MinidPlusSessionAttributes.HTTP_SESSION_STATE);
+            String sid = (String) request.getSession().getAttribute(MinidPlusSessionAttributes.HTTP_SESSION_SID);
             if (state == STATE_VERIFICATION_CODE) {
+
+                String expectedOtp = minidPlusCache.getOTP(sid);
+                if (sid != null && expectedOtp.equals(oneTimePassword.getOtpCode())) {
+                    //todo success
+                } else {
+                    //todo add some error message.
+                    return getNextView(request, STATE_VERIFICATION_CODE);
+                }
                 if (result.hasErrors()) {
                     return getNextView(request, STATE_VERIFICATION_CODE);
                 }
@@ -148,9 +168,9 @@ public class MinidPlusAuthorizeController {
         } else if (state == STATE_ERROR) {
             return "error";
         } else if (state == STATE_AUTHENTICATED) {
-            return "success";
-          /*  log.debug("RedirectUrl: " + request.getSession().getAttribute("redirectUrl"));
-            return "redirect:"+redirectUrl;*/
+            String url = buildUrl(request);
+            log.debug("RedirectUrl: " + url);
+            return "redirect:" + url;
         }
 
         return "error";
@@ -159,5 +179,27 @@ public class MinidPlusAuthorizeController {
 
     private void setSessionState(HttpServletRequest request, int state) {
         request.getSession().setAttribute(MinidPlusSessionAttributes.HTTP_SESSION_STATE, state);
+    }
+
+    private String buildUrl(HttpServletRequest request) {
+        HttpSession session = request.getSession();
+        String sid = (String) session.getAttribute("sid");
+        AuthorizationRequest ar = (AuthorizationRequest) session.getAttribute("authorizationRequest");
+        try {
+            return UriComponentsBuilder.newInstance()
+                    .uri(new URI(redirectUrl))
+                    .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_SID, sid)
+                    .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_REDIRECT_URL, ar.getRedirectUrl())
+                    .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_FORCE_AUTH, ar.getForceAuth())
+                    .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_GX_CHARSET, ar.getGx_charset())
+                    .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_LOCALE, ar.getLocale())
+                    .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_GOTO, ar.getGotoParam())
+                    .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_SERVICE, ar.getService())
+                    .build()
+                    .toUriString();
+        } catch (URISyntaxException e) {
+            log.error("Worng syntax durin URI building", e);
+        }
+        return null;
     }
 }

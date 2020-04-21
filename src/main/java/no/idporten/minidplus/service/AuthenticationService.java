@@ -9,7 +9,6 @@ import no.idporten.minidplus.domain.SmsMessage;
 import no.idporten.minidplus.exception.MinIDSystemException;
 import no.minid.service.MinIDService;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
