@@ -7,7 +7,9 @@
         <jsp:include page="sections/box-header.jsp" />
         <div class="Box_main" id="minidpluswrapper">
             <h1>SUCCESS!</h1>
-            <h2>But not really. A placeholder for redirect tilbake til tjenestetilbyder</h2>
+            <h2>En placeholder for redirect tilbake til idporten</h2>
+            <h3>Code = <%=session.getAttribute("sid")%>
+            </h3>
             <div>
                 <img  src="images/corona.jpg" alt="image" />
             </div>

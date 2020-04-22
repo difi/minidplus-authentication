@@ -17,9 +17,15 @@
 
             <form:form action="#" class="login js-makeProgress-1" modelAttribute="userCredentials" method="post">
                 <form:errors path="*" class="notification notification-error with-Icon icon-error" element="div"/>
+                <c:set var="personalIdNumberHasBindError">
+                    <form:errors path="personalIdNumber"/>
+                </c:set>
+                <c:set var="passwordHasBindError">
+                    <form:errors path="password"/>
+                </c:set>
                 <fieldset>
                     <div class="fm-Fields">
-                        <div class="fm-Field">
+                        <div class="fm-Field ${not empty personalIdNumberHasBindError ? ' error' : ''}">
                             <spring:message code='no.idporten.module.minidplus.input.personalidnumber.help'
                                             text='(11 siffer)' var="personalIdNumberHelpText"/>
                             <label for="personalIdNumber"><spring:message
@@ -33,7 +39,8 @@
                                         placeholder="${personalIdNumberHelpText}"
                                         autocomplete="off"/>
                         </div>
-                        <div class='fm-Field'>
+
+                        <div class="fm-Field ${not empty passwordHasBindError ? ' error' : ''}">
                             <spring:message code="no.idporten.module.minidplus.input.password.help"
                                             text="Skriv inn passord" var="passwordHelpText"/>
                             <label for="password"><spring:message code="no.idporten.module.minidplus.input.password"
@@ -47,6 +54,7 @@
                                         autocomplete="off"/>
 
                         </div>
+
                         <div class='fm-form_link with-Link'>
                             <a href='#'><span><spring:message code="no.idporten.module.minid.settings.menu.fgtpwd"
                                                               text="Glemt passord?"/></span></a>

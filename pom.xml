@@ -87,6 +87,11 @@
             <version>${eid.common.version}</version>
         </dependency>
         <dependency>
+            <groupId>no.difi.common</groupId>
+            <artifactId>idporten-lib-common-pojo</artifactId>
+            <version>${eid.common.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpcore</artifactId>
             <version>${org.apache.core}</version>

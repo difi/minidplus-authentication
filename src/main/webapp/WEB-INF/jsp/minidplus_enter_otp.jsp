@@ -18,12 +18,15 @@
 
             <form:form id="complete" action="#" modelAttribute="oneTimePassword" class="login js-makeProgress-2" method="post">
                 <form:errors path="*" class="notification notification-error with-Icon icon-error" element="div"/>
+                <c:set var="otpCodeHasBindError">
+                    <form:errors path="otpCode"/>
+                </c:set>
                     <fieldset>
                         <div class="fm-Fields">
                             <spring:message code='auth.ui.inputhelp.onetimecode'
                                             text='Skriv inn pinkode' var="pincodeHelpText"/>
 
-                            <div class="fm-Field">
+                            <div class="fm-Field ${not empty otpCodeHasBindError ? ' error' : ''}">
                                 <label for="otpCode"><spring:message code="auth.ui.prompt.otc" text="Kode fra SMS"/></label>
                                 <form:input tabindex="1"
                                         maxlength="5"

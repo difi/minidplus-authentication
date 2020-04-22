@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.idporten.minidplus.config.SmsProperties;
 import no.idporten.minidplus.domain.SmsMessage;
-import no.idporten.minidplus.exception.MinIDSystemException;
+import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import org.apache.http.HttpHost;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.config.RequestConfig;

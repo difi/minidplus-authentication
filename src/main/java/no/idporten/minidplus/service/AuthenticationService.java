@@ -5,9 +5,11 @@ import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.PersonNumber;
 import no.idporten.minidplus.config.SmsProperties;
-import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.domain.SmsMessage;
-import no.idporten.minidplus.exception.MinIDSystemException;
+import no.idporten.minidplus.exception.IDPortenExceptionID;
+import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
+import no.idporten.minidplus.exception.minid.MinIDSystemException;
+import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
 import org.apache.commons.lang.StringUtils;
@@ -15,7 +17,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
 
-import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
@@ -28,6 +29,7 @@ public class AuthenticationService {
 
     @Value("${minid-plus.credential-error-max-number}")
     private int MAX_NUMBER_OF_CREDENTIAL_ERRORS;
+    private final MinidPlusCache minidPlusCache;
 
     @Value("${idporten.serviceprovider.default-name}")
     private String serviceProviderDefaultName;
@@ -40,7 +42,7 @@ public class AuthenticationService {
     /**
      * Regex matching unkown encodings.
      */
-    public static final String unknownEntityRegex = "&#\\d*;";
+    private static final String unknownEntityRegex = "&#\\d*;";
 
     private final MessageSource messageSource;
 
@@ -52,32 +54,35 @@ public class AuthenticationService {
 
     private final MinIDService minIDService;
 
-    private final MinidPlusCache minidPlusCache;
 
+    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp) throws MinIDUserNotFoundException, MinIDIncorrectCredentialException {
 
-    public String authenticateUser(String pid, String password, ServiceProvider sp, String sessionId) throws IOException {
         PersonNumber uid = new PersonNumber(pid);
         MinidUser identity = minIDService.findByPersonNumber(uid);
 
         if (identity == null) {
-            throw new IllegalStateException("This state requires an associated identity");
+            throw new MinIDUserNotFoundException(IDPortenExceptionID.LDAP_ENTRY_NOT_FOUND, "User not found uid=" + uid);
         }
 
-        if(!minIDService.validateUserPassword(uid, password)) {
-            //throw error;
+        if (!minIDService.validateUserPassword(uid, password)) {
+            throw new MinIDIncorrectCredentialException(IDPortenExceptionID.IDENTITY_PASSWORD_INCORRECT, "Password validation failed");
         }
+        minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
 
+        //todo sendOtp(sid, serviceProvider, identity);
+        return true;
+    }
+
+    private void sendOtp(String sid, ServiceProvider sp, MinidUser identity) throws IOException {
         // Generates one time code and sends SMS with one time code to user's mobile phone number
         // Does not send one time code to users that are not allowed to get temporary passwords
         // Does not resend one time code
-        String generatedOneTimeCode;
-        if (minidPlusCache.getOTP(sessionId) == null) {
-            generatedOneTimeCode = otcPasswordService.generateOTCPassword();
-            minidPlusCache.putOTP(sessionId, generatedOneTimeCode);
-
+        if (minidPlusCache.getOTP(sid) == null) {
+            String generatedOneTimeCode = otcPasswordService.generateOTCPassword();
+            minidPlusCache.putOTP(sid, generatedOneTimeCode);
             try {
                 final String mobileNumber = identity.getPhoneNumber().getNumber();
-                final SmsMessage message = new SmsMessage(mobileNumber, getMessageBody(sp, sessionId), smsProperties.getOnetimepasswordTtl());
+                final SmsMessage message = new SmsMessage(mobileNumber, getMessageBody(sp, sid), smsProperties.getOnetimepasswordTtl());
                 smsService.sendSms(message);
                 //auditLog(AuditLogger.MINID_OTC_SENDT, new LogData(identity.getPersonNumber().getSsn(), mobileNumber));
             } catch (final MinIDSystemException mse) {
@@ -89,22 +94,21 @@ public class AuthenticationService {
         }
         //Trengst ikkje? Kan løysast i html?
         //setForceDigitalContactInfoShowModule(false);
-
-        return "enterOTCPage";
     }
 
-    public String checkOTCCode(String inputOneTimeCode, String sessionId) throws MinidUserNotFoundException {
 
-        Boolean isOneTimeCodeCorrect = false; //Assume false
+    public String checkOTCCode(String sid, String inputOneTimeCode) throws MinidUserNotFoundException {
 
-        MinidUser user = minIDService.findByPersonNumber(new PersonNumber(minidPlusCache.getSSN(sessionId)));
+        boolean isOneTimeCodeCorrect = false; //Assume false
 
-        if (inputOneTimeCode.equalsIgnoreCase(minidPlusCache.getOTP(sessionId))) {
+        MinidUser user = minIDService.findByPersonNumber(new PersonNumber(minidPlusCache.getSSN(sid)));
+
+        if (inputOneTimeCode.equalsIgnoreCase(minidPlusCache.getOTP(sid))) {
             isOneTimeCodeCorrect = true;
         }
         // Handles incorrect one time codes (and users that are not allowed to get temporary passwords)
         if (!isOneTimeCodeCorrect) { // Increments the error counter
-            user.setCredentialErrorCounter(user.getCredentialErrorCounter() +1);
+            user.setCredentialErrorCounter(user.getCredentialErrorCounter() + 1);
             minIDService.updateContactInformation(user);
             if (checkIfLastTry(user)) {
                 return "Error, last chance";
@@ -129,7 +133,9 @@ public class AuthenticationService {
 
     }
 
-    /** Resets the quarantine and credential error counters on MinidUser. */
+    /**
+     * Resets the quarantine and credential error counters on MinidUser.
+     */
     protected MinidUser resetCountersOnIdentity(MinidUser user) {
         if (user.getCredentialErrorCounter() > 0) {
             user.setCredentialErrorCounter(0);
@@ -137,15 +143,16 @@ public class AuthenticationService {
         return user;
     }
 
+
     private String getMessageBody(ServiceProvider sp, String sessionId) {
         if (isDummySp(sp)) {
             return getMessage(
                     "auth.ui.output.otc.message",
-                    new String[] { minidPlusCache.getOTP(sessionId) });
+                    new String[]{minidPlusCache.getOTP(sessionId) });
         } else {
             final String messageBody = getMessage(
                     "auth.ui.output.otc.message.sp",
-                    new String[] { minidPlusCache.getOTP(sessionId), sp.getName().trim() });
+                    new String[]{minidPlusCache.getOTP(sessionId), sp.getName().trim() });
             return replaceEntities(messageBody);
         }
     }
@@ -168,9 +175,6 @@ public class AuthenticationService {
      * - it does not have a name set
      * - the name set is "default"
      * - the name is the default configured for ID-porten
-     *
-     * @param sp sp
-     * @return true if a dummy/not real sp
      */
     public boolean isDummySp(final ServiceProvider sp) {
         if (StringUtils.isEmpty(sp.getName()) || sp.isDummy() || "default".equals(sp.getName())) {
@@ -182,9 +186,6 @@ public class AuthenticationService {
     /**
      * Replaces predefined entities with predefined characters.  If an entity is
      * found and it's not predefined, it is replaced with " ".
-     *
-     * @param message message text
-     * @return new message text with replaced entities
      */
     public static String replaceEntities(final String message) {
         if (StringUtils.isEmpty(message)) {
@@ -203,7 +204,8 @@ public class AuthenticationService {
 
     /**
      * Fetch message with given key and locale.
-     * @param key message key
+     *
+     * @param key  message key
      * @param args Argument values defined in given message
      * @return Message for given key and locale, where argument placeholders are replaced with values from args.
      */
@@ -211,4 +213,4 @@ public class AuthenticationService {
         return messageSource.getMessage(key, args, new Locale("eng"));
     }
 
-}
+    }

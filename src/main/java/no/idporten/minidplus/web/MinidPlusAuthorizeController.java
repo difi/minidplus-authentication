@@ -4,11 +4,15 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.idporten.domain.auth.AuthType;
+import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.UserCredentials;
-import no.idporten.minidplus.service.MinidPlusCache;
+import no.idporten.minidplus.exception.minid.MinIDAuthException;
+import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
+import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
+import no.idporten.minidplus.service.AuthenticationService;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
@@ -57,7 +61,7 @@ public class MinidPlusAuthorizeController {
 
     private final LocaleResolver localeResolver;
 
-    private final MinidPlusCache minidPlusCache;
+    private final AuthenticationService authenticationService;
 
     @Value("${idporten.redirecturl}")
     private String redirectUrl;
@@ -95,18 +99,27 @@ public class MinidPlusAuthorizeController {
             if (result.hasErrors()) {
                 return getNextView(request, STATE_USERDATA);
             }
-            if (handleUserdataInput(request, userCredentials) == STATE_ERROR) {
-                ObjectError objectError = new ObjectError("*", "Login failed"); //todo internationalized message
-                result.addError(objectError);
+            try {
+                //todo fake for now
+                ServiceProvider sp = new ServiceProvider("idporten");
+                authenticationService.authenticateUser(sid, userCredentials.getPersonalIdNumber(), userCredentials.getPassword(), sp);
+            } catch (MinIDAuthException e) {
+                String code = "";
+                if (e instanceof MinIDIncorrectCredentialException) {
+                    code = "auth.ui.usererror.format.password";
+                } else if (e instanceof MinIDUserNotFoundException) {
+                    code = "auth.ui.usererror.format.ssn";
+                }
+                result.addError(new ObjectError("authorizationRequest", new String[]{code}, null, "Login failed"));
+
                 return getNextView(request, STATE_USERDATA);
             }
-            minidPlusCache.putSSN(sid, "55555555555"); //to real ssn
-            //todo get real otp
-            minidPlusCache.putOTP(sid, "12345");
-            OneTimePassword oneTimePassword = new OneTimePassword("12345");
+
+            OneTimePassword oneTimePassword = new OneTimePassword();
             model.addAttribute(oneTimePassword);
             return getNextView(request, STATE_VERIFICATION_CODE);
         } else {
+            request.setAttribute("errorCode", "loginFailed");
             return getNextView(request, STATE_ERROR);
         }
     }
@@ -118,7 +131,7 @@ public class MinidPlusAuthorizeController {
             String sid = (String) request.getSession().getAttribute(MinidPlusSessionAttributes.HTTP_SESSION_SID);
             if (state == STATE_VERIFICATION_CODE) {
 
-                String expectedOtp = minidPlusCache.getOTP(sid);
+                String expectedOtp = oneTimePassword.getOtpCode(); //todo check otp minidPlusCache.getOTP(sid);
                 if (sid != null && expectedOtp.equals(oneTimePassword.getOtpCode())) {
                     //todo success
                 } else {
@@ -128,7 +141,7 @@ public class MinidPlusAuthorizeController {
                 if (result.hasErrors()) {
                     return getNextView(request, STATE_VERIFICATION_CODE);
                 }
-                return getNextView(request, handleOtpInput(oneTimePassword.getOtpCode()));
+                return getNextView(request, handleOtpInput(sid, oneTimePassword.getOtpCode()));
             }
         } catch (Exception e) {
             //todo
@@ -137,19 +150,8 @@ public class MinidPlusAuthorizeController {
         return getNextView(request, STATE_ERROR);
     }
 
-    private int handleOtpInput(String otp) {
+    private int handleOtpInput(String sid, String otp) {
         return STATE_AUTHENTICATED; //todo
-    }
-
-    private int handleUserdataInput(HttpServletRequest request, UserCredentials userCredentials) {
-
-        if (true) {
-            return STATE_VERIFICATION_CODE; //todo
-        } else {
-            request.setAttribute("errorCode", "loginFailed");
-            return STATE_ERROR;
-        }
-
     }
 
     private int prepareErrorPage(String errorCode, HttpServletRequest request) {
@@ -170,7 +172,8 @@ public class MinidPlusAuthorizeController {
         } else if (state == STATE_AUTHENTICATED) {
             String url = buildUrl(request);
             log.debug("RedirectUrl: " + url);
-            return "redirect:" + url;
+            return "success";
+            //return "redirect:" + url;
         }
 
         return "error";
@@ -186,16 +189,18 @@ public class MinidPlusAuthorizeController {
         String sid = (String) session.getAttribute("sid");
         AuthorizationRequest ar = (AuthorizationRequest) session.getAttribute("authorizationRequest");
         try {
-            return UriComponentsBuilder.newInstance()
+            UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance()
                     .uri(new URI(redirectUrl))
-                    .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_SID, sid)
-                    .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_REDIRECT_URL, ar.getRedirectUrl())
-                    .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_FORCE_AUTH, ar.getForceAuth())
-                    .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_GX_CHARSET, ar.getGx_charset())
-                    .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_LOCALE, ar.getLocale())
-                    .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_GOTO, ar.getGotoParam())
-                    .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_SERVICE, ar.getService())
-                    .build()
+                    .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_SID, sid);
+            if (ar != null) {
+                uriComponentsBuilder.queryParam(MinidPlusSessionAttributes.HTTP_SESSION_REDIRECT_URL, ar.getRedirectUrl())
+                        .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_FORCE_AUTH, ar.getForceAuth())
+                        .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_GX_CHARSET, ar.getGx_charset())
+                        .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_LOCALE, ar.getLocale())
+                        .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_GOTO, ar.getGotoParam())
+                        .queryParam(MinidPlusSessionAttributes.HTTP_SESSION_SERVICE, ar.getService());
+            }
+            uriComponentsBuilder.build()
                     .toUriString();
         } catch (URISyntaxException e) {
             log.error("Worng syntax durin URI building", e);

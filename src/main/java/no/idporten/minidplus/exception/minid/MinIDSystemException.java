@@ -1,4 +1,7 @@
-package no.idporten.minidplus.exception;
+package no.idporten.minidplus.exception.minid;
+
+import no.idporten.minidplus.exception.IDPortenException;
+import no.idporten.minidplus.exception.IDPortenMessageID;
 
 /**
  * An unchecked exception for the MinID application.
@@ -8,6 +11,8 @@ package no.idporten.minidplus.exception;
  *
  */
 public class MinIDSystemException extends IDPortenException {
+
+    private static final long serialVersionUID = 1L;
 
     public MinIDSystemException(final IDPortenMessageID exceptionID, final String msg) {
         super(exceptionID, msg);
