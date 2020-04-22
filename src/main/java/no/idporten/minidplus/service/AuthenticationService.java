@@ -5,15 +5,19 @@ import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.PersonNumber;
 import no.idporten.minidplus.config.SmsProperties;
+import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.domain.SmsMessage;
 import no.idporten.minidplus.exception.MinIDSystemException;
+import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -22,8 +26,8 @@ import java.util.Map;
 @Service
 public class AuthenticationService {
 
-    /** The one-time password (in memory). */
-    private transient String generatedOneTimeCode;
+    @Value("${minid-plus.credential-error-max-number}")
+    private int MAX_NUMBER_OF_CREDENTIAL_ERRORS;
 
     @Value("${idporten.serviceprovider.default-name}")
     private String serviceProviderDefaultName;
@@ -48,9 +52,10 @@ public class AuthenticationService {
 
     private final MinIDService minIDService;
 
+    private final MinidPlusCache minidPlusCache;
 
-    public String authenticateUser(String pid, String password, ServiceProvider sp) throws IOException {
 
+    public String authenticateUser(String pid, String password, ServiceProvider sp, String sessionId) throws IOException {
         PersonNumber uid = new PersonNumber(pid);
         MinidUser identity = minIDService.findByPersonNumber(uid);
 
@@ -65,12 +70,14 @@ public class AuthenticationService {
         // Generates one time code and sends SMS with one time code to user's mobile phone number
         // Does not send one time code to users that are not allowed to get temporary passwords
         // Does not resend one time code
-        if (generatedOneTimeCode == null) {
+        String generatedOneTimeCode;
+        if (minidPlusCache.getOTP(sessionId) == null) {
             generatedOneTimeCode = otcPasswordService.generateOTCPassword();
+            minidPlusCache.putOTP(sessionId, generatedOneTimeCode);
 
             try {
                 final String mobileNumber = identity.getPhoneNumber().getNumber();
-                final SmsMessage message = new SmsMessage(mobileNumber, getMessageBody(sp), smsProperties.getOnetimepasswordTtl());
+                final SmsMessage message = new SmsMessage(mobileNumber, getMessageBody(sp, sessionId), smsProperties.getOnetimepasswordTtl());
                 smsService.sendSms(message);
                 //auditLog(AuditLogger.MINID_OTC_SENDT, new LogData(identity.getPersonNumber().getSsn(), mobileNumber));
             } catch (final MinIDSystemException mse) {
@@ -86,22 +93,59 @@ public class AuthenticationService {
         return "enterOTCPage";
     }
 
-    public String checkOTCCode(String inputOneTimeCode) {
-        if (inputOneTimeCode.equalsIgnoreCase(generatedOneTimeCode)) {
-            return "successPage";
+    public String checkOTCCode(String inputOneTimeCode, String sessionId) throws MinidUserNotFoundException {
+
+        Boolean isOneTimeCodeCorrect = false; //Assume false
+
+        MinidUser user = minIDService.findByPersonNumber(new PersonNumber(minidPlusCache.getSSN(sessionId)));
+
+        if (inputOneTimeCode.equalsIgnoreCase(minidPlusCache.getOTP(sessionId))) {
+            isOneTimeCodeCorrect = true;
         }
-        return "InvalidCode";
+        // Handles incorrect one time codes (and users that are not allowed to get temporary passwords)
+        if (!isOneTimeCodeCorrect) { // Increments the error counter
+            user.setCredentialErrorCounter(user.getCredentialErrorCounter() +1);
+            minIDService.updateContactInformation(user);
+            if (checkIfLastTry(user)) {
+                return "Error, last chance";
+            }
+            return "Error";
+        }
+        // resetting counters when setting user to authenticated.
+        resetCountersOnIdentity(user);
+
+        updateUserAfterSuccessfulLogin(user);
+
+        return "Success";
     }
 
-    private String getMessageBody(ServiceProvider sp) {
+    protected void updateUserAfterSuccessfulLogin(MinidUser user) throws MinidUserNotFoundException {
+        user.setLastLogin(new Date());
+        minIDService.updateContactInformation(user);
+    }
+
+    protected boolean checkIfLastTry(MinidUser user) {
+        return user.getCredentialErrorCounter() == MAX_NUMBER_OF_CREDENTIAL_ERRORS - 1;
+
+    }
+
+    /** Resets the quarantine and credential error counters on MinidUser. */
+    protected MinidUser resetCountersOnIdentity(MinidUser user) {
+        if (user.getCredentialErrorCounter() > 0) {
+            user.setCredentialErrorCounter(0);
+        }
+        return user;
+    }
+
+    private String getMessageBody(ServiceProvider sp, String sessionId) {
         if (isDummySp(sp)) {
             return getMessage(
                     "auth.ui.output.otc.message",
-                    new String[] { generatedOneTimeCode });
+                    new String[] { minidPlusCache.getOTP(sessionId) });
         } else {
             final String messageBody = getMessage(
                     "auth.ui.output.otc.message.sp",
-                    new String[] { generatedOneTimeCode, sp.getName().trim() });
+                    new String[] { minidPlusCache.getOTP(sessionId), sp.getName().trim() });
             return replaceEntities(messageBody);
         }
     }
