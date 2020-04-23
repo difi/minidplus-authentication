@@ -55,7 +55,7 @@ public class AuthenticationService {
     private final MinIDService minIDService;
 
 
-    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp) throws MinIDUserNotFoundException, MinIDIncorrectCredentialException {
+    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp) throws MinIDUserNotFoundException, MinIDIncorrectCredentialException, IOException {
 
         PersonNumber uid = new PersonNumber(pid);
         MinidUser identity = minIDService.findByPersonNumber(uid);
@@ -72,7 +72,7 @@ public class AuthenticationService {
         }
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
 
-        //todo sendOtp(sid, serviceProvider, identity);
+        sendOtp(sid, sp, identity);
         return true;
     }
 
@@ -84,8 +84,8 @@ public class AuthenticationService {
             String generatedOneTimeCode = otcPasswordService.generateOTCPassword();
             minidPlusCache.putOTP(sid, generatedOneTimeCode);
             try {
-                final String mobileNumber = identity.getPhoneNumber().getNumber();
-                final SmsMessage message = new SmsMessage(mobileNumber, getMessageBody(sp, sid), smsProperties.getOnetimepasswordTtl());
+//                final String mobileNumber = identity.getPhoneNumber().getNumber();
+                final SmsMessage message = new SmsMessage("99286853", getMessageBody(sp, sid), smsProperties.getOnetimepasswordTtl());
                 smsService.sendSms(message);
                 //auditLog(AuditLogger.MINID_OTC_SENDT, new LogData(identity.getPersonNumber().getSsn(), mobileNumber));
             } catch (final MinIDSystemException mse) {
@@ -221,7 +221,7 @@ public class AuthenticationService {
      * @return Message for given key and locale, where argument placeholders are replaced with values from args.
      */
     public String getMessage(String key, Object[] args) {
-        return messageSource.getMessage(key, args, new Locale("eng"));
+        return messageSource.getMessage(key, args, new Locale("en_GB"));
     }
 
     }

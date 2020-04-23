@@ -9,7 +9,6 @@ import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -175,7 +174,7 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void checkLoginWithOTCLocked() throws MinIDIncorrectCredentialException, MinIDUserNotFoundException{
+    public void checkLoginWithOTCLocked() throws MinIDIncorrectCredentialException, MinIDUserNotFoundException, IOException {
         MinidUser user = new MinidUser();
         user.setCredentialErrorCounter(0);
         user.setOneTimeCodeLocked(true);
