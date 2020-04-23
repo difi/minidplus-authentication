@@ -63,6 +63,9 @@ public class AuthenticationService {
         if (identity == null) {
             throw new MinIDUserNotFoundException(IDPortenExceptionID.LDAP_ENTRY_NOT_FOUND, "User not found uid=" + uid);
         }
+        if(identity.isOneTimeCodeLocked()) {
+            return false;
+        }
 
         if (!minIDService.validateUserPassword(uid, password)) {
             throw new MinIDIncorrectCredentialException(IDPortenExceptionID.IDENTITY_PASSWORD_INCORRECT, "Password validation failed");
@@ -106,6 +109,14 @@ public class AuthenticationService {
         if (inputOneTimeCode.equalsIgnoreCase(minidPlusCache.getOTP(sid))) {
             isOneTimeCodeCorrect = true;
         }
+        if (user.getCredentialErrorCounter() == MAX_NUMBER_OF_CREDENTIAL_ERRORS) {
+            user.setOneTimeCodeLocked(true);
+            return "Error, pin code locked";
+        }
+        if(user.isOneTimeCodeLocked()) {
+            return "Error, pin code locked";
+        }
+
         // Handles incorrect one time codes (and users that are not allowed to get temporary passwords)
         if (!isOneTimeCodeCorrect) { // Increments the error counter
             user.setCredentialErrorCounter(user.getCredentialErrorCounter() + 1);
