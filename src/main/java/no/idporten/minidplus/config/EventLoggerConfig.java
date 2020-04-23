@@ -15,7 +15,7 @@ import org.springframework.jms.core.JmsTemplate;
 import javax.jms.ConnectionFactory;
 
 @Configuration
-@ConfigurationProperties(prefix = "eventlogger")
+@ConfigurationProperties(prefix = "event")
 @Data
 public class EventLoggerConfig {
 

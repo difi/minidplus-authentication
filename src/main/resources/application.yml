@@ -21,10 +21,12 @@ spring:
 
 management:
   health:
-    diskspace:
+    defaults:
       enabled: false
     jms:
-      enabled: false
+      enabled: true
+    ldap:
+      enabled: true
   endpoints:
     web:
       base-path: /
@@ -55,6 +57,6 @@ minid-plus:
   cache:
     otp-ttl-in-s: 600
     code-ttl-in-s: 6
-eventlogger:
+event:
   jmsUrl: tcp://eid-systest-admin01.dmz.local:61616
   jmsQueue: logqueue
