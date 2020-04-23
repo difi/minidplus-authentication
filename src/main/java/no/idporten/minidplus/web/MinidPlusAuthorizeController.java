@@ -13,7 +13,6 @@ import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
 import no.idporten.minidplus.service.AuthenticationService;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -64,8 +63,6 @@ public class MinidPlusAuthorizeController {
 
     private final AuthenticationService authenticationService;
 
-    @Value("${idporten.redirecturl}")
-    private String redirectUrl;
 
     @GetMapping(produces = "text/html; charset=utf-8")
     public String doGet(HttpServletRequest request, HttpServletResponse response, /* //todo comment back in when ready @Valid*/ AuthorizationRequest authorizationRequest, Model model) throws IOException {
@@ -102,7 +99,7 @@ public class MinidPlusAuthorizeController {
                 return getNextView(request, STATE_USERDATA);
             }
             try {
-                ServiceProvider sp = new ServiceProvider(ar.getService());
+                ServiceProvider sp = new ServiceProvider(ar.getSpEntityId());
                 authenticationService.authenticateUser(sid, userCredentials.getPersonalIdNumber(), userCredentials.getPassword(), sp);
             } catch (MinIDAuthException e) {
                 String code = "";
@@ -172,13 +169,14 @@ public class MinidPlusAuthorizeController {
             return "error";
         } else if (state == STATE_AUTHENTICATED) {
             String url = buildUrl(request);
-            log.debug("RedirectUrl: " + url);
-            return "success";
-            //return "redirect:" + url;
+            if (url != null) {
+                log.debug("RedirectUrl: " + url);
+                return "redirect:" + url;
+            } else {
+                return "success"; //todo fjern før prod!
+            }
         }
-
         return "error";
-
     }
 
     private void setSessionState(HttpServletRequest request, int state) {
@@ -189,22 +187,24 @@ public class MinidPlusAuthorizeController {
         HttpSession session = request.getSession();
         String sid = (String) session.getAttribute("sid");
         AuthorizationRequest ar = (AuthorizationRequest) session.getAttribute(AUTHORIZATION_REQUEST);
-        try {
-            UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance()
-                    .uri(new URI(redirectUrl))
-                    .queryParam(HTTP_SESSION_SID, sid);
-            if (ar != null) {
+        if (ar != null && ar.getRedirectUrl() != null) {
+            try {
+                UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance()
+                        .uri(new URI(ar.getRedirectUrl()))
+                        .queryParam(HTTP_SESSION_SID, sid);
+
                 uriComponentsBuilder.queryParam(HTTP_SESSION_REDIRECT_URL, ar.getRedirectUrl())
                         .queryParam(HTTP_SESSION_FORCE_AUTH, ar.getForceAuth())
                         .queryParam(HTTP_SESSION_GX_CHARSET, ar.getGx_charset())
                         .queryParam(HTTP_SESSION_LOCALE, ar.getLocale())
                         .queryParam(HTTP_SESSION_GOTO, ar.getGotoParam())
                         .queryParam(HTTP_SESSION_SERVICE, ar.getService());
+
+                uriComponentsBuilder.build()
+                        .toUriString();
+            } catch (URISyntaxException e) {
+                log.error("Worng syntax durin URI building", e);
             }
-            uriComponentsBuilder.build()
-                    .toUriString();
-        } catch (URISyntaxException e) {
-            log.error("Worng syntax durin URI building", e);
         }
         return null;
     }

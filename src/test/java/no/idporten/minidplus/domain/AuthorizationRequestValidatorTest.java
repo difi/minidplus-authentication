@@ -29,10 +29,11 @@ public class AuthorizationRequestValidatorTest {
     public void authorization_request_is_valid() {
         AuthorizationRequest ar = new AuthorizationRequest();
         ar.setRedirectUrl("http://localhost");
-        ar.setService("IDPorten");
+        ar.setService("MinidPlus");
         ar.setStartService("IdportenLevel4List");
         ar.setGx_charset("UTF-8");
         ar.setLocale("nb");
+        ar.setSpEntityId("NAV");
         ar.setGotoParam("http://digir.test.no");
         ar.setForceAuth(true);
         Set<ConstraintViolation<AuthorizationRequest>> violations = validator.validate(ar);
@@ -43,11 +44,12 @@ public class AuthorizationRequestValidatorTest {
     public void authorization_request_is_invalid() {
         AuthorizationRequest ar = new AuthorizationRequest();
         ar.setRedirectUrl("biff");
-        ar.setService("IDPorten");
+        ar.setService("MinidPlus");
         ar.setStartService("IdportenLevel4List");
         ar.setGx_charset("UTF-8");
         ar.setLocale("nb");
         ar.setGotoParam("poteter");
+        ar.setSpEntityId("NAV");
         ar.setForceAuth(false);
         Set<ConstraintViolation<AuthorizationRequest>> violations = validator.validate(ar);
         assertFalse(violations.isEmpty());

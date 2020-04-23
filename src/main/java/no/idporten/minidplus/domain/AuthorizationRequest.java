@@ -24,7 +24,13 @@ public class AuthorizationRequest implements Serializable {
     private String redirectUrl="";
 
     /**
-     *   Name of service that initiated authorization
+     * Id to look up service provider
+     **/
+    @NotEmpty
+    private String spEntityId = "";
+
+    /**
+     *   Name of login service
      **/
     @NotEmpty
     private String service="";
