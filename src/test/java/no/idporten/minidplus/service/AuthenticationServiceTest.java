@@ -4,9 +4,9 @@ import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.MobilePhoneNumber;
 import no.idporten.domain.user.PersonNumber;
-import no.idporten.minidplus.config.SmsProperties;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
+import no.idporten.minidplus.linkmobility.LINKMobilityClient;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
 import org.junit.Test;
@@ -16,8 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit4.SpringRunner;
-
-import java.io.IOException;
 
 import static junit.framework.TestCase.assertTrue;
 import static junit.framework.TestCase.fail;
@@ -52,10 +50,7 @@ public class AuthenticationServiceTest {
     OTCPasswordService otcPasswordService;
 
     @MockBean
-    SmsService smsService;
-
-    @MockBean
-    SmsProperties smsProperties;
+    LINKMobilityClient linkMobilityClient;
 
     @Test
     public void testAuthentication() {
@@ -174,7 +169,7 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void checkLoginWithOTCLocked() throws MinIDIncorrectCredentialException, MinIDUserNotFoundException, IOException {
+    public void checkLoginWithOTCLocked() throws MinIDIncorrectCredentialException, MinIDUserNotFoundException {
         MinidUser user = new MinidUser();
         user.setCredentialErrorCounter(0);
         user.setOneTimeCodeLocked(true);

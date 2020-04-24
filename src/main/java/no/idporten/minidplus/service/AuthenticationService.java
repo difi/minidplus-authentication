@@ -4,12 +4,11 @@ import lombok.RequiredArgsConstructor;
 import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.PersonNumber;
-import no.idporten.minidplus.config.SmsProperties;
-import no.idporten.minidplus.domain.SmsMessage;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
-import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
+import no.idporten.minidplus.linkmobility.LINKMobilityClient;
+import no.idporten.minidplus.linkmobility.LINKMobilityProperties;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
 import org.apache.commons.lang.StringUtils;
@@ -17,11 +16,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+
+import static java.time.LocalDateTime.now;
 
 @RequiredArgsConstructor
 @Service
@@ -48,14 +50,14 @@ public class AuthenticationService {
 
     private final OTCPasswordService otcPasswordService;
 
-    private final SmsService smsService;
+    private final LINKMobilityClient linkMobilityClient;
 
-    private final SmsProperties smsProperties;
+    private final LINKMobilityProperties linkMobilityProperties;
 
     private final MinIDService minIDService;
 
 
-    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp) throws MinIDUserNotFoundException, MinIDIncorrectCredentialException, IOException {
+    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp) throws MinIDUserNotFoundException, MinIDIncorrectCredentialException {
 
         PersonNumber uid = new PersonNumber(pid);
         MinidUser identity = minIDService.findByPersonNumber(uid);
@@ -73,30 +75,20 @@ public class AuthenticationService {
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
 
         sendOtp(sid, sp, identity);
+
         return true;
     }
 
-    private void sendOtp(String sid, ServiceProvider sp, MinidUser identity) throws IOException {
+    private void sendOtp(String sid, ServiceProvider sp, MinidUser identity) {
         // Generates one time code and sends SMS with one time code to user's mobile phone number
         // Does not send one time code to users that are not allowed to get temporary passwords
         // Does not resend one time code
         if (minidPlusCache.getOTP(sid) == null) {
             String generatedOneTimeCode = otcPasswordService.generateOTCPassword();
             minidPlusCache.putOTP(sid, generatedOneTimeCode);
-            try {
-//                final String mobileNumber = identity.getPhoneNumber().getNumber();
-                final SmsMessage message = new SmsMessage("99286853", getMessageBody(sp, sid), smsProperties.getOnetimepasswordTtl());
-                smsService.sendSms(message);
-                //auditLog(AuditLogger.MINID_OTC_SENDT, new LogData(identity.getPersonNumber().getSsn(), mobileNumber));
-            } catch (final MinIDSystemException mse) {
-                //Her kan vi sikkert berre returnere til eit anna view istadenfor å bruke "setFeedback".
-
-                // Don't terminate authentication, leave user the option of changing to pincode
-                //setFeedback(MinidFeedbackType.WARNING, "auth.ui.error.sendingotc.messsage");
-            }
+            final String mobileNumber = identity.getPhoneNumber().getNumber();
+            linkMobilityClient.sendSms(mobileNumber, getMessageBody(sp, generatedOneTimeCode, now().plusSeconds(linkMobilityProperties.getTtl())));
         }
-        //Trengst ikkje? Kan løysast i html?
-        //setForceDigitalContactInfoShowModule(false);
     }
 
 
@@ -155,18 +147,19 @@ public class AuthenticationService {
     }
 
 
-    private String getMessageBody(ServiceProvider sp, String sessionId) {
+    private String getMessageBody(ServiceProvider sp, String otc, LocalDateTime expire) {
         if (isDummySp(sp)) {
             return getMessage(
                     "auth.ui.output.otc.message",
-                    new String[]{minidPlusCache.getOTP(sessionId) });
+                    new String[]{ otc, DateTimeFormatter.ofPattern("HH:mm").format(expire) });
         } else {
             final String messageBody = getMessage(
                     "auth.ui.output.otc.message.sp",
-                    new String[]{minidPlusCache.getOTP(sessionId), sp.getName().trim() });
+                    new String[]{ otc, sp.getName().trim(), DateTimeFormatter.ofPattern("HH:mm").format(expire)  });
             return replaceEntities(messageBody);
         }
     }
+
 /*
     protected void auditLog(final String messageId, final LogData logData) throws MinIDSystemException {
         try {

@@ -41,14 +41,6 @@ idporten:
   redirecturl: http://localhost:8080/redirecturl
   serviceprovider:
     default-name: Ukjent tjenesteeier
-sms:
-  sendernumber: Digdir
-  authorized-numbers-list: difi-mobile-numbers.txt
-  onetimepassword-ttl: 600 #Seconds
-  pswincom:
-    url: https://gw2-d01-fro.pswin.com:8443
-    username: difistaging
-    password: ixxFg3Kgg4
 minid-plus:
   token-lifetime-seconds: 600
   credential-error-max-number: 3
@@ -60,3 +52,12 @@ minid-plus:
 event:
   jmsUrl: tcp://eid-systest-admin01.dmz.local:61616
   jmsQueue: logqueue
+# LINKMobility integration
+linkmobility:
+  url: https://gw2-fro.pswin.com:8443
+  account: difi-test
+  password: F82iS5A7X
+  connectTimeout: 5000 #ms?
+  readTimeout: 10000 #ms?
+  sender: Digdir
+  ttl: 600 #s
