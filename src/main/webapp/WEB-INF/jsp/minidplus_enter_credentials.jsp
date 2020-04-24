@@ -15,17 +15,19 @@
                 <div class="fm-Progress_Dot"></div>
             </div>
 
+            <c:set var="personalIdNumberHasBindError">
+                <form:errors path="personalIdNumber"/>
+            </c:set>
+            <c:set var="passwordHasBindError">
+                <form:errors path="password"/>
+            </c:set>
+
             <form:form action="#" class="login js-makeProgress-1" modelAttribute="userCredentials" method="post">
-                <form:errors path="*" class="notification notification-error with-Icon icon-error" element="div"/>
-                <c:set var="personalIdNumberHasBindError">
-                    <form:errors path="personalIdNumber"/>
-                </c:set>
-                <c:set var="passwordHasBindError">
-                    <form:errors path="password"/>
-                </c:set>
+                <form:errors path="*" class="notification notification-error with-Icon icon-error" element="div" htmlEscape="false"/>
+
                 <fieldset>
                     <div class="fm-Fields">
-                        <div class="fm-Field ${not empty personalIdNumberHasBindError ? ' error' : ''}">
+                        <div class="fm-Field${not empty personalIdNumberHasBindError ? ' error' : ''}">
                             <spring:message code='no.idporten.module.minidplus.input.personalidnumber.help'
                                             text='(11 siffer)' var="personalIdNumberHelpText"/>
                             <label for="personalIdNumber"><spring:message
@@ -40,7 +42,7 @@
                                         autocomplete="off"/>
                         </div>
 
-                        <div class="fm-Field ${not empty passwordHasBindError ? ' error' : ''}">
+                        <div class="fm-Field${not empty passwordHasBindError  ? ' error' : ''}">
                             <spring:message code="no.idporten.module.minidplus.input.password.help"
                                             text="Skriv inn passord" var="passwordHelpText"/>
                             <label for="password"><spring:message code="no.idporten.module.minidplus.input.password"

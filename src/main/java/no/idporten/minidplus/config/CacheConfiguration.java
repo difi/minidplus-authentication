@@ -28,12 +28,12 @@ public class CacheConfiguration {
                 .withCache("sidSSN",
                         CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
                                 ResourcePoolsBuilder.heap(100))
-                                .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(otpTTL)))
+                                .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(codeTTL)))
                                 .build())
                 .withCache("sidOTP",
                         CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
                                 ResourcePoolsBuilder.heap(100))
-                                .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(codeTTL)))
+                                .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(otpTTL)))
                                 .build())
                 .build(true);
     }

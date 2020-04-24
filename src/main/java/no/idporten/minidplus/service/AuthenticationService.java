@@ -30,14 +30,13 @@ import static java.time.LocalDateTime.now;
 public class AuthenticationService {
 
     @Value("${minid-plus.credential-error-max-number}")
-    private int MAX_NUMBER_OF_CREDENTIAL_ERRORS;
-    private final MinidPlusCache minidPlusCache;
-
+    private int maxNumberOfCredentialErrors;
     @Value("${idporten.serviceprovider.default-name}")
     private String serviceProviderDefaultName;
 
     /**
      * Map from entity encodings to characters.
+     * //todo hvorfor er denne tom
      */
     private static final Map<String, String> entityToCharacterMap = new HashMap<String, String>();
 
@@ -56,6 +55,7 @@ public class AuthenticationService {
 
     private final MinIDService minIDService;
 
+    private final MinidPlusCache minidPlusCache;
 
     public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp) throws MinIDUserNotFoundException, MinIDIncorrectCredentialException {
 
@@ -79,6 +79,11 @@ public class AuthenticationService {
         return true;
     }
 
+    public boolean otpIsValid(String sid, String oneTimePassword) {
+        String expectedOtp = minidPlusCache.getOTP(sid);
+        return sid != null && expectedOtp != null && expectedOtp.equals(oneTimePassword);
+    }
+
     private void sendOtp(String sid, ServiceProvider sp, MinidUser identity) {
         // Generates one time code and sends SMS with one time code to user's mobile phone number
         // Does not send one time code to users that are not allowed to get temporary passwords
@@ -92,7 +97,7 @@ public class AuthenticationService {
     }
 
 
-    public String checkOTCCode(String sid, String inputOneTimeCode) throws MinidUserNotFoundException {
+    String checkOTCCode(String sid, String inputOneTimeCode) throws MinidUserNotFoundException {
 
         boolean isOneTimeCodeCorrect = false; //Assume false
 
@@ -101,7 +106,7 @@ public class AuthenticationService {
         if (inputOneTimeCode.equalsIgnoreCase(minidPlusCache.getOTP(sid))) {
             isOneTimeCodeCorrect = true;
         }
-        if (user.getCredentialErrorCounter() == MAX_NUMBER_OF_CREDENTIAL_ERRORS) {
+        if (user.getCredentialErrorCounter() == maxNumberOfCredentialErrors) {
             user.setOneTimeCodeLocked(true);
             return "Error, pin code locked";
         }
@@ -126,20 +131,20 @@ public class AuthenticationService {
         return "Success";
     }
 
-    protected void updateUserAfterSuccessfulLogin(MinidUser user) throws MinidUserNotFoundException {
+    private void updateUserAfterSuccessfulLogin(MinidUser user) throws MinidUserNotFoundException {
         user.setLastLogin(new Date());
         minIDService.updateContactInformation(user);
     }
 
-    protected boolean checkIfLastTry(MinidUser user) {
-        return user.getCredentialErrorCounter() == MAX_NUMBER_OF_CREDENTIAL_ERRORS - 1;
+    private boolean checkIfLastTry(MinidUser user) {
+        return user.getCredentialErrorCounter() == maxNumberOfCredentialErrors - 1;
 
     }
 
     /**
      * Resets the quarantine and credential error counters on MinidUser.
      */
-    protected MinidUser resetCountersOnIdentity(MinidUser user) {
+    private MinidUser resetCountersOnIdentity(MinidUser user) {
         if (user.getCredentialErrorCounter() > 0) {
             user.setCredentialErrorCounter(0);
         }
@@ -180,7 +185,7 @@ public class AuthenticationService {
      * - the name set is "default"
      * - the name is the default configured for ID-porten
      */
-    public boolean isDummySp(final ServiceProvider sp) {
+    private boolean isDummySp(final ServiceProvider sp) {
         if (StringUtils.isEmpty(sp.getName()) || sp.isDummy() || "default".equals(sp.getName())) {
             return true;
         }
@@ -191,7 +196,7 @@ public class AuthenticationService {
      * Replaces predefined entities with predefined characters.  If an entity is
      * found and it's not predefined, it is replaced with " ".
      */
-    public static String replaceEntities(final String message) {
+    private static String replaceEntities(final String message) {
         if (StringUtils.isEmpty(message)) {
             return message;
         }
@@ -213,7 +218,7 @@ public class AuthenticationService {
      * @param args Argument values defined in given message
      * @return Message for given key and locale, where argument placeholders are replaced with values from args.
      */
-    public String getMessage(String key, Object[] args) {
+    private String getMessage(String key, Object[] args) {
         return messageSource.getMessage(key, args, new Locale("en_GB"));
     }
 

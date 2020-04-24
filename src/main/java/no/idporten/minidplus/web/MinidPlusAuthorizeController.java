@@ -6,9 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import no.idporten.domain.auth.AuthType;
 import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.minidplus.domain.AuthorizationRequest;
+import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.UserCredentials;
-import no.idporten.minidplus.exception.minid.MinIDAuthException;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
 import no.idporten.minidplus.service.AuthenticationService;
@@ -16,6 +16,7 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -28,7 +29,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Locale;
@@ -59,23 +59,27 @@ public class MinidPlusAuthorizeController {
     private static final String EMAIL_ADDRESS = "emailAddress";
     private static final String IDPORTEN_INPUTBUTTON_PREFIX = "idporten.inputbutton.";
 
+    public static final String MODEL_AUTHORIZATION_REQUEST = "authorizationRequest";
+    public static final String MODEL_ONE_TIME_CODE = "oneTimePassword";
+    public static final String MODEL_USER_CREDENTIALS = "userCredentials";
+
     private final LocaleResolver localeResolver;
 
     private final AuthenticationService authenticationService;
 
 
     @GetMapping(produces = "text/html; charset=utf-8")
-    public String doGet(HttpServletRequest request, HttpServletResponse response, /* //todo comment back in when ready @Valid*/ AuthorizationRequest authorizationRequest, Model model) throws IOException {
+    public String doGet(HttpServletRequest request, HttpServletResponse response, /* //todo comment back in when ready @Valid*/ AuthorizationRequest authorizationRequest, Model model) {
         request.getSession().invalidate();
         request.getSession().setAttribute(HTTP_SESSION_AUTH_TYPE, AuthType.MINID_PLUS);
         request.getSession().setAttribute(HTTP_SESSION_SID, UUID.randomUUID().toString());
 
         authorizationRequest.setStartService(request.getParameter(HTTP_SESSION_START_SERVICE)); //tmp workaround for stupid dash-param
         setLocale(request, response, authorizationRequest);
-        request.getSession().setAttribute(AUTHORIZATION_REQUEST, authorizationRequest);
+        request.getSession().setAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST, authorizationRequest);
 
         UserCredentials userCredentials = new UserCredentials();
-        model.addAttribute("userCredentials", userCredentials);
+        model.addAttribute(MODEL_USER_CREDENTIALS, userCredentials);
         return getNextView(request, STATE_USERDATA);
     }
 
@@ -89,11 +93,12 @@ public class MinidPlusAuthorizeController {
     }
 
     @PostMapping
-    public String postUserCredentials(HttpServletRequest request, @Valid @ModelAttribute("userCredentials") UserCredentials userCredentials, BindingResult result, Model model) throws IOException {
+    public String postUserCredentials(HttpServletRequest request, @Valid @ModelAttribute(MODEL_USER_CREDENTIALS) UserCredentials userCredentials, BindingResult result, Model model) {
 
         int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
         String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
         AuthorizationRequest ar = (AuthorizationRequest) request.getSession().getAttribute(AUTHORIZATION_REQUEST);
+
         if (state == STATE_USERDATA) {
             if (result.hasErrors()) {
                 return getNextView(request, STATE_USERDATA);
@@ -101,65 +106,46 @@ public class MinidPlusAuthorizeController {
             try {
                 ServiceProvider sp = new ServiceProvider(ar.getSpEntityId());
                 authenticationService.authenticateUser(sid, userCredentials.getPersonalIdNumber(), userCredentials.getPassword(), sp);
-            } catch (MinIDAuthException e) {
-                String code = "";
-                if (e instanceof MinIDIncorrectCredentialException) {
-                    code = "auth.ui.usererror.format.password";
-                } else if (e instanceof MinIDUserNotFoundException) {
-                    code = "auth.ui.usererror.format.ssn";
-                }
-                result.addError(new ObjectError("authorizationRequest", new String[]{code}, null, "Login failed"));
-
+            } catch (MinIDIncorrectCredentialException e) {
+                result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.format.password"}, null, "Login failed"));
+                return getNextView(request, STATE_USERDATA);
+            } catch (MinIDUserNotFoundException e) {
+                result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.usererror.format.ssn"}, null, "Login failed"));
                 return getNextView(request, STATE_USERDATA);
             }
 
-            OneTimePassword oneTimePassword = new OneTimePassword();
-            model.addAttribute(oneTimePassword);
-            return getNextView(request, STATE_VERIFICATION_CODE);
         } else {
-            request.setAttribute("errorCode", "loginFailed");
-            return getNextView(request, STATE_ERROR);
+            result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.error.line1"}, null, "System error"));
+            result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
+            return getNextView(request, STATE_USERDATA);
         }
+        OneTimePassword oneTimePassword = new OneTimePassword();
+        model.addAttribute(oneTimePassword);
+        return getNextView(request, STATE_VERIFICATION_CODE);
+
     }
 
     @PostMapping(params = "otpCode")
-    public String postOTP(HttpServletRequest request, @Valid @ModelAttribute("oneTimePassword") OneTimePassword oneTimePassword, BindingResult result) throws IOException {
+    public String postOTP(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
             if (state == STATE_VERIFICATION_CODE) {
-
-                String expectedOtp = oneTimePassword.getOtpCode(); //todo check otp minidPlusCache.getOTP(sid);
-                if (sid != null && expectedOtp.equals(oneTimePassword.getOtpCode())) {
-                    //todo success
+                if (authenticationService.otpIsValid(sid, oneTimePassword.getOtpCode())) {
+                    return getNextView(request, STATE_AUTHENTICATED);
                 } else {
-                    //todo add some error message.
-                    return getNextView(request, STATE_VERIFICATION_CODE);
+                    result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
                 }
-                if (result.hasErrors()) {
-                    return getNextView(request, STATE_VERIFICATION_CODE);
-                }
-                return getNextView(request, handleOtpInput(sid, oneTimePassword.getOtpCode()));
             }
         } catch (Exception e) {
-            //todo
-            prepareErrorPage("501", request);
+            result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line1"}, null, "System error"));
+            result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
         }
-        return getNextView(request, STATE_ERROR);
+        return getNextView(request, STATE_VERIFICATION_CODE);
     }
 
-    private int handleOtpInput(String sid, String otp) {
-        return STATE_AUTHENTICATED; //todo
-    }
 
-    private int prepareErrorPage(String errorCode, HttpServletRequest request) {
-        if (StringUtils.isNotEmpty(errorCode)) {
-            request.setAttribute("errorCode", errorCode);
-        }
-        return STATE_ERROR;
-    }
-
-    private String getNextView(HttpServletRequest request, int state) throws IOException {
+    private String getNextView(HttpServletRequest request, int state) {
         setSessionState(request, state);
         if (state == STATE_VERIFICATION_CODE) {
             return "minidplus_enter_otp";
@@ -186,8 +172,8 @@ public class MinidPlusAuthorizeController {
     private String buildUrl(HttpServletRequest request) {
         HttpSession session = request.getSession();
         String sid = (String) session.getAttribute("sid");
-        AuthorizationRequest ar = (AuthorizationRequest) session.getAttribute(AUTHORIZATION_REQUEST);
-        if (ar != null && ar.getRedirectUrl() != null) {
+        AuthorizationRequest ar = (AuthorizationRequest) session.getAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST);
+        if (ar != null && StringUtils.isNotEmpty(ar.getRedirectUrl())) {
             try {
                 UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance()
                         .uri(new URI(ar.getRedirectUrl()))
@@ -200,7 +186,7 @@ public class MinidPlusAuthorizeController {
                         .queryParam(HTTP_SESSION_GOTO, ar.getGotoParam())
                         .queryParam(HTTP_SESSION_SERVICE, ar.getService());
 
-                uriComponentsBuilder.build()
+                return uriComponentsBuilder.build()
                         .toUriString();
             } catch (URISyntaxException e) {
                 log.error("Worng syntax durin URI building", e);
