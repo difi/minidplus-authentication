@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.idporten.minidplus.domain.TokenRequest;
 import no.idporten.minidplus.domain.TokenResponse;
+import no.idporten.minidplus.logging.audit.AuditID;
+import no.idporten.minidplus.logging.audit.AuditMessage;
 import no.idporten.minidplus.service.MinidPlusCache;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -29,6 +31,7 @@ public class MinidPlusTokenController {
     @PostMapping(
             produces = MediaType.APPLICATION_JSON_VALUE,
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    @AuditMessage(AuditID.TOKEN_CREATED)
     public ResponseEntity handleAuthorizationCodeGrant(TokenRequest tokenRequest) {
         String sid = tokenRequest.getCode();
 

@@ -165,16 +165,6 @@ public class AuthenticationService {
         }
     }
 
-/*
-    protected void auditLog(final String messageId, final LogData logData) throws MinIDSystemException {
-        try {
-            auditLogger.log(getSSOSession(), messageId, logData);
-        } catch (final AuthLoginException | IDPortenLogException loginExc) {
-            throw new MinIDSystemException(IDPortenExceptionID.AUDITLOG_WRITE_FAILED,
-                    "Audit logging of new minid user failed",
-                    loginExc);
-        }
-    }*/
 
     /**
      * Checks if SP is a dummy or not a real SP.  That is:

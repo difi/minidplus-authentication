@@ -154,15 +154,20 @@ public class MinidPlusAuthorizeController {
         } else if (state == STATE_ERROR) {
             return "error";
         } else if (state == STATE_AUTHENTICATED) {
-            String url = buildUrl(request);
-            if (url != null) {
-                log.debug("RedirectUrl: " + url);
-                return "redirect:" + url;
-            } else {
-                return "success"; //todo fjern før prod!
-            }
+            return returnAuthorizationCode(request);
         }
         return "error";
+    }
+
+
+    private String returnAuthorizationCode(HttpServletRequest request) {
+        String url = buildUrl(request);
+        if (url != null) {
+            log.debug("RedirectUrl: " + url);
+            return "redirect:" + url;
+        } else {
+            return "success"; //todo fjern før prod!
+        }
     }
 
     private void setSessionState(HttpServletRequest request, int state) {

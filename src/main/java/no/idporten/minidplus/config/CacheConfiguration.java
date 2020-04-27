@@ -17,10 +17,7 @@ import java.time.Duration;
 public class CacheConfiguration {
 
     @Value("${minid-plus.cache.otp-ttl-in-s:600}")
-    private int otpTTL;
-
-    @Value("${minidcache.code-ttl-in-s:6}")
-    private int codeTTL;
+    private int cacheTTL;
 
     @Bean
     public CacheManager cacheManager() {
@@ -28,12 +25,12 @@ public class CacheConfiguration {
                 .withCache("sidSSN",
                         CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
                                 ResourcePoolsBuilder.heap(100))
-                                .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(codeTTL)))
+                                .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(cacheTTL + 10L)))
                                 .build())
                 .withCache("sidOTP",
                         CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
                                 ResourcePoolsBuilder.heap(100))
-                                .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(otpTTL)))
+                                .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(cacheTTL)))
                                 .build())
                 .build(true);
     }

@@ -1,24 +1,26 @@
 package no.idporten.minidplus.web;
 
+import no.idporten.log.audit.AuditLogger;
+import no.idporten.minidplus.logging.audit.AuditID;
 import no.idporten.minidplus.service.MinidPlusCache;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(MinidPlusTokenController.class)
+@SpringBootTest
 @RunWith(SpringRunner.class)
 @AutoConfigureMockMvc(addFilters = false)
 public class MinIdPlusTokenControllerTest {
@@ -29,6 +31,9 @@ public class MinIdPlusTokenControllerTest {
     @MockBean
     MinidPlusCache minidPlusCache;
 
+    @MockBean
+    AuditLogger auditLogger;
+
     @Test
     public void test_token_generated_with_valid_code() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
@@ -36,7 +41,7 @@ public class MinIdPlusTokenControllerTest {
 
         MvcResult mvcResult = mockMvc.perform(post("/token")
                 .param("grant_type", "authorization_code")
-                .param("code",code)
+                .param("code", code)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
         )//.andDo(print())
                 .andExpect(status().isOk())
@@ -44,7 +49,10 @@ public class MinIdPlusTokenControllerTest {
                 .andExpect(jsonPath("$.expires_in").value(600))
                 .andReturn();
         verify(minidPlusCache).removeSession(code);
-        //todo   verify(auditService).auditTokenResponse(any(), anyString(), any());
+        verify(auditLogger).log(
+                eq(AuditID.TOKEN_CREATED.auditId()),
+                isNull(),
+                any());
     }
 
     @Test
@@ -54,7 +62,7 @@ public class MinIdPlusTokenControllerTest {
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .param("code", code))
                 .andExpect(status().isNotFound());
-        // todo verifyNoInteractions(auditService);
+        verifyNoInteractions(auditLogger);
     }
 
 }

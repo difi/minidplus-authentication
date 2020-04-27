@@ -5,11 +5,14 @@ import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.service.AuthenticationService;
+import no.idporten.minidplus.service.MinidPlusCache;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -21,10 +24,12 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(MinidPlusAuthorizeController.class)
+@SpringBootTest
 @RunWith(SpringRunner.class)
+@AutoConfigureMockMvc
 public class MinIdPlusAuthorizeControllerTest {
 
     private final ServiceProvider sp = new ServiceProvider("idporten");
@@ -34,6 +39,9 @@ public class MinIdPlusAuthorizeControllerTest {
 
     @MockBean
     AuthenticationService authenticationService;
+
+    @MockBean
+    MinidPlusCache minidPlusCache;
 
     @Test
     public void test_authorization_session_parameters_set() throws Exception {
@@ -62,6 +70,38 @@ public class MinIdPlusAuthorizeControllerTest {
         assertEquals("nb_no", mvcResult.getResponse().getLocale().toString());
     }
 
+    @Test
+    public void test_post_otp_successful() throws Exception {
+        String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
+        when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
+        when(authenticationService.otpIsValid(eq(code), eq(code))).thenReturn(true);
+        MvcResult mvcResult = mockMvc.perform(post("/authorize")
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 2)
+                .param("otpCode", code)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+        )//.andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(forwardedUrl("/WEB-INF/jsp/success.jsp")) //todo fiks etter integrasjon med idporten
+                .andReturn();
+    }
+
+    @Test
+    public void test_post_otp_unsuccessful() throws Exception {
+        String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
+        when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
+        when(authenticationService.otpIsValid(eq(code), eq(code))).thenReturn(false);
+        MvcResult mvcResult = mockMvc.perform(post("/authorize")
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 2)
+                .param("otpCode", code)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+        )//.andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(forwardedUrl("/WEB-INF/jsp/minidplus_enter_otp.jsp"))
+                .andExpect(model().hasErrors())
+                .andReturn();
+    }
     private AuthorizationRequest getAuthorizationRequest() {
         AuthorizationRequest ar = new AuthorizationRequest();
         ar.setRedirectUrl("http://localhost");
