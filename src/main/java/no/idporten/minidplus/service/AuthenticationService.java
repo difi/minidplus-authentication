@@ -110,7 +110,10 @@ public class AuthenticationService {
     public boolean checkOTCCode(String sid, String inputOneTimeCode) throws MinIDPincodeException, MinidUserNotFoundException {
 
         MinidUser user = minIDService.findByPersonNumber(new PersonNumber(minidPlusCache.getSSN(sid)));
-
+        //todo sjekk om dette er ok
+        if (user.getCredentialErrorCounter() == null) {
+            user.setCredentialErrorCounter(0);
+        }
         if (user.isOneTimeCodeLocked()) {
             warn("Pincode locked for ssn=", user.getPersonNumber().getSsn());
             throw new MinIDPincodeException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "pin code is locked");
