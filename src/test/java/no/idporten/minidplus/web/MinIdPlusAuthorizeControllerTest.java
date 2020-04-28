@@ -82,7 +82,7 @@ public class MinIdPlusAuthorizeControllerTest {
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
         )//.andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(forwardedUrl("/WEB-INF/jsp/success.jsp")) //todo fiks etter integrasjon med idporten
+                .andExpect(view().name("success")) //todo fiks etter integrasjon med idporten
                 .andReturn();
     }
 

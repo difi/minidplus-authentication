@@ -1,20 +1,48 @@
 package no.idporten.minidplus.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import no.difi.resilience.CorrelationId;
+import no.idporten.domain.sp.ServiceProvider;
+import no.idporten.domain.user.MinidUser;
+import no.idporten.domain.user.PersonNumber;
+import no.idporten.minidplus.exception.IDPortenExceptionID;
+import no.idporten.minidplus.exception.minid.MinIDPincodeException;
+import no.idporten.minidplus.linkmobility.LINKMobilityClient;
+import no.idporten.minidplus.linkmobility.LINKMobilityProperties;
 import no.idporten.validation.util.RandomUtil;
+import no.minid.exception.MinidUserNotFoundException;
+import no.minid.service.MinIDService;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.time.LocalDateTime.now;
+
 @RequiredArgsConstructor
 @Service
+@Slf4j
 public class OTCPasswordService {
 
     /** Password 'one time code' length. */
     public static final int PWD_OTC_LENGTH = 5;
 
+    @Value("${idporten.serviceprovider.default-name}")
+    private String serviceProviderDefaultName;
+
+    @Value("${minid-plus.credential-error-max-number}")
+    private int maxNumberOfCredentialErrors;
 
     /** Characters that can be used in a password. */
     private static final char[] PWD_OTC_ALL_CHARS = "acdefghjkmnpqrstwxyz2345789".toCharArray();
@@ -24,11 +52,31 @@ public class OTCPasswordService {
     /** Regular expression complied pattern for letters in a password. */
     private static final Pattern LETTER_PATTERN = Pattern.compile("^.*[a-zA-Z].*$");
 
+    /**
+     * Map from entity encodings to characters.
+     * //todo hvorfor er denne tom
+     */
+    private static final Map<String, String> entityToCharacterMap = new HashMap<String, String>();
+
+    /**
+     * Regex matching unkown encodings.
+     */
+    private static final String unknownEntityRegex = "&#\\d*;";
+
     private static final int MAX_GENERATION_TIMES = 10;
 
     /** Random class. */
     private final transient SecureRandom random = new SecureRandom();
 
+    private final MinidPlusCache minidPlusCache;
+
+    private final LINKMobilityClient linkMobilityClient;
+
+    private final LINKMobilityProperties linkMobilityProperties;
+
+    private final MinIDService minIDService;
+
+    private final MessageSource messageSource;
     /**
      * Generates a new valid OTC password.
      *
@@ -102,6 +150,56 @@ public class OTCPasswordService {
         return true;
     }
 
+    void sendOtp(String sid, ServiceProvider sp, MinidUser identity) {
+        // Generates one time code and sends SMS with one time code to user's mobile phone number
+        // Does not send one time code to users that are not allowed to get temporary passwords
+        // Does not resend one time code
+        if (minidPlusCache.getOTP(sid) == null) {
+            String generatedOneTimeCode = generateOTCPassword();
+            minidPlusCache.putOTP(sid, generatedOneTimeCode);
+            final String mobileNumber = identity.getPhoneNumber().getNumber();
+            linkMobilityClient.sendSms(mobileNumber, getMessageBody(sp, generatedOneTimeCode, now().plusSeconds(linkMobilityProperties.getTtl())));
+            if (log.isInfoEnabled()) {
+                log.info("Otp sendt to " + mobileNumber);
+            }
+        }
+    }
+
+    public boolean checkOTCCode(String sid, String inputOneTimeCode) throws MinIDPincodeException, MinidUserNotFoundException {
+
+        MinidUser user = minIDService.findByPersonNumber(new PersonNumber(minidPlusCache.getSSN(sid)));
+        //todo sjekk om dette er ok
+        if (user.getCredentialErrorCounter() == null) {
+            user.setCredentialErrorCounter(0);
+        }
+        if (user.isOneTimeCodeLocked()) {
+            warn("Pincode locked for ssn=", user.getPersonNumber().getSsn());
+            throw new MinIDPincodeException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "pin code is locked");
+        }
+
+        if (user.getCredentialErrorCounter() == maxNumberOfCredentialErrors) {
+            user.setOneTimeCodeLocked(true);
+            warn("Pincode is locked for ssn=", user.getPersonNumber().getSsn());
+            throw new MinIDPincodeException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "pin code is locked");
+        }
+
+        if (otpIsValid(sid, inputOneTimeCode)) {
+            // resetting counters when setting user to authenticated.
+            resetCountersOnIdentity(user);
+            updateUserAfterSuccessfulLogin(user);
+            return true;
+        } else { // Increments the error counter
+            user.setCredentialErrorCounter(user.getCredentialErrorCounter() + 1);
+            minIDService.updateContactInformation(user);
+            if (checkIfLastTry(user)) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Last attempt for user " + user);
+                }
+            }
+            warn("Pincode incorrect for ssn=", user.getPersonNumber().getSsn());
+            return false;
+        }
+    }
     /**
      * Check if the supplied string is null string is null or empty.
      *
@@ -110,5 +208,93 @@ public class OTCPasswordService {
      */
     public static boolean isEmpty(final String string) {
         return (string == null) || (string.trim().length() == 0) || "".equals(string.trim());
+    }
+
+    private String getMessageBody(ServiceProvider sp, String otc, LocalDateTime expire) {
+        if (isDummySp(sp)) {
+            return getMessage(
+                    "auth.ui.output.otc.message",
+                    new String[]{otc, DateTimeFormatter.ofPattern("HH:mm").format(expire)});
+        } else {
+            final String messageBody = getMessage(
+                    "auth.ui.output.otc.message.sp",
+                    new String[]{otc, sp.getName().trim(), DateTimeFormatter.ofPattern("HH:mm").format(expire)});
+            return replaceEntities(messageBody);
+        }
+    }
+
+    /**
+     * Checks if SP is a dummy or not a real SP.  That is:
+     * <p>
+     * - it is null
+     * - it is marked as dummy
+     * - it does not have a name set
+     * - the name set is "default"
+     * - the name is the default configured for ID-porten
+     */
+    private boolean isDummySp(final ServiceProvider sp) {
+        if (StringUtils.isEmpty(sp.getName()) || sp.isDummy() || "default".equals(sp.getName())) {
+            return true;
+        }
+        return sp.getName().equals(serviceProviderDefaultName);
+    }
+
+    private boolean otpIsValid(String sid, String oneTimePassword) {
+        String expectedOtp = minidPlusCache.getOTP(sid);
+        return sid != null && expectedOtp != null && expectedOtp.equalsIgnoreCase(oneTimePassword);
+    }
+
+    /**
+     * Fetch message with given key and locale.
+     *
+     * @param key  message key
+     * @param args Argument values defined in given message
+     * @return Message for given key and locale, where argument placeholders are replaced with values from args.
+     */
+    private String getMessage(String key, Object[] args) {
+        return messageSource.getMessage(key, args, new Locale("en_GB"));
+    }
+
+    private void updateUserAfterSuccessfulLogin(MinidUser user) throws MinidUserNotFoundException {
+        user.setLastLogin(new Date());
+        minIDService.updateContactInformation(user);
+    }
+
+    private boolean checkIfLastTry(MinidUser user) {
+        return user.getCredentialErrorCounter() == maxNumberOfCredentialErrors - 1;
+
+    }
+
+    /**
+     * Resets the quarantine and credential error counters on MinidUser.
+     */
+    private MinidUser resetCountersOnIdentity(MinidUser user) {
+        if (user.getCredentialErrorCounter() > 0) {
+            user.setCredentialErrorCounter(0);
+        }
+        return user;
+    }
+
+    /**
+     * Replaces predefined entities with predefined characters.  If an entity is
+     * found and it's not predefined, it is replaced with " ".
+     */
+    private static String replaceEntities(final String message) {
+        if (StringUtils.isEmpty(message)) {
+            return message;
+        }
+        String encoded = message;
+        // replace all predefined entities
+        for (Map.Entry<String, String> entry : entityToCharacterMap.entrySet()) {
+            encoded = encoded.replaceAll(entry.getKey(), entry.getValue());
+        }
+        // replace all unkown entities
+        encoded = encoded.replaceAll(unknownEntityRegex, " ");
+
+        return encoded;
+    }
+
+    private void warn(String message, String ssn) {
+        log.warn(CorrelationId.get() + " " + ssn + " " + message);
     }
 }

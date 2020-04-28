@@ -107,6 +107,7 @@ public class MinidPlusAuthorizeController {
             }
             try {
                 ServiceProvider sp = new ServiceProvider(ar.getSpEntityId());
+                sp.setName(ar.getSpEntityId());//todo lookup from ldap
                 authenticationService.authenticateUser(sid, userCredentials.getPersonalIdNumber(), userCredentials.getPassword(), sp);
             } catch (MinIDIncorrectCredentialException e) {
                 result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.format.password"}, null, "Login failed"));

@@ -4,12 +4,9 @@ import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.MobilePhoneNumber;
 import no.idporten.domain.user.PersonNumber;
-import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
-import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
-import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,9 +18,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import static junit.framework.TestCase.assertTrue;
 import static junit.framework.TestCase.fail;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
@@ -97,93 +94,6 @@ public class AuthenticationServiceTest {
         }
     }
 
-    @Test
-    public void checkOTCCodePositiveTest() throws MinidUserNotFoundException, MinIDPincodeException {
-        MinidUser user = new MinidUser();
-        user.setCredentialErrorCounter(0);
-        user.setPersonNumber(new PersonNumber(pid));
-        String sessionId = "123";
-
-        when(minidPlusCache.getSSN(anyString())).thenReturn(pid);
-        when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
-        when(minIDService.findByPersonNumber(any())).thenReturn(user);
-
-        assertTrue(authenticationService.checkOTCCode(sessionId, "otctest"));
-        assert (user.getCredentialErrorCounter() == 0);
-
-    }
-
-    @Test
-    public void checkOTCCodeNegativeTest() throws MinidUserNotFoundException, MinIDPincodeException {
-        MinidUser user = new MinidUser();
-        user.setCredentialErrorCounter(0);
-        user.setPersonNumber(new PersonNumber(pid));
-        String sessionId = "123";
-
-        when(minidPlusCache.getSSN(anyString())).thenReturn(pid);
-        when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
-        when(minIDService.findByPersonNumber(any())).thenReturn(user);
-        assertFalse(authenticationService.checkOTCCode("otctestWrong", sessionId));
-        assert (user.getCredentialErrorCounter() == 1);
-    }
-
-    @Test
-    public void checkOTCCodeNegativeTestLastTry() throws MinidUserNotFoundException, MinIDPincodeException {
-        MinidUser user = new MinidUser();
-        user.setCredentialErrorCounter(1);
-        user.setPersonNumber(new PersonNumber(pid));
-        String sessionId = "123";
-
-        when(minidPlusCache.getSSN(anyString())).thenReturn(pid);
-        when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
-        when(minIDService.findByPersonNumber(any())).thenReturn(user);
-
-        assertFalse(authenticationService.checkOTCCode("otctestWrong", sessionId));
-        assert (user.getCredentialErrorCounter() == 2);
-
-    }
-
-    @Test
-    public void checkOTCCodMaxErrors() throws MinidUserNotFoundException {
-        MinidUser user = new MinidUser();
-        user.setCredentialErrorCounter(MAX_NUMBER_OF_CREDENTIAL_ERRORS);
-        user.setPersonNumber(new PersonNumber(pid));
-
-        String sessionId = "123";
-
-        when(minidPlusCache.getSSN(anyString())).thenReturn(pid);
-        when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
-        when(minIDService.findByPersonNumber(any())).thenReturn(user);
-
-        try {
-            authenticationService.checkOTCCode("otctest", sessionId);
-            fail("Should have thrown MinIdPincodeException");
-        } catch (MinIDPincodeException e) {
-            assertEquals(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, e.getExceptionID());
-            assertTrue(user.isOneTimeCodeLocked());
-        }
-    }
-
-    @Test
-    public void checkOTCCodeLocked() throws MinidUserNotFoundException {
-        MinidUser user = new MinidUser();
-        user.setCredentialErrorCounter(0);
-        user.setOneTimeCodeLocked(true);
-        user.setPersonNumber(new PersonNumber(pid));
-        String sessionId = "123";
-
-        when(minidPlusCache.getSSN(anyString())).thenReturn(pid);
-        when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
-        when(minIDService.findByPersonNumber(any())).thenReturn(user);
-
-        try {
-            authenticationService.checkOTCCode("otctest", sessionId);
-        } catch (MinIDPincodeException e) {
-            assertEquals(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, e.getExceptionID());
-            assertTrue(user.isOneTimeCodeLocked());
-        }
-
-    }
 
     @Test
     public void checkLoginWithOTCLocked() throws MinIDIncorrectCredentialException, MinIDUserNotFoundException {

@@ -13,17 +13,17 @@
             <div class="fm-Progress_Container">
                 <div class="fm-Progress_Dot active"></div>
                 <div class="fm-Progress_Dot"></div>
+                <div class="fm-Progress_Dot"></div>
+                <div class="fm-Progress_Dot"></div>
+                <div class="fm-Progress_Dot"></div>
             </div>
 
             <c:set var="personalIdNumberHasBindError">
                 <form:errors path="personalIdNumber"/>
             </c:set>
-            <c:set var="passwordHasBindError">
-                <form:errors path="password"/>
-            </c:set>
-
-            <form:form action="#" class="login js-makeProgress-1" modelAttribute="userCredentials" method="post">
-                <form:errors path="*" class="notification notification-error with-Icon icon-error" element="div" htmlEscape="false"/>
+            <form:form action="#" class="login js-makeProgress-1" modelAttribute="personIdInput" method="post">
+                <form:errors path="*" class="notification notification-error with-Icon icon-error" element="div"
+                             htmlEscape="false"/>
 
                 <fieldset>
                     <div class="fm-Fields">
@@ -42,26 +42,7 @@
                                         autocomplete="off"/>
                         </div>
 
-                        <div class="fm-Field${not empty passwordHasBindError  ? ' error' : ''}">
-                            <spring:message code="no.idporten.module.minidplus.input.password.help"
-                                            text="Skriv inn passord" var="passwordHelpText"/>
-                            <label for="password"><spring:message code="no.idporten.module.minidplus.input.password"
-                                                                  text="Passord"/></label>
-                            <form:input tabindex="2"
-                                        maxlength="100"
-                                        path="password"
-                                        type="password"
-                                        id="password"
-                                        placeholder="${passwordHelpText}"
-                                        autocomplete="off"/>
 
-                        </div>
-
-                        <div class='fm-form_link with-Link'>
-                            <a href="<c:url value='/password'/>"><span><spring:message
-                                    code="no.idporten.module.minid.settings.menu.fgtpwd"
-                                    text="Glemt passord?"/></span></a>
-                        </div>
                     </div>
                 </fieldset>
                 <jsp:include page="sections/controls.jsp"/>

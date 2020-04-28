@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <head>
     <%@ include file="pageHeader.jspf"%>
-    <title>Test for idporten</title>
+    <title>MinID Plus</title>
     <link rel="stylesheet" href="fonts/open-sans/open-sans.css">
     <link rel="stylesheet" href="font-awesome/css/font-awesome.min.css">
 
