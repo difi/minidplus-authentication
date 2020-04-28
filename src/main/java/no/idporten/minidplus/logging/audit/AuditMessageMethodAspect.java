@@ -3,8 +3,10 @@ package no.idporten.minidplus.logging.audit;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import no.difi.resilience.CorrelationId;
 import no.idporten.log.audit.AuditLogger;
 import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
+import no.idporten.minidplus.service.MinidPlusCache;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -28,6 +30,7 @@ public class AuditMessageMethodAspect {
     private final AuditLogger auditLogger;
     private final ObjectMapper objectMapper;
     private final ObjectProvider<HttpServletRequest> requestObjectProvider;
+    private MinidPlusCache minidPlusCache;
 
     @Around("@annotation(AuditMessage)")
     public Object auditLog(ProceedingJoinPoint pjp) throws Throwable {
@@ -36,8 +39,10 @@ public class AuditMessageMethodAspect {
         AuditMessage auditMessage = method.getAnnotation(AuditMessage.class);
         HttpServletRequest request = requestObjectProvider.getObject();
         String systemId = request.getHeader("System-Id");
-        Object authSessionParams = request.getSession().getAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST);
-        String authorizationRequest = authSessionParams != null ? authSessionParams.toString() : null;
+        String sid = (String) request.getSession().getAttribute(MinidPlusSessionAttributes.HTTP_SESSION_SID);
+        String ssn = null;
+        if (sid != null)
+            ssn = minidPlusCache.getSSN(sid);
         Object logValue = body;
         if (logValue instanceof ResponseEntity) {
             logValue = ((ResponseEntity) logValue).getBody();
@@ -60,7 +65,8 @@ public class AuditMessageMethodAspect {
                 auditMessage.value().auditId(),
                 null,
                 systemId,
-                authorizationRequest,
+                CorrelationId.get(),
+                ssn,
                 StringUtils.collectionToDelimitedString(resourceId, "::"),
                 Optional.ofNullable(logValue).map(value -> {
                     try {

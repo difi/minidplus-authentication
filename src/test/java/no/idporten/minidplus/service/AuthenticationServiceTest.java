@@ -85,6 +85,7 @@ public class AuthenticationServiceTest {
         when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
         PersonNumber personNumber = new PersonNumber(pid);
         MinidUser minidUser = new MinidUser(personNumber);
+        minidUser.setPersonNumber(personNumber);
         minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(false);
@@ -100,9 +101,10 @@ public class AuthenticationServiceTest {
     public void checkOTCCodePositiveTest() throws MinidUserNotFoundException, MinIDPincodeException {
         MinidUser user = new MinidUser();
         user.setCredentialErrorCounter(0);
+        user.setPersonNumber(new PersonNumber(pid));
         String sessionId = "123";
 
-        when(minidPlusCache.getSSN(anyString())).thenReturn("12345678910");
+        when(minidPlusCache.getSSN(anyString())).thenReturn(pid);
         when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
         when(minIDService.findByPersonNumber(any())).thenReturn(user);
 
@@ -115,9 +117,10 @@ public class AuthenticationServiceTest {
     public void checkOTCCodeNegativeTest() throws MinidUserNotFoundException, MinIDPincodeException {
         MinidUser user = new MinidUser();
         user.setCredentialErrorCounter(0);
+        user.setPersonNumber(new PersonNumber(pid));
         String sessionId = "123";
 
-        when(minidPlusCache.getSSN(anyString())).thenReturn("12345678910");
+        when(minidPlusCache.getSSN(anyString())).thenReturn(pid);
         when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
         when(minIDService.findByPersonNumber(any())).thenReturn(user);
         assertFalse(authenticationService.checkOTCCode("otctestWrong", sessionId));
@@ -128,9 +131,10 @@ public class AuthenticationServiceTest {
     public void checkOTCCodeNegativeTestLastTry() throws MinidUserNotFoundException, MinIDPincodeException {
         MinidUser user = new MinidUser();
         user.setCredentialErrorCounter(1);
+        user.setPersonNumber(new PersonNumber(pid));
         String sessionId = "123";
 
-        when(minidPlusCache.getSSN(anyString())).thenReturn("12345678910");
+        when(minidPlusCache.getSSN(anyString())).thenReturn(pid);
         when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
         when(minIDService.findByPersonNumber(any())).thenReturn(user);
 
@@ -143,9 +147,11 @@ public class AuthenticationServiceTest {
     public void checkOTCCodMaxErrors() throws MinidUserNotFoundException {
         MinidUser user = new MinidUser();
         user.setCredentialErrorCounter(MAX_NUMBER_OF_CREDENTIAL_ERRORS);
+        user.setPersonNumber(new PersonNumber(pid));
+
         String sessionId = "123";
 
-        when(minidPlusCache.getSSN(anyString())).thenReturn("12345678910");
+        when(minidPlusCache.getSSN(anyString())).thenReturn(pid);
         when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
         when(minIDService.findByPersonNumber(any())).thenReturn(user);
 
@@ -163,9 +169,10 @@ public class AuthenticationServiceTest {
         MinidUser user = new MinidUser();
         user.setCredentialErrorCounter(0);
         user.setOneTimeCodeLocked(true);
+        user.setPersonNumber(new PersonNumber(pid));
         String sessionId = "123";
 
-        when(minidPlusCache.getSSN(anyString())).thenReturn("12345678910");
+        when(minidPlusCache.getSSN(anyString())).thenReturn(pid);
         when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
         when(minIDService.findByPersonNumber(any())).thenReturn(user);
 
@@ -183,11 +190,12 @@ public class AuthenticationServiceTest {
         MinidUser user = new MinidUser();
         user.setCredentialErrorCounter(0);
         user.setOneTimeCodeLocked(true);
+        user.setPersonNumber(new PersonNumber(pid));
         String sessionId = "123";
 
         when(minIDService.findByPersonNumber(any())).thenReturn(user);
 
-        boolean result = authenticationService.authenticateUser("testSessionId","12345678910", "test", new ServiceProvider());
+        boolean result = authenticationService.authenticateUser("testSessionId", pid, "test", new ServiceProvider());
         assertFalse(result);
     }
 }

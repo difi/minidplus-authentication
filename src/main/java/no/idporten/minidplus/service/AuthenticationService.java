@@ -2,6 +2,7 @@ package no.idporten.minidplus.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import no.difi.resilience.CorrelationId;
 import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.PersonNumber;
@@ -66,13 +67,16 @@ public class AuthenticationService {
         MinidUser identity = minIDService.findByPersonNumber(uid);
 
         if (identity == null) {
-            throw new MinIDUserNotFoundException(IDPortenExceptionID.LDAP_ENTRY_NOT_FOUND, "User not found uid=" + uid);
+            warn("User not found for ssn=", pid);
+            throw new MinIDUserNotFoundException(IDPortenExceptionID.LDAP_ENTRY_NOT_FOUND, "User not found uid=" + pid);
         }
         if (identity.isOneTimeCodeLocked()) {
+            warn("One time code is locked for ssn=", pid);
             return false;
         }
 
         if (!minIDService.validateUserPassword(uid, password)) {
+            warn("Password invalid for ssn=", pid);
             throw new MinIDIncorrectCredentialException(IDPortenExceptionID.IDENTITY_PASSWORD_INCORRECT, "Password validation failed");
         }
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
@@ -96,6 +100,9 @@ public class AuthenticationService {
             minidPlusCache.putOTP(sid, generatedOneTimeCode);
             final String mobileNumber = identity.getPhoneNumber().getNumber();
             linkMobilityClient.sendSms(mobileNumber, getMessageBody(sp, generatedOneTimeCode, now().plusSeconds(linkMobilityProperties.getTtl())));
+            if (log.isInfoEnabled()) {
+                log.info("Otp sendt to " + mobileNumber);
+            }
         }
     }
 
@@ -105,11 +112,13 @@ public class AuthenticationService {
         MinidUser user = minIDService.findByPersonNumber(new PersonNumber(minidPlusCache.getSSN(sid)));
 
         if (user.isOneTimeCodeLocked()) {
+            warn("Pincode locked for ssn=", user.getPersonNumber().getSsn());
             throw new MinIDPincodeException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "pin code is locked");
         }
 
         if (user.getCredentialErrorCounter() == maxNumberOfCredentialErrors) {
             user.setOneTimeCodeLocked(true);
+            warn("Pincode is locked for ssn=", user.getPersonNumber().getSsn());
             throw new MinIDPincodeException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "pin code is locked");
         }
 
@@ -126,6 +135,7 @@ public class AuthenticationService {
                     log.debug("Last attempt for user " + user);
                 }
             }
+            warn("Pincode incorrect for ssn=", user.getPersonNumber().getSsn());
             return false;
         }
     }
@@ -209,6 +219,10 @@ public class AuthenticationService {
      */
     private String getMessage(String key, Object[] args) {
         return messageSource.getMessage(key, args, new Locale("en_GB"));
+    }
+
+    private void warn(String message, String ssn) {
+        log.warn(CorrelationId.get() + " " + ssn + " " + message);
     }
 
 }

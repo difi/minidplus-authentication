@@ -2,6 +2,7 @@ package no.idporten.minidplus.web;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import no.difi.resilience.CorrelationId;
 import no.idporten.minidplus.domain.TokenRequest;
 import no.idporten.minidplus.domain.TokenResponse;
 import no.idporten.minidplus.logging.audit.AuditID;
@@ -38,6 +39,7 @@ public class MinidPlusTokenController {
         String ssn = minidPlusCache.getSSN(sid);
 
         if (ssn == null) {
+            warn("Code not found or expired for code=" + sid);
             return ResponseEntity.notFound().build();
         }
 
@@ -47,4 +49,7 @@ public class MinidPlusTokenController {
         return ResponseEntity.ok(tokenResponse);
     }
 
+    private void warn(String message) {
+        log.warn(CorrelationId.get() + " " + message);
+    }
 }

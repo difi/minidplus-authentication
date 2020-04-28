@@ -3,6 +3,7 @@ package no.idporten.minidplus.web;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import no.difi.resilience.CorrelationId;
 import no.idporten.domain.auth.AuthType;
 import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.minidplus.domain.AuthorizationRequest;
@@ -141,6 +142,7 @@ public class MinidPlusAuthorizeController {
         } catch (MinIDPincodeException e) {
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.format.otc.locked"}, null, "Too many attempts"));
         } catch (Exception e) {
+            warn("Exception handling otp: " + e.getMessage());
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line1"}, null, "System error"));
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
         }
@@ -166,9 +168,12 @@ public class MinidPlusAuthorizeController {
     private String returnAuthorizationCode(HttpServletRequest request) {
         String url = buildUrl(request);
         if (url != null) {
-            log.debug("RedirectUrl: " + url);
+            if (log.isDebugEnabled()) {
+                log.debug("RedirectUrl: " + url);
+            }
             return "redirect:" + url;
         } else {
+            warn("Using tmp test redirect uri");
             return "success"; //todo fjern før prod!
         }
     }
@@ -197,9 +202,13 @@ public class MinidPlusAuthorizeController {
                 return uriComponentsBuilder.build()
                         .toUriString();
             } catch (URISyntaxException e) {
-                log.error("Worng syntax durin URI building", e);
+                log.error(CorrelationId.get() + " Wrong syntax during URI building", e);
             }
         }
         return null;
+    }
+
+    private void warn(String message) {
+        log.warn(CorrelationId.get() + " " + message);
     }
 }
