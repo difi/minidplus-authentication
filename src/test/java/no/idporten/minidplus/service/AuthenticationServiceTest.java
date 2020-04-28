@@ -4,7 +4,9 @@ import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.MobilePhoneNumber;
 import no.idporten.domain.user.PersonNumber;
+import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
+import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
 import no.minid.exception.MinidUserNotFoundException;
@@ -95,7 +97,7 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void checkOTCCodePositiveTest() throws MinidUserNotFoundException {
+    public void checkOTCCodePositiveTest() throws MinidUserNotFoundException, MinIDPincodeException {
         MinidUser user = new MinidUser();
         user.setCredentialErrorCounter(0);
         String sessionId = "123";
@@ -104,13 +106,13 @@ public class AuthenticationServiceTest {
         when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
         when(minIDService.findByPersonNumber(any())).thenReturn(user);
 
-        String result = authenticationService.checkOTCCode(sessionId, "otctest");
+        assertTrue(authenticationService.checkOTCCode(sessionId, "otctest"));
         assert (user.getCredentialErrorCounter() == 0);
-        assertEquals("Success", result);
+
     }
 
     @Test
-    public void checkOTCCodeNegativeTest() throws MinidUserNotFoundException {
+    public void checkOTCCodeNegativeTest() throws MinidUserNotFoundException, MinIDPincodeException {
         MinidUser user = new MinidUser();
         user.setCredentialErrorCounter(0);
         String sessionId = "123";
@@ -118,14 +120,12 @@ public class AuthenticationServiceTest {
         when(minidPlusCache.getSSN(anyString())).thenReturn("12345678910");
         when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
         when(minIDService.findByPersonNumber(any())).thenReturn(user);
-
-        String result = authenticationService.checkOTCCode("otctestWrong", sessionId);
+        assertFalse(authenticationService.checkOTCCode("otctestWrong", sessionId));
         assert (user.getCredentialErrorCounter() == 1);
-        assertEquals("Error", result);
     }
 
     @Test
-    public void checkOTCCodeNegativeTestLastTry() throws MinidUserNotFoundException {
+    public void checkOTCCodeNegativeTestLastTry() throws MinidUserNotFoundException, MinIDPincodeException {
         MinidUser user = new MinidUser();
         user.setCredentialErrorCounter(1);
         String sessionId = "123";
@@ -134,9 +134,9 @@ public class AuthenticationServiceTest {
         when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
         when(minIDService.findByPersonNumber(any())).thenReturn(user);
 
-        String result = authenticationService.checkOTCCode("otctestWrong", sessionId);
+        assertFalse(authenticationService.checkOTCCode("otctestWrong", sessionId));
         assert (user.getCredentialErrorCounter() == 2);
-        assertEquals("Error, last chance", result);
+
     }
 
     @Test
@@ -149,8 +149,13 @@ public class AuthenticationServiceTest {
         when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
         when(minIDService.findByPersonNumber(any())).thenReturn(user);
 
-        String result = authenticationService.checkOTCCode("otctest", sessionId);
-        assertEquals("Error, pin code locked", result);
+        try {
+            authenticationService.checkOTCCode("otctest", sessionId);
+            fail("Should have thrown MinIdPincodeException");
+        } catch (MinIDPincodeException e) {
+            assertEquals(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, e.getExceptionID());
+            assertTrue(user.isOneTimeCodeLocked());
+        }
     }
 
     @Test
@@ -164,8 +169,13 @@ public class AuthenticationServiceTest {
         when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
         when(minIDService.findByPersonNumber(any())).thenReturn(user);
 
-        String result = authenticationService.checkOTCCode("otctest", sessionId);
-        assertEquals("Error, pin code locked", result);
+        try {
+            authenticationService.checkOTCCode("otctest", sessionId);
+        } catch (MinIDPincodeException e) {
+            assertEquals(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, e.getExceptionID());
+            assertTrue(user.isOneTimeCodeLocked());
+        }
+
     }
 
     @Test

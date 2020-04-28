@@ -1,11 +1,13 @@
 package no.idporten.minidplus.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.PersonNumber;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
+import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
 import no.idporten.minidplus.linkmobility.LINKMobilityProperties;
@@ -27,6 +29,7 @@ import static java.time.LocalDateTime.now;
 
 @RequiredArgsConstructor
 @Service
+@Slf4j
 public class AuthenticationService {
 
     @Value("${minid-plus.credential-error-max-number}")
@@ -65,7 +68,7 @@ public class AuthenticationService {
         if (identity == null) {
             throw new MinIDUserNotFoundException(IDPortenExceptionID.LDAP_ENTRY_NOT_FOUND, "User not found uid=" + uid);
         }
-        if(identity.isOneTimeCodeLocked()) {
+        if (identity.isOneTimeCodeLocked()) {
             return false;
         }
 
@@ -79,9 +82,9 @@ public class AuthenticationService {
         return true;
     }
 
-    public boolean otpIsValid(String sid, String oneTimePassword) {
+    private boolean otpIsValid(String sid, String oneTimePassword) {
         String expectedOtp = minidPlusCache.getOTP(sid);
-        return sid != null && expectedOtp != null && expectedOtp.equals(oneTimePassword);
+        return sid != null && expectedOtp != null && expectedOtp.equalsIgnoreCase(oneTimePassword);
     }
 
     private void sendOtp(String sid, ServiceProvider sp, MinidUser identity) {
@@ -97,38 +100,34 @@ public class AuthenticationService {
     }
 
 
-    String checkOTCCode(String sid, String inputOneTimeCode) throws MinidUserNotFoundException {
-
-        boolean isOneTimeCodeCorrect = false; //Assume false
+    public boolean checkOTCCode(String sid, String inputOneTimeCode) throws MinIDPincodeException, MinidUserNotFoundException {
 
         MinidUser user = minIDService.findByPersonNumber(new PersonNumber(minidPlusCache.getSSN(sid)));
 
-        if (inputOneTimeCode.equalsIgnoreCase(minidPlusCache.getOTP(sid))) {
-            isOneTimeCodeCorrect = true;
-        }
-        if (user.getCredentialErrorCounter() == maxNumberOfCredentialErrors) {
-            user.setOneTimeCodeLocked(true);
-            return "Error, pin code locked";
-        }
-        if(user.isOneTimeCodeLocked()) {
-            return "Error, pin code locked";
+        if (user.isOneTimeCodeLocked()) {
+            throw new MinIDPincodeException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "pin code is locked");
         }
 
-        // Handles incorrect one time codes (and users that are not allowed to get temporary passwords)
-        if (!isOneTimeCodeCorrect) { // Increments the error counter
+        if (user.getCredentialErrorCounter() == maxNumberOfCredentialErrors) {
+            user.setOneTimeCodeLocked(true);
+            throw new MinIDPincodeException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "pin code is locked");
+        }
+
+        if (otpIsValid(sid, inputOneTimeCode)) {
+            // resetting counters when setting user to authenticated.
+            resetCountersOnIdentity(user);
+            updateUserAfterSuccessfulLogin(user);
+            return true;
+        } else { // Increments the error counter
             user.setCredentialErrorCounter(user.getCredentialErrorCounter() + 1);
             minIDService.updateContactInformation(user);
             if (checkIfLastTry(user)) {
-                return "Error, last chance";
+                if (log.isDebugEnabled()) {
+                    log.debug("Last attempt for user " + user);
+                }
             }
-            return "Error";
+            return false;
         }
-        // resetting counters when setting user to authenticated.
-        resetCountersOnIdentity(user);
-
-        updateUserAfterSuccessfulLogin(user);
-
-        return "Success";
     }
 
     private void updateUserAfterSuccessfulLogin(MinidUser user) throws MinidUserNotFoundException {
@@ -156,11 +155,11 @@ public class AuthenticationService {
         if (isDummySp(sp)) {
             return getMessage(
                     "auth.ui.output.otc.message",
-                    new String[]{ otc, DateTimeFormatter.ofPattern("HH:mm").format(expire) });
+                    new String[]{otc, DateTimeFormatter.ofPattern("HH:mm").format(expire)});
         } else {
             final String messageBody = getMessage(
                     "auth.ui.output.otc.message.sp",
-                    new String[]{ otc, sp.getName().trim(), DateTimeFormatter.ofPattern("HH:mm").format(expire)  });
+                    new String[]{otc, sp.getName().trim(), DateTimeFormatter.ofPattern("HH:mm").format(expire)});
             return replaceEntities(messageBody);
         }
     }
@@ -168,7 +167,7 @@ public class AuthenticationService {
 
     /**
      * Checks if SP is a dummy or not a real SP.  That is:
-     *
+     * <p>
      * - it is null
      * - it is marked as dummy
      * - it does not have a name set
@@ -212,4 +211,4 @@ public class AuthenticationService {
         return messageSource.getMessage(key, args, new Locale("en_GB"));
     }
 
-    }
+}

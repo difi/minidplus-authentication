@@ -15,7 +15,7 @@ public enum IDPortenExceptionID implements IDPortenMessageID {
     IDENTITY_AUTHENTICATION_FAILED("I-1005", "The identity was not authenticated"),
     IDENTITY_INVALID_PIN("I-1006", "The identity entered an invalid pin code"),
     IDENTITY_PINCODE_NULL("I-1007", "Identity missing pincodes"),
-
+    IDENTITY_PINCODE_LOCKED("I-1008", "Identity pincode locked"),
     // IDs for LDAP
     LDAP_CONNECTION_FAILED("L-1000", "Failed to connect to LDAP"),
     LDAP_NO_CONNECTION("L-1001", "No LDAP connection"),
