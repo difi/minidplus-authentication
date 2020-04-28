@@ -64,3 +64,9 @@ linkmobility:
   readTimeout: 10000 #ms?
   sender: Digdir
   ttl: 600 #s
+
+# Email
+email:
+  url: http://eid-systest-admin01.dmz.local:10002/kontaktinfo-backend/rest/notifyUser/
+  connectTimeout: 5000
+  readTimeout: 10000

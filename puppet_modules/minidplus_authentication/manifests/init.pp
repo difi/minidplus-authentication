@@ -28,6 +28,9 @@ class minidplus_authentication (
   String $ldap_base_minid                           = $minidplus_authentication::params::ldap_base_minid,
   String $eventlog_jms_queuename                    = $minidplus_authentication::params::eventlog_jms_queuename,
   String $eventlog_jms_url                          = $minidplus_authentication::params::eventlog_jms_url,
+  String $email_url                                 = $minidplus_authentication::params::email_url,
+  Integer $email_connect_timeout                    = $minidplus_authentication::params::email_connect_timeout,
+  Integer $email_read_timeout                       = $minidplus_authentication::params::email_read_timeout,
 )inherits minidplus_authentication::params {
 
   include platform

@@ -17,8 +17,8 @@ linkmobility:
     url: <%= @linkmobility_url %>
     account: <%= @linkmobility_account %>
     password: <%= @linkmobility_password %>
-    connectTimeout: <%= @linkmobility_connect_timeout %>
-    readTimeout: <%= @linkmobility_read_timeout %>
+    connect-timeout: <%= @linkmobility_connect_timeout %>
+    read-timeout: <%= @linkmobility_read_timeout %>
     sender: <%= @linkmobility_sender %>
     ttl: <%= @linkmobility_ttl %>
 
@@ -39,3 +39,7 @@ minid-plus:
   token-lifetime-seconds: <%= @token_lifetime_seconds%>
   cache:
      otp-ttl-in-ms: <%= @sms_onetimepassword_ttl %>
+email:
+    url: <%= @email_url %>
+    connect-timeout: <%= @email_connect_timeout %>
+    read-timeout: <%= @email_read_timeout %>
