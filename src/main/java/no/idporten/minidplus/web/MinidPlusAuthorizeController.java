@@ -33,9 +33,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
@@ -135,12 +137,13 @@ public class MinidPlusAuthorizeController {
     }
 
     @PostMapping(params = "otpCode")
-    public String postOTP(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result) {
+    public String postOTP(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
             if (state == STATE_VERIFICATION_CODE) {
                 if (otcPasswordService.checkOTCCode(sid, oneTimePassword.getOtpCode())) {
+                    model.addAttribute("redirectUrl", buildUrl(request));
                     return getNextView(request, STATE_AUTHENTICATED);
                 } else {
                     result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
@@ -178,7 +181,7 @@ public class MinidPlusAuthorizeController {
             if (log.isDebugEnabled()) {
                 log.debug("RedirectUrl: " + url);
             }
-            return "redirect:" + url;
+            return "redirect_to_idporten";
         } else {
             warn("Using tmp test redirect uri");
             return "success"; //todo fjern før prod!
