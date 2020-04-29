@@ -35,7 +35,7 @@ public class AuthenticationService {
             warn("User not found for ssn=", pid);
             throw new MinIDUserNotFoundException(IDPortenExceptionID.LDAP_ENTRY_NOT_FOUND, "User not found uid=" + pid);
         }
-        if (!identity.getSecurityLevel().equals("4") && featureSwitches.isRequestObjectEnabled()) {
+        if (featureSwitches.isRequestObjectEnabled() && !identity.getSecurityLevel().equals("4")) {
             throw new MinIDInvalidCredentialException(IDPortenExceptionID.IDENTITY_INVALID_SECURITY_LEVEL, "User must be level 4 to log in.");
         }
         if (identity.isOneTimeCodeLocked()) {
