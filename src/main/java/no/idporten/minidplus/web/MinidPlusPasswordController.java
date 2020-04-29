@@ -4,11 +4,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.difi.resilience.CorrelationId;
 import no.idporten.domain.sp.ServiceProvider;
-import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.PersonIdInput;
+import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
 import no.idporten.minidplus.service.AuthenticationService;
+import no.idporten.minidplus.service.OTCPasswordService;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -38,18 +39,20 @@ import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
 public class MinidPlusPasswordController {
     protected static final int STATE_PASSWORD_CHANGED = -1;
     protected static final int STATE_PERSONID = 1;
-    protected static final int STATE_OTC = 2;
+    protected static final int STATE_VERIFICATION_CODE = 2;
     protected static final int STATE_EMAIL = 3;
     protected static final int STATE_NEW_PASSWORD = 4;
     protected static final int STATE_ERROR = 10;
 
 
     public static final String MODEL_USER_PERSONID = "personIdInput";
+    public static final String MODEL_ONE_TIME_CODE = "oneTimePassword";
 
     private final LocaleResolver localeResolver;
 
     private final AuthenticationService authenticationService;
 
+    private final OTCPasswordService otcPasswordService;
 
     @GetMapping(produces = "text/html; charset=utf-8")
     public String doGet(HttpServletRequest request, HttpServletResponse response, Model model) {
@@ -73,7 +76,6 @@ public class MinidPlusPasswordController {
 
         int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
         String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
-        AuthorizationRequest ar = (AuthorizationRequest) request.getSession().getAttribute(AUTHORIZATION_REQUEST);
 
         if (state == STATE_PERSONID) {
             if (result.hasErrors()) {
@@ -95,15 +97,40 @@ public class MinidPlusPasswordController {
         }
         OneTimePassword oneTimePassword = new OneTimePassword();
         model.addAttribute(oneTimePassword);
-        return getNextView(request, STATE_OTC);
+        return getNextView(request, STATE_VERIFICATION_CODE);
 
     }
+
+    @PostMapping(params = "otpCode")
+    public String postOTP(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result) {
+        try {
+            int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
+            String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
+            if (state == STATE_VERIFICATION_CODE) {
+                if (otcPasswordService.checkOTCCode(sid, oneTimePassword.getOtpCode())) {
+                    return getNextView(request, STATE_EMAIL);
+                } else {
+                    result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
+                }
+            }
+        } catch (MinIDPincodeException e) {
+            result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.format.otc.locked"}, null, "Too many attempts"));
+        } catch (Exception e) {
+            warn("Exception handling otp: " + e.getMessage());
+            result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line1"}, null, "System error"));
+            result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
+        }
+        return getNextView(request, STATE_VERIFICATION_CODE);
+    }
+
 
     private String getNextView(HttpServletRequest request, int state) {
         setSessionState(request, state);
         if (state == STATE_PERSONID) {
             return "minidplus_password_personid";
-        } else if (state == STATE_OTC)
+        } else if (state == STATE_VERIFICATION_CODE) {
+            return "minidplus_password_otp";
+        } else if (state == STATE_EMAIL)
             return "success"; //todo
         return "error";
     }

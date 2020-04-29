@@ -15,6 +15,7 @@ import no.idporten.minidplus.exception.minid.MinIDInvalidCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
 import no.idporten.minidplus.service.AuthenticationService;
+import no.idporten.minidplus.service.OTCPasswordService;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -70,6 +71,7 @@ public class MinidPlusAuthorizeController {
 
     private final AuthenticationService authenticationService;
 
+    private final OTCPasswordService otcPasswordService;
 
     @GetMapping(produces = "text/html; charset=utf-8")
     public String doGet(HttpServletRequest request, HttpServletResponse response, /* //todo comment back in when ready @Valid*/ AuthorizationRequest authorizationRequest, Model model) {
@@ -138,7 +140,7 @@ public class MinidPlusAuthorizeController {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
             if (state == STATE_VERIFICATION_CODE) {
-                if (authenticationService.checkOTCCode(sid, oneTimePassword.getOtpCode())) {
+                if (otcPasswordService.checkOTCCode(sid, oneTimePassword.getOtpCode())) {
                     return getNextView(request, STATE_AUTHENTICATED);
                 } else {
                     result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));

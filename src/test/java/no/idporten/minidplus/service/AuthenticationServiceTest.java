@@ -4,14 +4,11 @@ import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.MobilePhoneNumber;
 import no.idporten.domain.user.PersonNumber;
-import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDInvalidCredentialException;
-import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
 import no.idporten.minidplus.util.FeatureSwitches;
-import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,9 +20,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import static junit.framework.TestCase.assertTrue;
 import static junit.framework.TestCase.fail;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest

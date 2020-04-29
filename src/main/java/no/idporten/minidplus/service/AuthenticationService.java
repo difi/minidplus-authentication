@@ -9,12 +9,8 @@ import no.idporten.domain.user.PersonNumber;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDInvalidCredentialException;
-import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
-import no.idporten.minidplus.linkmobility.LINKMobilityClient;
-import no.idporten.minidplus.linkmobility.LINKMobilityProperties;
 import no.idporten.minidplus.util.FeatureSwitches;
-import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
 import org.springframework.stereotype.Service;
 
@@ -40,7 +36,7 @@ public class AuthenticationService {
             throw new MinIDUserNotFoundException(IDPortenExceptionID.LDAP_ENTRY_NOT_FOUND, "User not found uid=" + pid);
         }
         if (!identity.getSecurityLevel().equals("4") && featureSwitches.isRequestObjectEnabled()) {
-            throw new MinIDInvalidCredentialException(IDPortenExceptionID.IDENTITY_INVALID_SECURITY_LEVEL ,"User must be level 4 to log in.");
+            throw new MinIDInvalidCredentialException(IDPortenExceptionID.IDENTITY_INVALID_SECURITY_LEVEL, "User must be level 4 to log in.");
         }
         if (identity.isOneTimeCodeLocked()) {
             warn("One time code is locked for ssn=", pid);
@@ -84,7 +80,4 @@ public class AuthenticationService {
         log.warn(CorrelationId.get() + " " + ssn + " " + message);
     }
 
-    public boolean checkOTCCode(String sid, String otpCode) throws MinidUserNotFoundException, MinIDPincodeException {
-        return otcPasswordService.checkOTCCode(sid, otpCode);
-    }
 }
