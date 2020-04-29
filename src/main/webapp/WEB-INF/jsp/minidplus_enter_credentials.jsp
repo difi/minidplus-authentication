@@ -58,9 +58,10 @@
                         </div>
 
                         <div class='fm-form_link with-Link'>
-                            <a href="<c:url value='/password'/>"><span><spring:message
-                                    code="no.idporten.module.minid.settings.menu.fgtpwd"
-                                    text="Glemt passord?"/></span></a>
+                            <a href="<c:url value='password?locale=${locale}'/>">
+                                <span><spring:message
+                                        code="no.idporten.module.minid.settings.menu.fgtpwd"
+                                        text="Glemt passord"/></span></a>
                         </div>
                     </div>
                 </fieldset>

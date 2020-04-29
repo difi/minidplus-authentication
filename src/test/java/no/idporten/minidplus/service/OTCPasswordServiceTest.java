@@ -49,7 +49,6 @@ public class OTCPasswordServiceTest {
     @MockBean
     LINKMobilityClient linkMobilityClient;
 
-
     @Test
     public void checkOTCCodePositiveTest() throws MinidUserNotFoundException, MinIDPincodeException {
         MinidUser user = new MinidUser();

@@ -106,6 +106,7 @@ public class MinIdPlusAuthorizeControllerTest {
                 .andExpect(model().hasErrors())
                 .andReturn();
     }
+
     private AuthorizationRequest getAuthorizationRequest() {
         AuthorizationRequest ar = new AuthorizationRequest();
         ar.setRedirectUrl("http://localhost");

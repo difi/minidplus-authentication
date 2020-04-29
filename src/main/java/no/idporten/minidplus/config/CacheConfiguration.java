@@ -16,18 +16,21 @@ import java.time.Duration;
 @ConditionalOnExpression("'${spring.cache.type}'!='none'")
 public class CacheConfiguration {
 
+    public static final String SID_OTP = "sidOTP";
+    public static final String SID_SSN = "sidSSN";
+
     @Value("${minid-plus.cache.otp-ttl-in-s:600}")
     private int cacheTTL;
 
     @Bean
     public CacheManager cacheManager() {
         return CacheManagerBuilder.newCacheManagerBuilder()
-                .withCache("sidSSN",
+                .withCache(SID_SSN,
                         CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
                                 ResourcePoolsBuilder.heap(100))
                                 .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(cacheTTL + 10L)))
                                 .build())
-                .withCache("sidOTP",
+                .withCache(SID_OTP,
                         CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
                                 ResourcePoolsBuilder.heap(100))
                                 .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(cacheTTL)))

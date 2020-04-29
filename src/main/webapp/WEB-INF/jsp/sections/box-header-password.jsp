@@ -8,7 +8,7 @@ The one above title is displayed on desktop only. the one below on mobile only. 
     <img src="images/nav-logo.gif" alt='tjenestetilbyder logo'/>
 </div>
 <div class='Box_header'>
-    <h1 class='Box_header-title with-logo logo-eid-gray'><spring:message code="no.idporten.module.minid.header"
+    <h1 class='Box_header-title with-logo logo-eid-gray'><spring:message code="auth.ui.fp.user.caption"
                                                                          text="Glemt Passord"/></h1>
     <div class="Box_header-provider"><img src="../images/svg/minid-m-kant.svg" alt="MinID logo"></div>
 </div>

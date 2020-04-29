@@ -9,6 +9,7 @@ import no.idporten.domain.user.PersonNumber;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDInvalidCredentialException;
+import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
 import no.idporten.minidplus.util.FeatureSwitches;
 import no.minid.service.MinIDService;
@@ -49,7 +50,27 @@ public class AuthenticationService {
         }
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
 
-        otcPasswordService.sendOtp(sid, sp, identity);
+        otcPasswordService.sendSMSOtp(sid, sp, identity);
+
+        return true;
+    }
+
+    public boolean verifyUserByEmail(String sid) throws MinIDSystemException, MinIDUserNotFoundException {
+
+        String pid = minidPlusCache.getSSN(sid);
+        MinidUser identity = findUserFromPid(pid);
+
+        if (identity.getEmail() == null) {
+            warn("Email not found not found for user with ssn=", pid);
+            throw new MinIDSystemException(IDPortenExceptionID.LDAP_ATTRIBUTE_MISSING, "Email not found not found for user with ssn=" + pid);
+        }
+
+        if (identity.isOneTimeCodeLocked()) {
+            warn("One time code is locked for ssn=", pid);
+            return false;
+        }
+
+        otcPasswordService.sendEmailOtp(sid, identity);
 
         return true;
     }
@@ -61,7 +82,7 @@ public class AuthenticationService {
             return false;
         }
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
-        otcPasswordService.sendOtp(sid, sp, identity);
+        otcPasswordService.sendSMSOtp(sid, sp, identity);
         return true;
     }
 

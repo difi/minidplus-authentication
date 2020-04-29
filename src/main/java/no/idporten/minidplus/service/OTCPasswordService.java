@@ -9,7 +9,7 @@ import no.idporten.domain.user.PersonNumber;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
-import no.idporten.minidplus.linkmobility.LINKMobilityProperties;
+import no.idporten.minidplus.notification.NotificationService;
 import no.idporten.validation.util.RandomUtil;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
@@ -44,6 +44,9 @@ public class OTCPasswordService {
     @Value("${minid-plus.credential-error-max-number}")
     private int maxNumberOfCredentialErrors;
 
+    @Value("${minid-plus.cache.otp-ttl-in-s:600}")
+    private int otpTtl;
+
     /** Characters that can be used in a password. */
     private static final char[] PWD_OTC_ALL_CHARS = "acdefghjkmnpqrstwxyz2345789".toCharArray();
 
@@ -72,7 +75,7 @@ public class OTCPasswordService {
 
     private final LINKMobilityClient linkMobilityClient;
 
-    private final LINKMobilityProperties linkMobilityProperties;
+    private final NotificationService notificationService;
 
     private final MinIDService minIDService;
 
@@ -150,7 +153,7 @@ public class OTCPasswordService {
         return true;
     }
 
-    void sendOtp(String sid, ServiceProvider sp, MinidUser identity) {
+    void sendSMSOtp(String sid, ServiceProvider sp, MinidUser identity) {
         // Generates one time code and sends SMS with one time code to user's mobile phone number
         // Does not send one time code to users that are not allowed to get temporary passwords
         // Does not resend one time code
@@ -158,9 +161,24 @@ public class OTCPasswordService {
             String generatedOneTimeCode = generateOTCPassword();
             minidPlusCache.putOTP(sid, generatedOneTimeCode);
             final String mobileNumber = identity.getPhoneNumber().getNumber();
-            linkMobilityClient.sendSms(mobileNumber, getMessageBody(sp, generatedOneTimeCode, now().plusSeconds(linkMobilityProperties.getTtl())));
+            linkMobilityClient.sendSms(mobileNumber, getMessageBody(sp, generatedOneTimeCode, now().plusSeconds(otpTtl)));
             if (log.isInfoEnabled()) {
                 log.info("Otp sendt to " + mobileNumber);
+            }
+        }
+    }
+
+    public void sendEmailOtp(String sid, MinidUser identity) {
+        // Generates one time code and sends SMS with one time code to user's mobile phone number
+        // Does not send one time code to users that are not allowed to get temporary passwords
+        // Does not resend one time code
+        if (minidPlusCache.getOTP(sid) == null) {
+            String generatedOneTimeCode = generateOTCPassword();
+            minidPlusCache.putOTP(sid, generatedOneTimeCode);
+            final String email = identity.getEmail().getAddress();
+            notificationService.sendForgottenPasswordEmail(email, generatedOneTimeCode, now().plusSeconds(otpTtl));
+            if (log.isInfoEnabled()) {
+                log.info("Otp sendt to " + email);
             }
         }
     }
@@ -184,6 +202,7 @@ public class OTCPasswordService {
         }
 
         if (otpIsValid(sid, inputOneTimeCode)) {
+            minidPlusCache.removeOTP(sid);
             // resetting counters when setting user to authenticated.
             resetCountersOnIdentity(user);
             updateUserAfterSuccessfulLogin(user);

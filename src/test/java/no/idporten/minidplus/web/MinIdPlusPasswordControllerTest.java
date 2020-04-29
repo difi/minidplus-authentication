@@ -72,22 +72,73 @@ public class MinIdPlusPasswordControllerTest {
                 .param("personalIdNumber", pid)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE))
                 .andExpect(status().isOk())
-                .andExpect(view().name("minidplus_password_otp"))
+                .andExpect(view().name("minidplus_password_otp_sms"))
                 .andReturn();
     }
 
     @Test
-    public void test_post_otp_successful() throws Exception {
+    public void test_post_otp_sms_successful() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
         when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
         when(otcPasswordService.checkOTCCode(eq(code), eq(code))).thenReturn(true);
-        MvcResult mvcResult = mockMvc.perform(post("/password")
+        MvcResult mvcResult = mockMvc.perform(post("/password?otpType=sms")
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
-                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, MinidPlusPasswordController.STATE_VERIFICATION_CODE)
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 2)
                 .param("otpCode", code)
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+        )//.andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(view().name("success")) //todo fiks etter integrasjon med idporten
+                .andExpect(view().name("minidplus_password_otp_email"))
+                .andReturn();
+    }
+
+    @Test
+    public void test_post_otp_sms_unsuccessful() throws Exception {
+        String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
+        when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
+        when(otcPasswordService.checkOTCCode(eq(code), eq(code))).thenReturn(false);
+        MvcResult mvcResult = mockMvc.perform(post("/password?otpType=sms")
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 2)
+                .param("otpCode", code)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+        )//.andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(view().name("minidplus_password_otp_sms"))
+                .andExpect(model().hasErrors())
+                .andReturn();
+    }
+
+    @Test
+    public void test_post_otp_email_successful() throws Exception {
+        String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
+        when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
+        when(otcPasswordService.checkOTCCode(eq(code), eq(code))).thenReturn(true);
+        MvcResult mvcResult = mockMvc.perform(post("/password?otpType=email")
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 3)
+                .param("otpCode", code)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+        )//.andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(view().name("success")) //todo fikses i neste oppgave
+                .andReturn();
+    }
+
+    @Test
+    public void test_post_otp_email_unsuccessful() throws Exception {
+        String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
+        when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
+        when(otcPasswordService.checkOTCCode(eq(code), eq(code))).thenReturn(false);
+        MvcResult mvcResult = mockMvc.perform(post("/password?otpType=email")
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 3)
+                .param("otpCode", code)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+        )//.andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(view().name("minidplus_password_otp_email"))
+                .andExpect(model().hasErrors())
                 .andReturn();
     }
 

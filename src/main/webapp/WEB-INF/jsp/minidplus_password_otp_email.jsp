@@ -12,19 +12,20 @@
         <div class="Box_main" id="minidpluswrapper">
             <div class="fm-Progress_Container">
                 <div class="fm-Progress_Dot"></div>
-                <div class="fm-Progress_Dot active"></div>
                 <div class="fm-Progress_Dot"></div>
+                <div class="fm-Progress_Dot active"></div>
                 <div class="fm-Progress_Dot"></div>
                 <div class="fm-Progress_Dot"></div>
             </div>
 
-            <div class="notification with-Icon icon-sms">
-                <p><spring:message code="no.idporten.module.minid.step2.otc.info"
-                                   text="You will now receive a single-use code by SMS from Digdir."/></p>
+            <div class="notification with-Icon icon-email">
+                <p><spring:message code="no.idporten.module.minid.step3.otc.info"
+                                   text="You will now receive a single-use code by Email from Digdir."/></p>
             </div>
 
             <form:form id="complete" action="#" modelAttribute="oneTimePassword" class="login js-makeProgress-2"
                        method="post">
+                <input type="hidden" id="type" name="otpType" value="email"/>
                 <form:errors path="*" class="notification notification-error with-Icon icon-error" element="div"
                              htmlEscape="false"/>
                 <c:set var="otpCodeHasError">
@@ -36,7 +37,8 @@
                                         text='Skriv inn pinkode' var="pincodeHelpText"/>
 
                         <div class="fm-Field${not empty otpCodeHasError ? ' error' : ''}">
-                            <label for="otpCode"><spring:message code="auth.ui.prompt.otc" text="Kode fra SMS"/></label>
+                            <label for="otpCode"><spring:message code="auth.ui.prompt.tempcode.email"
+                                                                 text="Kode fra Email"/></label>
                             <form:input tabindex="1"
                                         maxlength="5"
                                         path="otpCode"

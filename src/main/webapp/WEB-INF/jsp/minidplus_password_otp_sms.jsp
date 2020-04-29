@@ -11,37 +11,43 @@
         <jsp:include page="sections/box-header-password.jsp"/>
         <div class="Box_main" id="minidpluswrapper">
             <div class="fm-Progress_Container">
-                <div class="fm-Progress_Dot active"></div>
                 <div class="fm-Progress_Dot"></div>
+                <div class="fm-Progress_Dot active"></div>
                 <div class="fm-Progress_Dot"></div>
                 <div class="fm-Progress_Dot"></div>
                 <div class="fm-Progress_Dot"></div>
             </div>
 
-            <c:set var="personalIdNumberHasBindError">
-                <form:errors path="personalIdNumber"/>
-            </c:set>
-            <form:form action="#" class="login js-makeProgress-1" modelAttribute="personIdInput" method="post">
+            <div class="notification with-Icon icon-sms">
+                <p><spring:message code="no.idporten.module.minid.step2.otc.info"
+                                   text="You will now receive a single-use code by SMS from Digdir."/></p>
+            </div>
+
+            <form:form id="complete" action="#" modelAttribute="oneTimePassword" class="login js-makeProgress-2"
+                       method="post">
+                <input type="hidden" id="type" name="otpType" value="sms"/>
                 <form:errors path="*" class="notification notification-error with-Icon icon-error" element="div"
                              htmlEscape="false"/>
-
+                <c:set var="otpCodeHasError">
+                    <form:errors path="*"/>
+                </c:set>
                 <fieldset>
                     <div class="fm-Fields">
-                        <div class="fm-Field${not empty personalIdNumberHasBindError ? ' error' : ''}">
-                            <spring:message code='no.idporten.module.minidplus.input.personalidnumber.help'
-                                            text='(11 siffer)' var="personalIdNumberHelpText"/>
-                            <label for="personalIdNumber"><spring:message
-                                    code="no.idporten.module.minidplus.input.personalidnumber"
-                                    text="Personnummer"/></label>
+                        <spring:message code='auth.ui.inputhelp.onetimecode'
+                                        text='Skriv inn pinkode' var="pincodeHelpText"/>
+
+                        <div class="fm-Field${not empty otpCodeHasError ? ' error' : ''}">
+                            <label for="otpCode"><spring:message code="auth.ui.prompt.otc" text="Kode fra SMS"/></label>
+
                             <form:input tabindex="1"
-                                        maxlength="11"
-                                        path="personalIdNumber"
+                                        maxlength="5"
+                                        path="otpCode"
                                         type="tel"
-                                        id="personalIdNumber"
-                                        placeholder="${personalIdNumberHelpText}"
+                                        id="otpCode"
+                                        placeholder="${pincodeHelpText}"
+                                        value="${otpCode}"
                                         autocomplete="off"/>
                         </div>
-
 
                     </div>
                 </fieldset>

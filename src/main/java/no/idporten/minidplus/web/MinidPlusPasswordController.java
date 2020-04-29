@@ -39,8 +39,8 @@ import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
 public class MinidPlusPasswordController {
     protected static final int STATE_PASSWORD_CHANGED = -1;
     protected static final int STATE_PERSONID = 1;
-    protected static final int STATE_VERIFICATION_CODE = 2;
-    protected static final int STATE_EMAIL = 3;
+    protected static final int STATE_VERIFICATION_CODE_SMS = 2;
+    protected static final int STATE_VERIFICATION_CODE_EMAIL = 3;
     protected static final int STATE_NEW_PASSWORD = 4;
     protected static final int STATE_ERROR = 10;
 
@@ -97,18 +97,21 @@ public class MinidPlusPasswordController {
         }
         OneTimePassword oneTimePassword = new OneTimePassword();
         model.addAttribute(oneTimePassword);
-        return getNextView(request, STATE_VERIFICATION_CODE);
+        return getNextView(request, STATE_VERIFICATION_CODE_SMS);
 
     }
 
-    @PostMapping(params = "otpCode")
-    public String postOTP(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result) {
+    @PostMapping(params = "otpType=sms")
+    public String postOTP(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
-            if (state == STATE_VERIFICATION_CODE) {
+            if (state == STATE_VERIFICATION_CODE_SMS) {
                 if (otcPasswordService.checkOTCCode(sid, oneTimePassword.getOtpCode())) {
-                    return getNextView(request, STATE_EMAIL);
+                    oneTimePassword = new OneTimePassword();
+                    model.addAttribute(oneTimePassword);
+                    authenticationService.verifyUserByEmail(sid);
+                    return getNextView(request, STATE_VERIFICATION_CODE_EMAIL);
                 } else {
                     result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
                 }
@@ -120,17 +123,40 @@ public class MinidPlusPasswordController {
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line1"}, null, "System error"));
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
         }
-        return getNextView(request, STATE_VERIFICATION_CODE);
+        return getNextView(request, STATE_VERIFICATION_CODE_SMS);
     }
 
+    @PostMapping(params = "otpType=email")
+    public String postOTPEmail(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result) {
+        try {
+            int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
+            String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
+            if (state == STATE_VERIFICATION_CODE_EMAIL) {
+                if (otcPasswordService.checkOTCCode(sid, oneTimePassword.getOtpCode())) {
+                    return getNextView(request, STATE_NEW_PASSWORD);
+                } else {
+                    result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
+                }
+            }
+        } catch (MinIDPincodeException e) {
+            result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.format.otc.locked"}, null, "Too many attempts"));
+        } catch (Exception e) {
+            warn("Exception handling otp: " + e.getMessage());
+            result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line1"}, null, "System error"));
+            result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
+        }
+        return getNextView(request, STATE_VERIFICATION_CODE_EMAIL);
+    }
 
     private String getNextView(HttpServletRequest request, int state) {
         setSessionState(request, state);
         if (state == STATE_PERSONID) {
             return "minidplus_password_personid";
-        } else if (state == STATE_VERIFICATION_CODE) {
-            return "minidplus_password_otp";
-        } else if (state == STATE_EMAIL)
+        } else if (state == STATE_VERIFICATION_CODE_SMS) {
+            return "minidplus_password_otp_sms";
+        } else if (state == STATE_VERIFICATION_CODE_EMAIL) {
+            return "minidplus_password_otp_email";
+        } else if (state == STATE_NEW_PASSWORD)
             return "success"; //todo
         return "error";
     }

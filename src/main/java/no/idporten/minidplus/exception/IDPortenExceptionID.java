@@ -20,7 +20,7 @@ public enum IDPortenExceptionID implements IDPortenMessageID {
     // IDs for LDAP
     LDAP_CONNECTION_FAILED("L-1000", "Failed to connect to LDAP"),
     LDAP_NO_CONNECTION("L-1001", "No LDAP connection"),
-
+    LDAP_ATTRIBUTE_MISSING("L-1105", "Entry is missing an LDAP attribute"),
     LDAP_MODIFY_FAILED("L-1101", "Failed to modify LDAP entry"),
     LDAP_ENTRY_NOT_FOUND("L-1102", "Entry (identity/principal) not found in LDAP"),
 
