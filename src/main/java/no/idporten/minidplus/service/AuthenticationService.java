@@ -8,8 +8,12 @@ import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.PersonNumber;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
+import no.idporten.minidplus.exception.minid.MinIDInvalidCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
+import no.idporten.minidplus.linkmobility.LINKMobilityClient;
+import no.idporten.minidplus.linkmobility.LINKMobilityProperties;
+import no.idporten.minidplus.util.FeatureSwitches;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
 import org.springframework.stereotype.Service;
@@ -25,9 +29,19 @@ public class AuthenticationService {
 
     private final MinidPlusCache minidPlusCache;
 
-    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp) throws MinIDUserNotFoundException, MinIDIncorrectCredentialException {
+    private final FeatureSwitches featureSwitches;
+
+    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp) throws MinIDUserNotFoundException, MinIDIncorrectCredentialException, MinIDInvalidCredentialException {
 
         MinidUser identity = findUserFromPid(pid);
+
+        if (identity == null) {
+            warn("User not found for ssn=", pid);
+            throw new MinIDUserNotFoundException(IDPortenExceptionID.LDAP_ENTRY_NOT_FOUND, "User not found uid=" + pid);
+        }
+        if (!identity.getSecurityLevel().equals("4") && featureSwitches.isRequestObjectEnabled()) {
+            throw new MinIDInvalidCredentialException(IDPortenExceptionID.IDENTITY_INVALID_SECURITY_LEVEL ,"User must be level 4 to log in.");
+        }
         if (identity.isOneTimeCodeLocked()) {
             warn("One time code is locked for ssn=", pid);
             return false;

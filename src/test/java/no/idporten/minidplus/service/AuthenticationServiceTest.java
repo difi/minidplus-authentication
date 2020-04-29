@@ -4,9 +4,14 @@ import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.MobilePhoneNumber;
 import no.idporten.domain.user.PersonNumber;
+import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
+import no.idporten.minidplus.exception.minid.MinIDInvalidCredentialException;
+import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
+import no.idporten.minidplus.util.FeatureSwitches;
+import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -18,9 +23,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import static junit.framework.TestCase.assertTrue;
 import static junit.framework.TestCase.fail;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
@@ -51,11 +56,15 @@ public class AuthenticationServiceTest {
     @MockBean
     LINKMobilityClient linkMobilityClient;
 
+    @MockBean
+    FeatureSwitches featureSwitches;
+
     @Test
     public void testAuthentication() {
         when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
         PersonNumber personNumber = new PersonNumber(pid);
         MinidUser minidUser = new MinidUser(personNumber);
+        minidUser.setSecurityLevel("4");
         minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(true);
@@ -83,6 +92,7 @@ public class AuthenticationServiceTest {
         PersonNumber personNumber = new PersonNumber(pid);
         MinidUser minidUser = new MinidUser(personNumber);
         minidUser.setPersonNumber(personNumber);
+        minidUser.setSecurityLevel("4");
         minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(false);
@@ -94,18 +104,21 @@ public class AuthenticationServiceTest {
         }
     }
 
-
     @Test
-    public void checkLoginWithOTCLocked() throws MinIDIncorrectCredentialException, MinIDUserNotFoundException {
-        MinidUser user = new MinidUser();
-        user.setCredentialErrorCounter(0);
-        user.setOneTimeCodeLocked(true);
-        user.setPersonNumber(new PersonNumber(pid));
-        String sessionId = "123";
-
-        when(minIDService.findByPersonNumber(any())).thenReturn(user);
-
-        boolean result = authenticationService.authenticateUser("testSessionId", pid, "test", new ServiceProvider());
-        assertFalse(result);
+    public void testAuthenticationWrongSecurityLevel() {
+        when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
+        when(featureSwitches.isRequestObjectEnabled()).thenReturn(true);
+        PersonNumber personNumber = new PersonNumber(pid);
+        MinidUser minidUser = new MinidUser(personNumber);
+        minidUser.setSecurityLevel("3");
+        minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
+        when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(true);
+        try {
+            authenticationService.authenticateUser(sid, pid, password, eq(sp));
+            fail("should have failed");
+        } catch (Exception e) {
+            assertTrue(e instanceof MinIDInvalidCredentialException);
+        }
     }
 }

@@ -11,6 +11,7 @@ import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.UserCredentials;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
+import no.idporten.minidplus.exception.minid.MinIDInvalidCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
 import no.idporten.minidplus.service.AuthenticationService;
@@ -114,6 +115,9 @@ public class MinidPlusAuthorizeController {
                 return getNextView(request, STATE_USERDATA);
             } catch (MinIDUserNotFoundException e) {
                 result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.usererror.format.ssn"}, null, "Login failed"));
+                return getNextView(request, STATE_USERDATA);
+            } catch (MinIDInvalidCredentialException e) {
+                result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.usererror.format.loa"}, null, "Login failed"));
                 return getNextView(request, STATE_USERDATA);
             }
 
