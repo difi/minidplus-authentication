@@ -8,7 +8,7 @@
             <a href="tel:+4780030300" class='f-Main_Link'><span><spring:message code="no.idporten.module.common.footer.telephone" text="Tel: 800 30 300"/></span></a>
             <a href="" class='f-Main_Link'><span><spring:message code="no.idporten.module.common.footer.commonquestions" text="Help to log in"/></span></a>
             <a href="" class='f-Main_Link'><span><spring:message code="no.idporten.module.common.footer.onieid" text="Security and privacy"/></span></a>
-            <p><spring:message code="no.idporten.module.common.footer.by" text="Operated by"/> <spring:message code="no.idporten.module.common.footer.difi" text="the Norwegian Digitalisation Agency"/></p>
+            <p><spring:message code="no.idporten.module.common.footer.by" text="Operated by"/> <spring:message code="no.idporten.module.common.footer.digdir" text="the Norwegian Digitalisation Agency"/></p>
         </div>
     </div>
 </footer>
