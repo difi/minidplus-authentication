@@ -82,13 +82,14 @@ public class MinIdPlusAuthorizeControllerTest {
         when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
         when(otcPasswordService.checkOTCCode(eq(code), eq(code))).thenReturn(true);
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
-                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
-                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 2)
+                .sessionAttr(HTTP_SESSION_SID, code)
+                .sessionAttr(HTTP_SESSION_STATE, 2)
+                .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
                 .param("otpCode", code)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-        )//.andDo(print())
+        )
                 .andExpect(status().isOk())
-                .andExpect(view().name("success")) //todo fiks etter integrasjon med idporten
+                .andExpect(view().name("redirect_to_idporten"))
                 .andReturn();
     }
 
@@ -98,8 +99,8 @@ public class MinIdPlusAuthorizeControllerTest {
         when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
         when(otcPasswordService.checkOTCCode(eq(code), eq(code))).thenReturn(false);
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
-                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
-                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 2)
+                .sessionAttr(HTTP_SESSION_SID, code)
+                .sessionAttr(HTTP_SESSION_STATE, 2)
                 .param("otpCode", code)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
         )//.andDo(print())

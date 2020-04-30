@@ -132,12 +132,13 @@ public class MinidPlusAuthorizeController {
     }
 
     @PostMapping(params = "otpCode")
-    public String postOTP(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result) {
+    public String postOTP(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
             if (state == STATE_VERIFICATION_CODE) {
                 if (otcPasswordService.checkOTCCode(sid, oneTimePassword.getOtpCode())) {
+                    model.addAttribute("redirectUrl", buildUrl(request));
                     return getNextView(request, STATE_AUTHENTICATED);
                 } else {
                     result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
@@ -163,23 +164,9 @@ public class MinidPlusAuthorizeController {
         } else if (state == STATE_ERROR) {
             return "error";
         } else if (state == STATE_AUTHENTICATED) {
-            return returnAuthorizationCode(request);
+            return "redirect_to_idporten";
         }
         return "error";
-    }
-
-
-    private String returnAuthorizationCode(HttpServletRequest request) {
-        String url = buildUrl(request);
-        if (url != null) {
-            if (log.isDebugEnabled()) {
-                log.debug("RedirectUrl: " + url);
-            }
-            return "redirect:" + url;
-        } else {
-            warn("Using tmp test redirect uri");
-            return "success"; //todo fjern før prod!
-        }
     }
 
     private void setSessionState(HttpServletRequest request, int state) {
