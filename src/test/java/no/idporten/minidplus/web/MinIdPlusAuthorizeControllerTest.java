@@ -18,6 +18,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
@@ -80,13 +81,14 @@ public class MinIdPlusAuthorizeControllerTest {
         when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
         when(otcPasswordService.checkOTCCode(eq(code), eq(code))).thenReturn(true);
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
-                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
-                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 2)
+                .sessionAttr(HTTP_SESSION_SID, code)
+                .sessionAttr(HTTP_SESSION_STATE, 2)
+                .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
                 .param("otpCode", code)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-        )//.andDo(print())
+        )
                 .andExpect(status().isOk())
-                .andExpect(view().name("success")) //todo fiks etter integrasjon med idporten
+                .andExpect(view().name("redirect_to_idporten"))
                 .andReturn();
     }
 
@@ -96,8 +98,8 @@ public class MinIdPlusAuthorizeControllerTest {
         when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
         when(otcPasswordService.checkOTCCode(eq(code), eq(code))).thenReturn(false);
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
-                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
-                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 2)
+                .sessionAttr(HTTP_SESSION_SID, code)
+                .sessionAttr(HTTP_SESSION_STATE, 2)
                 .param("otpCode", code)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
         )//.andDo(print())

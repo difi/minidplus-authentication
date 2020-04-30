@@ -16,10 +16,8 @@
                 <div class="fm-Progress_Dot"></div>
             </div>
 
-
             <form:form id="complete" action="${redirectUrl}" class="login js-makeProgress-2"
                        method="post">
-
 
                 <jsp:include page="sections/controls.jsp"/>
             </form:form>

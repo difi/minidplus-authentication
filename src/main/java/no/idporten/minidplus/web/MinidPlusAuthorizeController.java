@@ -33,11 +33,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
 
 import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
@@ -169,23 +167,9 @@ public class MinidPlusAuthorizeController {
         } else if (state == STATE_ERROR) {
             return "error";
         } else if (state == STATE_AUTHENTICATED) {
-            return returnAuthorizationCode(request);
+            return "redirect_to_idporten";
         }
         return "error";
-    }
-
-
-    private String returnAuthorizationCode(HttpServletRequest request) {
-        String url = buildUrl(request);
-        if (url != null) {
-            if (log.isDebugEnabled()) {
-                log.debug("RedirectUrl: " + url);
-            }
-            return "redirect_to_idporten";
-        } else {
-            warn("Using tmp test redirect uri");
-            return "success"; //todo fjern før prod!
-        }
     }
 
     private void setSessionState(HttpServletRequest request, int state) {
