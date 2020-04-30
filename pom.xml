@@ -10,7 +10,7 @@
     </parent>
     <groupId>no.idporten</groupId>
     <artifactId>minidplus-web-authentication</artifactId>
-    <packaging>war</packaging>
+    <packaging>jar</packaging>
     <version>DEV-SNAPSHOT</version>
     <name>minidplus-authentication</name>
     <description>Minid Plus</description>

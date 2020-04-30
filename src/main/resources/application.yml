@@ -28,7 +28,7 @@ management:
     defaults:
       enabled: false
     jms:
-      enabled: true
+      enabled: false
     ldap:
       enabled: true
   endpoints:

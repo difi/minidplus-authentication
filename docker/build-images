@@ -16,7 +16,7 @@ build() {
 
     cp -r puppet_modules docker/minidplus-authentication/ || return 1
     cp -r puppet_hiera docker/minidplus-authentication/ || return 1
-    cp target/minidplus-web-authentication.war docker/minidplus-authentication/war/ || return 1
+    cp target/minidplus-web-authentication.jar docker/minidplus-authentication/war/ || return 1
     buildImage ${registry} minidplus-authentication ${version} "${pull}" || return 1
     }
 

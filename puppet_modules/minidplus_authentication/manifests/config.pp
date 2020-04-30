@@ -17,7 +17,7 @@ class minidplus_authentication::config inherits minidplus_authentication {
   } ->
   file { "/etc/rc.d/init.d/${minidplus_authentication::service_name}":
     ensure => 'link',
-    target => "${minidplus_authentication::install_dir}${minidplus_authentication::application}/${minidplus_authentication::artifact_id}.war",
+    target => "${minidplus_authentication::install_dir}${minidplus_authentication::application}/${minidplus_authentication::artifact_id}.jar",
   }
 
   difilib::logback_config { $minidplus_authentication::application:

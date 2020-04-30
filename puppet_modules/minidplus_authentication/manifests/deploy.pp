@@ -6,6 +6,6 @@ class minidplus_authentication::deploy inherits minidplus_authentication {
     artifact     => $minidplus_authentication::artifact_id,
     service_name => $minidplus_authentication::service_name,
     install_dir  => "${minidplus_authentication::install_dir}${minidplus_authentication::application}",
-    artifact_type => "war",
+    artifact_type => "jar",
   }
 }

@@ -30,7 +30,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 COPY --from=config /etc/filebeat/ /etc/filebeat/
 COPY --from=config /etc/opt/${APPLICATION}/ /etc/opt/${APPLICATION}/
 
-COPY /war/${ARTIFACT_ID}.war /usr/local/webapps/application.war
+COPY /war/${ARTIFACT_ID}.jar /usr/local/webapps/application.jar
 COPY --from=config /opt/${APPLICATION}/${ARTIFACT_ID}.conf /usr/local/webapps/application.conf
 
 COPY entrypoint.sh /entrypoint.sh
