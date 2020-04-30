@@ -28,14 +28,13 @@ public class AuthorizationRequestValidatorTest {
     @Test
     public void authorization_request_is_valid() {
         AuthorizationRequest ar = new AuthorizationRequest();
-        ar.setRedirectUrl("http://localhost");
-        ar.setService("MinidPlus");
-        ar.setStartService("IdportenLevel4List");
-        ar.setGx_charset("UTF-8");
+        ar.setRedirectUri("http://localhost");
         ar.setLocale("nb");
         ar.setSpEntityId("NAV");
         ar.setGotoParam("http://digir.test.no");
-        ar.setForceAuth(true);
+        ar.setState("123abc");
+        ar.setAcrValues(LevelOfAssurance.LEVEL4);
+        ar.setResponseType("authorization_code");
         Set<ConstraintViolation<AuthorizationRequest>> violations = validator.validate(ar);
         assertTrue(violations.isEmpty());
     }
@@ -43,14 +42,13 @@ public class AuthorizationRequestValidatorTest {
     @Test
     public void authorization_request_is_invalid() {
         AuthorizationRequest ar = new AuthorizationRequest();
-        ar.setRedirectUrl("biff");
-        ar.setService("MinidPlus");
-        ar.setStartService("IdportenLevel4List");
-        ar.setGx_charset("UTF-8");
+        ar.setRedirectUri("biff");
+        ar.setState("123abc");
+        ar.setAcrValues(LevelOfAssurance.LEVEL4);
+        ar.setResponseType("authorization_code");
         ar.setLocale("nb");
         ar.setGotoParam("poteter");
         ar.setSpEntityId("NAV");
-        ar.setForceAuth(false);
         Set<ConstraintViolation<AuthorizationRequest>> violations = validator.validate(ar);
         assertFalse(violations.isEmpty());
         assertEquals(2, violations.size());

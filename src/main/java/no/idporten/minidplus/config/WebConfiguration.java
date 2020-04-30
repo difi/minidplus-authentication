@@ -1,10 +1,15 @@
 package no.idporten.minidplus.config;
 
+import no.idporten.minidplus.spring.RenamingProcessor;
+import no.idporten.minidplus.spring.converters.AcrToLevelOfAssurance;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.format.FormatterRegistry;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -12,17 +17,20 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
 import org.springframework.web.servlet.i18n.SessionLocaleResolver;
 
+import java.util.List;
 import java.util.Locale;
 
 @Configuration
 public class WebConfiguration implements WebMvcConfigurer {
 
+    @Autowired
+    AcrToLevelOfAssurance acrToLevelOfAssurance;
 
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowedOrigins("http://localhost:8080", "https://testmijøsomething.no") //todo kommenter ut etterhvert
                 .allowedOrigins("*")
-                .allowedMethods("OPTIONS","GET", "POST", "HEAD")
+                .allowedMethods("OPTIONS", "GET", "POST", "HEAD")
                 .allowCredentials(true);
     }
 
@@ -31,7 +39,7 @@ public class WebConfiguration implements WebMvcConfigurer {
         ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
         messageSource.setBasenames("messages");
         messageSource.setDefaultEncoding("UTF-8");
-       // messageSource.setUseCodeAsDefaultMessage(true);
+        // messageSource.setUseCodeAsDefaultMessage(true);
 
         return messageSource;
     }
@@ -62,4 +70,18 @@ public class WebConfiguration implements WebMvcConfigurer {
         registry.addInterceptor(localeInterceptor());
     }
 
+    @Bean
+    public RenamingProcessor renamingProcessor() {
+        return new RenamingProcessor(true);
+    }
+
+    @Override
+    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers) {
+        argumentResolvers.add(renamingProcessor());
+    }
+
+    @Override
+    public void addFormatters(FormatterRegistry registry) {
+        registry.addConverter(acrToLevelOfAssurance);
+    }
 }

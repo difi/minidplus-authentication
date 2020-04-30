@@ -54,8 +54,6 @@ public class MinidPlusAuthorizeController {
     protected static final int STATE_VERIFICATION_CODE = 2;
     protected static final int STATE_ERROR = 3;
 
-    private static final String IDPORTEN_INPUT_PREFIX = "idporten.input.";
-    private static final String IDPORTEN_FEEDBACK_PREFIX = "idporten.feedback.";
     private static final String MOBILE_NUMBER = "mobileNumber";
     private static final String PERSONAL_ID_NUMBER = "personalIdNumber";
     private static final String PIN_CODE = "otpCode";
@@ -74,12 +72,11 @@ public class MinidPlusAuthorizeController {
     private final OTCPasswordService otcPasswordService;
 
     @GetMapping(produces = "text/html; charset=utf-8")
-    public String doGet(HttpServletRequest request, HttpServletResponse response, /* //todo comment back in when ready @Valid*/ AuthorizationRequest authorizationRequest, Model model) {
+    public String doGet(HttpServletRequest request, HttpServletResponse response, @Valid AuthorizationRequest authorizationRequest, Model model) {
         request.getSession().invalidate();
         request.getSession().setAttribute(HTTP_SESSION_AUTH_TYPE, AuthType.MINID_PLUS);
         request.getSession().setAttribute(HTTP_SESSION_SID, UUID.randomUUID().toString());
 
-        authorizationRequest.setStartService(request.getParameter(HTTP_SESSION_START_SERVICE)); //tmp workaround for stupid dash-param
         setLocale(request, response, authorizationRequest);
         request.getSession().setAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST, authorizationRequest);
 
@@ -193,18 +190,17 @@ public class MinidPlusAuthorizeController {
         HttpSession session = request.getSession();
         String sid = (String) session.getAttribute("sid");
         AuthorizationRequest ar = (AuthorizationRequest) session.getAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST);
-        if (ar != null && StringUtils.isNotEmpty(ar.getRedirectUrl())) {
+        if (ar != null && StringUtils.isNotEmpty(ar.getRedirectUri())) {
             try {
                 UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance()
-                        .uri(new URI(ar.getRedirectUrl()))
+                        .uri(new URI(ar.getRedirectUri()))
                         .queryParam(HTTP_SESSION_SID, sid);
 
-                uriComponentsBuilder.queryParam(HTTP_SESSION_REDIRECT_URL, ar.getRedirectUrl())
-                        .queryParam(HTTP_SESSION_FORCE_AUTH, ar.getForceAuth())
-                        .queryParam(HTTP_SESSION_GX_CHARSET, ar.getGx_charset())
+                uriComponentsBuilder.queryParam(HTTP_SESSION_REDIRECT_URI, ar.getRedirectUri())
                         .queryParam(HTTP_SESSION_LOCALE, ar.getLocale())
                         .queryParam(HTTP_SESSION_GOTO, ar.getGotoParam())
-                        .queryParam(HTTP_SESSION_SERVICE, ar.getService());
+                        .queryParam(HTTP_SESSION_CLIENT_STATE, ar.getState())
+                        .queryParam(HTTP_SESSION_SERVICE, SERVICE_NAME);
 
                 return uriComponentsBuilder.build()
                         .toUriString();
