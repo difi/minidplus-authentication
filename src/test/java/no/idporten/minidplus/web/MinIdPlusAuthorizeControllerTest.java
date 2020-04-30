@@ -3,6 +3,7 @@ package no.idporten.minidplus.web;
 import no.idporten.domain.auth.AuthType;
 import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.minidplus.domain.AuthorizationRequest;
+import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.MinidPlusCache;
@@ -54,14 +55,14 @@ public class MinIdPlusAuthorizeControllerTest {
         when(authenticationService.authenticateUser(anyString(), anyString(), anyString(), eq(sp))).thenReturn(true);
         AuthorizationRequest ar = getAuthorizationRequest();
         MvcResult mvcResult = mockMvc.perform(get("/authorize")
-                .param(MinidPlusSessionAttributes.HTTP_SESSION_REDIRECT_URL, ar.getRedirectUrl())
-                .param(MinidPlusSessionAttributes.HTTP_SESSION_FORCE_AUTH, ar.getForceAuth().toString())
-                .param(MinidPlusSessionAttributes.HTTP_SESSION_GOTO, ar.getGotoParam())
-                .param(MinidPlusSessionAttributes.HTTP_SESSION_LOCALE, ar.getLocale())
-                .param(MinidPlusSessionAttributes.HTTP_SESSION_GX_CHARSET, ar.getGx_charset())
-                .param(MinidPlusSessionAttributes.HTTP_SESSION_SERVICE, ar.getService())
-                .param(MinidPlusSessionAttributes.HTTP_SESSION_START_SERVICE, ar.getStartService())
-        )//.andDo(print())
+                .param(HTTP_SESSION_CLIENT_ID, ar.getSpEntityId())
+                .param(HTTP_SESSION_REDIRECT_URI, ar.getRedirectUri())
+                .param(HTTP_SESSION_RESPONSE_TYPE, ar.getResponseType())
+                .param(HTTP_SESSION_GOTO, ar.getGotoParam())
+                .param(HTTP_SESSION_LOCALE, ar.getLocale())
+                .param(HTTP_SESSION_ACR_VALUES, ar.getAcrValues().getExternalName())
+                .param(HTTP_SESSION_CLIENT_STATE, ar.getState())
+        )
                 .andExpect(status().isOk())
                 .andExpect(view().name("minidplus_enter_credentials"))
                 .andExpect(content().string(containsString("")))
@@ -104,20 +105,20 @@ public class MinIdPlusAuthorizeControllerTest {
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
         )//.andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(forwardedUrl("/WEB-INF/jsp/minidplus_enter_otp.jsp"))
+                .andExpect(view().name("minidplus_enter_otp"))
                 .andExpect(model().hasErrors())
                 .andReturn();
     }
 
     private AuthorizationRequest getAuthorizationRequest() {
         AuthorizationRequest ar = new AuthorizationRequest();
-        ar.setRedirectUrl("http://localhost");
+        ar.setRedirectUri("http://localhost");
         ar.setLocale("nb_no");
-        ar.setForceAuth(true);
-        ar.setGotoParam("hello");
-        ar.setGx_charset("dunno");
-        ar.setService("myService");
-        ar.setStartService("startMeUp");
+        ar.setState("123");
+        ar.setGotoParam("http://localhost");
+        ar.setSpEntityId("NAV");
+        ar.setResponseType("authorization_code");
+        ar.setAcrValues(LevelOfAssurance.LEVEL4);
         return ar;
     }
 }
