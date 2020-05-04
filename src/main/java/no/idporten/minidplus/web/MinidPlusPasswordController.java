@@ -5,11 +5,12 @@ import lombok.extern.slf4j.Slf4j;
 import no.difi.resilience.CorrelationId;
 import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.minidplus.domain.OneTimePassword;
+import no.idporten.minidplus.domain.PasswordChange;
 import no.idporten.minidplus.domain.PersonIdInput;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
-import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.OTCPasswordService;
+import no.minid.exception.MinidUserNotFoundException;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -47,6 +48,7 @@ public class MinidPlusPasswordController {
 
     public static final String MODEL_USER_PERSONID = "personIdInput";
     public static final String MODEL_ONE_TIME_CODE = "oneTimePassword";
+    public static final String MODEL_PASSWORDCHANGE = "passwordChange";
 
     private final LocaleResolver localeResolver;
 
@@ -85,7 +87,7 @@ public class MinidPlusPasswordController {
                 ServiceProvider sp = new ServiceProvider("Idporten");
                 sp.setName("idporten");
                 authenticationService.authenticatePid(sid, personId.getPersonalIdNumber(), sp);
-            } catch (MinIDUserNotFoundException e) {
+            } catch (MinidUserNotFoundException e) {
                 result.addError(new ObjectError(MODEL_USER_PERSONID, new String[]{"auth.ui.usererror.format.ssn"}, null, "Login failed"));
                 return getNextView(request, STATE_PERSONID);
             }
@@ -127,12 +129,13 @@ public class MinidPlusPasswordController {
     }
 
     @PostMapping(params = "otpType=email")
-    public String postOTPEmail(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result) {
+    public String postOTPEmail(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
             if (state == STATE_VERIFICATION_CODE_EMAIL) {
                 if (otcPasswordService.checkOTCCode(sid, oneTimePassword.getOtpCode())) {
+                    model.addAttribute(MODEL_PASSWORDCHANGE, new PasswordChange());
                     return getNextView(request, STATE_NEW_PASSWORD);
                 } else {
                     result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
@@ -148,6 +151,27 @@ public class MinidPlusPasswordController {
         return getNextView(request, STATE_VERIFICATION_CODE_EMAIL);
     }
 
+    @PostMapping(params = "newPassword")
+    public String postPasswordChange(HttpServletRequest request, @Valid @ModelAttribute(MODEL_PASSWORDCHANGE) PasswordChange newPassword, BindingResult result) {
+        try {
+            int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
+            String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
+            if (state == STATE_NEW_PASSWORD) {
+                if (newPassword.getNewPassword().equals(newPassword.getReenterPassword())) { //extra backend check
+                    if (authenticationService.changePassword(sid, newPassword.getNewPassword())) {
+                        return getNextView(request, STATE_PASSWORD_CHANGED);
+                    }
+                } else {
+                    result.addError(new ObjectError(MODEL_PASSWORDCHANGE, new String[]{"auth.ui.usererror.invalidrepeat.newpassword"}, null, "Try again"));
+                }
+            }
+        } catch (Exception e) {
+            warn("Exception handling password change: " + e.getMessage());
+            result.addError(new ObjectError(MODEL_PASSWORDCHANGE, new String[]{"no.idporten.forgottenpassword.failed"}, null, "System error"));
+        }
+        return getNextView(request, STATE_NEW_PASSWORD);
+    }
+
     private String getNextView(HttpServletRequest request, int state) {
         setSessionState(request, state);
         if (state == STATE_PERSONID) {
@@ -156,8 +180,11 @@ public class MinidPlusPasswordController {
             return "minidplus_password_otp_sms";
         } else if (state == STATE_VERIFICATION_CODE_EMAIL) {
             return "minidplus_password_otp_email";
-        } else if (state == STATE_NEW_PASSWORD)
-            return "success"; //todo
+        } else if (state == STATE_NEW_PASSWORD) {
+            return "minidplus_password_change";
+        } else if (state == STATE_PASSWORD_CHANGED) {
+            return "minidplus_password_success";
+        }
         return "error";
     }
 

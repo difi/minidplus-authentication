@@ -21,7 +21,7 @@
             <c:set var="personalIdNumberHasBindError">
                 <form:errors path="personalIdNumber"/>
             </c:set>
-            <form:form action="#" class="login js-makeProgress-1" modelAttribute="personIdInput" method="post">
+            <form:form action="#" class="login" modelAttribute="personIdInput" method="post">
                 <form:errors path="*" class="notification notification-error with-Icon icon-error" element="div"
                              htmlEscape="false"/>
 

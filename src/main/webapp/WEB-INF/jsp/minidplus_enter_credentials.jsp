@@ -22,7 +22,7 @@
                 <form:errors path="password"/>
             </c:set>
 
-            <form:form action="#" class="login js-makeProgress-1" modelAttribute="userCredentials" method="post">
+            <form:form action="#" class="login" modelAttribute="userCredentials" method="post">
                 <form:errors path="*" class="notification notification-error with-Icon icon-error" element="div" htmlEscape="false"/>
 
                 <fieldset>

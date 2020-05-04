@@ -1,7 +1,9 @@
 package no.idporten.minidplus.config;
 
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import no.difi.resilience.spring.ResilientJmsTemplate;
+import no.idporten.domain.log.LogEntry;
 import no.idporten.log.event.EventLogger;
 import no.idporten.log.event.EventLoggerImpl;
 import org.apache.activemq.ActiveMQConnectionFactory;
@@ -17,6 +19,7 @@ import javax.jms.ConnectionFactory;
 @Configuration
 @ConfigurationProperties(prefix = "event")
 @Data
+@Slf4j
 public class EventLoggerConfig {
 
     private String jmsUrl;
@@ -24,9 +27,23 @@ public class EventLoggerConfig {
 
     @Bean
     public EventLogger eventLogger() {
-        return new EventLoggerImpl(eventQueueJmsTemplate());
+        return new GivingAFEventLogger(eventQueueJmsTemplate());
     }
 
+    //todo fjern denne når eventlogger virker
+    //http://jira.difi.local/browse/PBLEID-19947
+
+    public class GivingAFEventLogger extends EventLoggerImpl {
+
+        public GivingAFEventLogger(JmsTemplate jmsTemplate) {
+            super(jmsTemplate);
+        }
+
+        @Override
+        public void log(LogEntry logEntry) {
+            log.info("Faking a log entry");
+        }
+    }
     @Bean
     public JmsTemplate eventQueueJmsTemplate() {
         JmsTemplate jmsTemplate = new ResilientJmsTemplate("SERVICEID_minidplus");

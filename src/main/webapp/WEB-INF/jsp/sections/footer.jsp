@@ -23,7 +23,6 @@
 <script type="text/javascript" src="js/minid-menu.js"></script>
 <script type="text/javascript" src="js/tab.js"></script>
 <script type="text/javascript" src="js/toggleMenues.js"></script>
-<script type="text/javascript" src="js/makeProgress.js"></script>
 <script type="text/javascript" src="js/check-enable-save.js"></script>
 <script type="text/javascript" src="js/radio-enable-save.js"></script>
 

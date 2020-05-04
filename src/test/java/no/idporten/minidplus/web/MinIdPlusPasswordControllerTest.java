@@ -5,6 +5,7 @@ import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.MinidPlusCache;
 import no.idporten.minidplus.service.OTCPasswordService;
+import no.minid.exception.MinidUserNotFoundException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -112,7 +113,7 @@ public class MinIdPlusPasswordControllerTest {
     @Test
     public void test_post_otp_email_successful() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
-        when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
+        when(minidPlusCache.getSSN(code)).thenReturn(pid);
         when(otcPasswordService.checkOTCCode(eq(code), eq(code))).thenReturn(true);
         MvcResult mvcResult = mockMvc.perform(post("/password?otpType=email")
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
@@ -121,14 +122,14 @@ public class MinIdPlusPasswordControllerTest {
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
         )//.andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(view().name("success")) //todo fikses i neste oppgave
+                .andExpect(view().name("minidplus_password_change"))
                 .andReturn();
     }
 
     @Test
     public void test_post_otp_email_unsuccessful() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
-        when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
+        when(minidPlusCache.getSSN(code)).thenReturn(pid);
         when(otcPasswordService.checkOTCCode(eq(code), eq(code))).thenReturn(false);
         MvcResult mvcResult = mockMvc.perform(post("/password?otpType=email")
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
@@ -141,5 +142,44 @@ public class MinIdPlusPasswordControllerTest {
                 .andExpect(model().hasErrors())
                 .andReturn();
     }
+
+    @Test
+    public void test_post_new_password_successful() throws Exception {
+        String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
+        String newPassword = "daWør6";
+        when(minidPlusCache.getSSN(code)).thenReturn(pid);
+        when(authenticationService.changePassword(eq(code), eq(newPassword))).thenReturn(true);
+        MvcResult mvcResult = mockMvc.perform(post("/password")
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 4)
+                .param("newPassword", newPassword)
+                .param("reenterPassword", newPassword)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+        )
+                .andExpect(status().isOk())
+                .andExpect(view().name("minidplus_password_success"))
+                .andReturn();
+    }
+
+    @Test
+    public void test_post_new_password_not_successful() throws Exception {
+        String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
+        String newPassword = "daWør6";
+        when(minidPlusCache.getSSN(code)).thenReturn(pid);
+        when(authenticationService.changePassword(eq(code), eq(newPassword))).thenThrow(new MinidUserNotFoundException("User not here"));
+        MvcResult mvcResult = mockMvc.perform(post("/password")
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 4)
+                .param("newPassword", newPassword)
+                .param("reenterPassword", "pølse")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+        )
+                .andExpect(status().isOk())
+                .andExpect(model().hasErrors())
+                .andExpect(view().name("minidplus_password_change"))
+                .andReturn();
+
+    }
+
 
 }

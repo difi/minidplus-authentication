@@ -163,7 +163,7 @@ public class OTCPasswordService {
             final String mobileNumber = identity.getPhoneNumber().getNumber();
             linkMobilityClient.sendSms(mobileNumber, getMessageBody(sp, generatedOneTimeCode, now().plusSeconds(otpTtl)));
             if (log.isInfoEnabled()) {
-                log.info("Otp sendt to " + mobileNumber);
+                log.info(CorrelationId.get() + " " + "Otp sendt to " + mobileNumber);
             }
         }
     }
@@ -178,7 +178,7 @@ public class OTCPasswordService {
             final String email = identity.getEmail().getAddress();
             notificationService.sendForgottenPasswordEmail(email, generatedOneTimeCode, now().plusSeconds(otpTtl));
             if (log.isInfoEnabled()) {
-                log.info("Otp sendt to " + email);
+                log.info(CorrelationId.get() + " " + "Otp sendt to " + email);
             }
         }
     }

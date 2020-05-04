@@ -1,5 +1,8 @@
 package no.idporten.minidplus.config;
 
+import lombok.RequiredArgsConstructor;
+import no.idporten.log.audit.AuditLogger;
+import no.idporten.log.event.EventLogger;
 import no.minid.ldap.dao.MinidDao;
 import no.minid.ldap.dao.MinidLdapDaoImpl;
 import no.minid.service.MinIDService;
@@ -11,13 +14,20 @@ import org.springframework.ldap.core.ContextSource;
 import org.springframework.ldap.core.support.LdapContextSource;
 
 @Configuration
+@RequiredArgsConstructor
 public class MinidConfig {
+
+    private final EventLogger eventLogger;
+
+    private final AuditLogger auditLogger;
 
     @Bean
     @Autowired
     public MinIDService minIDService(LdapConfig ldapConfig) {
         MinIDServiceImpl minIDService = new MinIDServiceImpl();
         minIDService.setMinidDao(minidDao(ldapContextSource(ldapConfig)));
+        minIDService.setEventLogger(eventLogger);
+        minIDService.setAuditLogger(auditLogger);
         return minIDService;
     }
 

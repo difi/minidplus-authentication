@@ -47,6 +47,7 @@ public class AuthorizationRequest implements Serializable {
     @ParamName(HTTP_SESSION_ACR_VALUES)
     private LevelOfAssurance acrValues = LevelOfAssurance.LEVEL3;
 
+    @NotEmpty
     @Pattern(regexp = "^[\\x20-\\x7E]+$", message = "invalid_request")
     @ParamName(HTTP_SESSION_CLIENT_STATE)
     private String state;

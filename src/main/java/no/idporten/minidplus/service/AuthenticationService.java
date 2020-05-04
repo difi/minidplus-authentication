@@ -6,12 +6,14 @@ import no.difi.resilience.CorrelationId;
 import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.PersonNumber;
+import no.idporten.log.audit.AuditLogger;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDInvalidCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDSystemException;
-import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
+import no.idporten.minidplus.logging.audit.AuditID;
 import no.idporten.minidplus.util.FeatureSwitches;
+import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
 import org.springframework.stereotype.Service;
 
@@ -28,13 +30,15 @@ public class AuthenticationService {
 
     private final FeatureSwitches featureSwitches;
 
-    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp) throws MinIDUserNotFoundException, MinIDIncorrectCredentialException, MinIDInvalidCredentialException {
+    private final AuditLogger auditLogger;
+
+    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp) throws MinidUserNotFoundException, MinIDIncorrectCredentialException, MinIDInvalidCredentialException {
 
         MinidUser identity = findUserFromPid(pid);
 
         if (identity == null) {
             warn("User not found for ssn=", pid);
-            throw new MinIDUserNotFoundException(IDPortenExceptionID.LDAP_ENTRY_NOT_FOUND, "User not found uid=" + pid);
+            throw new MinidUserNotFoundException("User not found uid=" + pid);
         }
         if (featureSwitches.isRequestObjectEnabled() && !identity.getSecurityLevel().equals("4")) {
             throw new MinIDInvalidCredentialException(IDPortenExceptionID.IDENTITY_INVALID_SECURITY_LEVEL, "User must be level 4 to log in.");
@@ -55,7 +59,7 @@ public class AuthenticationService {
         return true;
     }
 
-    public boolean verifyUserByEmail(String sid) throws MinIDSystemException, MinIDUserNotFoundException {
+    public boolean verifyUserByEmail(String sid) throws MinIDSystemException, MinidUserNotFoundException {
 
         String pid = minidPlusCache.getSSN(sid);
         MinidUser identity = findUserFromPid(pid);
@@ -75,7 +79,14 @@ public class AuthenticationService {
         return true;
     }
 
-    public boolean authenticatePid(String sid, String pid, ServiceProvider sp) throws MinIDUserNotFoundException {
+    public boolean changePassword(String sid, String password) throws MinidUserNotFoundException {
+        String pid = minidPlusCache.getSSN(sid);
+        minIDService.updatePassword(new PersonNumber(pid), password);
+        auditLogger.log(AuditID.PASSWORD_CHANGED.auditId(), null, pid, CorrelationId.get());
+        return true;
+    }
+
+    public boolean authenticatePid(String sid, String pid, ServiceProvider sp) throws MinidUserNotFoundException {
         MinidUser identity = findUserFromPid(pid);
         if (identity.isOneTimeCodeLocked()) {
             warn("One time code is locked for ssn=", pid);
@@ -86,13 +97,13 @@ public class AuthenticationService {
         return true;
     }
 
-    private MinidUser findUserFromPid(String pid) throws MinIDUserNotFoundException {
+    private MinidUser findUserFromPid(String pid) throws MinidUserNotFoundException {
         PersonNumber uid = new PersonNumber(pid);
         MinidUser identity = minIDService.findByPersonNumber(uid);
 
         if (identity == null) {
             warn("User not found for ssn=", pid);
-            throw new MinIDUserNotFoundException(IDPortenExceptionID.LDAP_ENTRY_NOT_FOUND, "User not found uid=" + pid);
+            throw new MinidUserNotFoundException("User not found uid=" + pid);
         }
         return identity;
     }

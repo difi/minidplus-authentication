@@ -23,7 +23,7 @@
                                    text="You will now receive a single-use code by Email from Digdir."/></p>
             </div>
 
-            <form:form id="complete" action="#" modelAttribute="oneTimePassword" class="login js-makeProgress-2"
+            <form:form id="complete" action="#" modelAttribute="oneTimePassword" class="login"
                        method="post">
                 <input type="hidden" id="type" name="otpType" value="email"/>
                 <form:errors path="*" class="notification notification-error with-Icon icon-error" element="div"

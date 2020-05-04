@@ -13,9 +13,9 @@ import no.idporten.minidplus.domain.UserCredentials;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDInvalidCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
-import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.OTCPasswordService;
+import no.minid.exception.MinidUserNotFoundException;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -112,7 +112,7 @@ public class MinidPlusAuthorizeController {
             } catch (MinIDIncorrectCredentialException e) {
                 result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.format.password"}, null, "Login failed"));
                 return getNextView(request, STATE_USERDATA);
-            } catch (MinIDUserNotFoundException e) {
+            } catch (MinidUserNotFoundException e) {
                 result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.usererror.format.ssn"}, null, "Login failed"));
                 return getNextView(request, STATE_USERDATA);
             } catch (MinIDInvalidCredentialException e) {

@@ -4,11 +4,13 @@ import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.MobilePhoneNumber;
 import no.idporten.domain.user.PersonNumber;
+import no.idporten.log.audit.AuditLogger;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDInvalidCredentialException;
-import no.idporten.minidplus.exception.minid.MinIDUserNotFoundException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
+import no.idporten.minidplus.logging.audit.AuditID;
 import no.idporten.minidplus.util.FeatureSwitches;
+import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,7 +23,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import static junit.framework.TestCase.assertTrue;
 import static junit.framework.TestCase.fail;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
@@ -54,6 +56,9 @@ public class AuthenticationServiceTest {
     @MockBean
     FeatureSwitches featureSwitches;
 
+    @MockBean
+    AuditLogger auditLogger;
+
     @Test
     public void testAuthentication() {
         when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
@@ -77,7 +82,7 @@ public class AuthenticationServiceTest {
             authenticationService.authenticateUser(sid, pid, password, eq(sp));
             fail("should have failed");
         } catch (Exception e) {
-            assertTrue(e instanceof MinIDUserNotFoundException);
+            assertTrue(e instanceof MinidUserNotFoundException);
         }
     }
 
@@ -116,4 +121,43 @@ public class AuthenticationServiceTest {
             assertTrue(e instanceof MinIDInvalidCredentialException);
         }
     }
+
+    @Test
+    public void testChangePassword() throws MinidUserNotFoundException {
+        when(minidPlusCache.getSSN(eq(sid))).thenReturn(pid);
+        PersonNumber personNumber = new PersonNumber(pid);
+        MinidUser minidUser = new MinidUser(personNumber);
+        minidUser.setSecurityLevel("4");
+        minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
+        try {
+            assertTrue(authenticationService.changePassword(sid, "daWør6"));
+        } catch (Exception e) {
+            fail("Should not have thrown exception " + e);
+        }
+        verify(auditLogger).log(
+                eq(AuditID.PASSWORD_CHANGED.auditId()),
+                isNull(),
+                any());
+    }
+
+    @Test
+    public void testChangePasswordFailed() throws MinidUserNotFoundException {
+        when(minidPlusCache.getSSN(eq(sid))).thenReturn(pid);
+        PersonNumber personNumber = new PersonNumber(pid);
+        MinidUser minidUser = new MinidUser(personNumber);
+        minidUser.setSecurityLevel("4");
+        minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
+        doThrow(new MinidUserNotFoundException("bruker finnes ikke")).when(minIDService).updatePassword(eq(personNumber), eq(password));
+        try {
+            authenticationService.changePassword(sid, password);
+            fail("Should  have thrown exception MinidUserNotFoundException");
+        } catch (Exception e) {
+            assertTrue(e instanceof MinidUserNotFoundException);
+        }
+        verifyNoInteractions(auditLogger);
+    }
+
+
 }

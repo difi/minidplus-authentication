@@ -30,7 +30,7 @@ public class AuditMessageMethodAspect {
     private final AuditLogger auditLogger;
     private final ObjectMapper objectMapper;
     private final ObjectProvider<HttpServletRequest> requestObjectProvider;
-    private MinidPlusCache minidPlusCache;
+    private final MinidPlusCache minidPlusCache;
 
     @Around("@annotation(AuditMessage)")
     public Object auditLog(ProceedingJoinPoint pjp) throws Throwable {
