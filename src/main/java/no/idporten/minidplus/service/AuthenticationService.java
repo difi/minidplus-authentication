@@ -10,8 +10,10 @@ import no.idporten.log.audit.AuditLogger;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDInvalidCredentialException;
+import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import no.idporten.minidplus.logging.audit.AuditID;
+import no.idporten.minidplus.logging.event.EventService;
 import no.idporten.minidplus.util.FeatureSwitches;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
@@ -32,24 +34,26 @@ public class AuthenticationService {
 
     private final AuditLogger auditLogger;
 
-    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp) throws MinidUserNotFoundException, MinIDIncorrectCredentialException, MinIDInvalidCredentialException {
+    private final EventService eventService;
+
+    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp) throws MinidUserNotFoundException, MinIDIncorrectCredentialException, MinIDInvalidCredentialException, MinIDSystemException {
 
         MinidUser identity = findUserFromPid(pid);
 
         if (identity == null) {
-            warn("User not found for ssn=", pid);
+            warn("User not found for user");
             throw new MinidUserNotFoundException("User not found uid=" + pid);
         }
         if (featureSwitches.isRequestObjectEnabled() && !identity.getSecurityLevel().equals("4")) {
             throw new MinIDInvalidCredentialException(IDPortenExceptionID.IDENTITY_INVALID_SECURITY_LEVEL, "User must be level 4 to log in.");
         }
         if (identity.isOneTimeCodeLocked()) {
-            warn("One time code is locked for ssn=", pid);
+            warn("One time code is locked for user");
             return false;
         }
 
         if (!minIDService.validateUserPassword(identity.getPersonNumber(), password)) {
-            warn("Password invalid for ssn=", pid);
+            warn("Password invalid for user");
             throw new MinIDIncorrectCredentialException(IDPortenExceptionID.IDENTITY_PASSWORD_INCORRECT, "Password validation failed");
         }
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
@@ -65,12 +69,12 @@ public class AuthenticationService {
         MinidUser identity = findUserFromPid(pid);
 
         if (identity.getEmail() == null) {
-            warn("Email not found not found for user with ssn=", pid);
-            throw new MinIDSystemException(IDPortenExceptionID.LDAP_ATTRIBUTE_MISSING, "Email not found not found for user with ssn=" + pid);
+            warn("Email not found not found for user");
+            throw new MinIDSystemException(IDPortenExceptionID.LDAP_ATTRIBUTE_MISSING, "Email not found not found for user");
         }
 
         if (identity.isOneTimeCodeLocked()) {
-            warn("One time code is locked for ssn=", pid);
+            warn("One time code is locked for user");
             return false;
         }
 
@@ -83,13 +87,14 @@ public class AuthenticationService {
         String pid = minidPlusCache.getSSN(sid);
         minIDService.updatePassword(new PersonNumber(pid), password);
         auditLogger.log(AuditID.PASSWORD_CHANGED.auditId(), null, pid, CorrelationId.get());
+        eventService.logUserPasswordChanged(pid);
         return true;
     }
 
-    public boolean authenticatePid(String sid, String pid, ServiceProvider sp) throws MinidUserNotFoundException {
+    public boolean authenticatePid(String sid, String pid, ServiceProvider sp) throws MinidUserNotFoundException, MinIDSystemException {
         MinidUser identity = findUserFromPid(pid);
         if (identity.isOneTimeCodeLocked()) {
-            warn("One time code is locked for ssn=", pid);
+            warn("One time code is locked");
             return false;
         }
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
@@ -97,19 +102,28 @@ public class AuthenticationService {
         return true;
     }
 
+    public boolean authenticateOtpStep(String sid, String inputOneTimeCode) throws MinidUserNotFoundException, MinIDPincodeException {
+        if (otcPasswordService.checkOTCCode(sid, inputOneTimeCode)) {
+            eventService.logUserAuthenticated(minidPlusCache.getSSN(sid));
+            return true;
+        }
+        return false;
+
+    }
+
     private MinidUser findUserFromPid(String pid) throws MinidUserNotFoundException {
         PersonNumber uid = new PersonNumber(pid);
         MinidUser identity = minIDService.findByPersonNumber(uid);
 
         if (identity == null) {
-            warn("User not found for ssn=", pid);
-            throw new MinidUserNotFoundException("User not found uid=" + pid);
+            warn("User not found");
+            throw new MinidUserNotFoundException("User not found.");
         }
         return identity;
     }
 
-    private void warn(String message, String ssn) {
-        log.warn(CorrelationId.get() + " " + ssn + " " + message);
+    private void warn(String message) {
+        log.warn(CorrelationId.get() + " " + message);
     }
 
 }

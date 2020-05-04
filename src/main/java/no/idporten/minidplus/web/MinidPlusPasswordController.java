@@ -7,7 +7,9 @@ import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.PasswordChange;
 import no.idporten.minidplus.domain.PersonIdInput;
+import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
+import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.OTCPasswordService;
 import no.minid.exception.MinidUserNotFoundException;
@@ -89,6 +91,13 @@ public class MinidPlusPasswordController {
                 authenticationService.authenticatePid(sid, personId.getPersonalIdNumber(), sp);
             } catch (MinidUserNotFoundException e) {
                 result.addError(new ObjectError(MODEL_USER_PERSONID, new String[]{"auth.ui.usererror.format.ssn"}, null, "Login failed"));
+                return getNextView(request, STATE_PERSONID);
+            } catch (MinIDSystemException e) {
+                if (e.getExceptionId().equals(IDPortenExceptionID.LDAP_ATTRIBUTE_MISSING)) {
+                    result.addError(new ObjectError(MODEL_USER_PERSONID, new String[]{"auth.ui.usererror.format.missing.mobile"}, null, "Mobile number not registered on your user"));
+                } else {
+                    result.addError(new ObjectError(MODEL_USER_PERSONID, new String[]{"no.idporten.error.line1"}, null, "Login failed"));
+                }
                 return getNextView(request, STATE_PERSONID);
             }
 

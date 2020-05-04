@@ -48,9 +48,6 @@ public class AuthenticationServiceTest {
     private AuthenticationService authenticationService;
 
     @MockBean
-    OTCPasswordService otcPasswordService;
-
-    @MockBean
     LINKMobilityClient linkMobilityClient;
 
     @MockBean

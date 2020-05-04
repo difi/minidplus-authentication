@@ -4,10 +4,8 @@ import no.idporten.domain.auth.AuthType;
 import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.LevelOfAssurance;
-import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.MinidPlusCache;
-import no.idporten.minidplus.service.OTCPasswordService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,9 +42,6 @@ public class MinIdPlusAuthorizeControllerTest {
     AuthenticationService authenticationService;
 
     @MockBean
-    OTCPasswordService otcPasswordService;
-
-    @MockBean
     MinidPlusCache minidPlusCache;
 
     @Test
@@ -80,7 +75,7 @@ public class MinIdPlusAuthorizeControllerTest {
     public void test_post_otp_successful() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
         when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
-        when(otcPasswordService.checkOTCCode(eq(code), eq(code))).thenReturn(true);
+        when(authenticationService.authenticateOtpStep(eq(code), eq(code))).thenReturn(true);
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
                 .sessionAttr(HTTP_SESSION_STATE, 2)
@@ -97,7 +92,7 @@ public class MinIdPlusAuthorizeControllerTest {
     public void test_post_otp_unsuccessful() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
         when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
-        when(otcPasswordService.checkOTCCode(eq(code), eq(code))).thenReturn(false);
+        when(authenticationService.authenticateOtpStep(eq(code), eq(code))).thenReturn(false);
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
                 .sessionAttr(HTTP_SESSION_STATE, 2)

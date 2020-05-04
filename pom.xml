@@ -164,11 +164,6 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>no.difi.common</groupId>
-            <artifactId>idporten-lib-common-pojo</artifactId>
-            <version>${eid.common.version}</version>
-        </dependency>
     </dependencies>
 
     <build>

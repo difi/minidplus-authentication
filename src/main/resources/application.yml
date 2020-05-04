@@ -27,8 +27,6 @@ management:
   health:
     defaults:
       enabled: false
-    jms:
-      enabled: true
     ldap:
       enabled: true
   endpoints:
@@ -70,3 +68,7 @@ email:
   url: http://eid-systest-admin01.dmz.local:10002/kontaktinfo-backend/rest/notifyUser/
   connectTimeout: 5000
   readTimeout: 10000
+
+server:
+  tomcat:
+    additional-tld-skip-patterns: xercesImpl.jar,xml-apis.jar,serializer.jar,xml-apis.jar

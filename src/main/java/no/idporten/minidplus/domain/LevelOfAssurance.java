@@ -22,7 +22,7 @@ public enum LevelOfAssurance {
     }
 
     public static LevelOfAssurance resolve(String externalName) {
-        return Arrays.stream(values()).filter(levelOfAssurance -> levelOfAssurance.externalName.equals(externalName)).findFirst().orElse(UNKNOWN);
+        return Arrays.stream(values()).filter(levelOfAssurance -> levelOfAssurance.externalName.equalsIgnoreCase(externalName)).findFirst().orElse(UNKNOWN);
     }
 
 }
