@@ -13,6 +13,7 @@ import no.idporten.minidplus.domain.UserCredentials;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.*;
 import no.idporten.minidplus.service.AuthenticationService;
+import no.idporten.ui.impl.MinidPlusButtonType;
 import no.minid.exception.MinidUserNotFoundException;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,6 +53,7 @@ public class MinidPlusAuthorizeController {
     protected static final int STATE_USERDATA = 1;
     protected static final int STATE_VERIFICATION_CODE = 2;
     protected static final int STATE_ERROR = 3;
+    protected static final int STATE_CANCEL = 4;
 
     private static final String MOBILE_NUMBER = "mobileNumber";
     private static final String PERSONAL_ID_NUMBER = "personalIdNumber";
@@ -63,6 +65,8 @@ public class MinidPlusAuthorizeController {
     public static final String MODEL_AUTHORIZATION_REQUEST = "authorizationRequest";
     public static final String MODEL_ONE_TIME_CODE = "oneTimePassword";
     public static final String MODEL_USER_CREDENTIALS = "userCredentials";
+
+    private static final String ABORTED_BY_USER = "aborted_by_user";
 
     private final LocaleResolver localeResolver;
 
@@ -100,7 +104,11 @@ public class MinidPlusAuthorizeController {
         int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
         String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
         AuthorizationRequest ar = (AuthorizationRequest) request.getSession().getAttribute(AUTHORIZATION_REQUEST);
-
+        // Check cancel
+        if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
+            model.addAttribute("redirectUrl", buildUrl(request, true));
+            return getNextView(request, STATE_CANCEL);
+        }
         if (state == STATE_USERDATA) {
             if (result.hasErrors()) {
                 return getNextView(request, STATE_USERDATA);
@@ -141,14 +149,23 @@ public class MinidPlusAuthorizeController {
 
     }
 
+    private boolean buttonIsPushed(HttpServletRequest request, MinidPlusButtonType type) {
+        return request.getParameter(type.id()) != null;
+    }
+
     @PostMapping(params = "otpCode")
     public String postOTP(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
+            // Check cancel
+            if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
+                model.addAttribute("redirectUrl", buildUrl(request, true));
+                return getNextView(request, STATE_CANCEL);
+            }
             if (state == STATE_VERIFICATION_CODE) {
                 if (authenticationService.authenticateOtpStep(sid, oneTimePassword.getOtpCode())) {
-                    model.addAttribute("redirectUrl", buildUrl(request));
+                    model.addAttribute("redirectUrl", buildUrl(request, false));
                     return getNextView(request, STATE_AUTHENTICATED);
                 } else {
                     result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
@@ -173,7 +190,7 @@ public class MinidPlusAuthorizeController {
             return "minidplus_enter_credentials";
         } else if (state == STATE_ERROR) {
             return "error";
-        } else if (state == STATE_AUTHENTICATED) {
+        } else if (state == STATE_AUTHENTICATED || state == STATE_CANCEL) {
             return "redirect_to_idporten";
         }
         return "error";
@@ -183,7 +200,7 @@ public class MinidPlusAuthorizeController {
         request.getSession().setAttribute(HTTP_SESSION_STATE, state);
     }
 
-    private String buildUrl(HttpServletRequest request) {
+    private String buildUrl(HttpServletRequest request, boolean cancelled) {
         HttpSession session = request.getSession();
         String sid = (String) session.getAttribute("sid");
         AuthorizationRequest ar = (AuthorizationRequest) session.getAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST);
@@ -198,7 +215,9 @@ public class MinidPlusAuthorizeController {
                         .queryParam(HTTP_SESSION_GOTO, ar.getGotoParam())
                         .queryParam(HTTP_SESSION_CLIENT_STATE, ar.getState())
                         .queryParam(HTTP_SESSION_SERVICE, SERVICE_NAME);
-
+                if (cancelled) {
+                    uriComponentsBuilder.queryParam("error", ABORTED_BY_USER);
+                }
                 return uriComponentsBuilder.build()
                         .toUriString();
             } catch (URISyntaxException e) {
