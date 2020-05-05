@@ -2,6 +2,7 @@ package no.idporten.minidplus.domain;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import no.idporten.minidplus.validator.Password;
 import no.idporten.minidplus.validator.ValidatorUtil;
 
 import javax.validation.constraints.Pattern;
@@ -10,9 +11,10 @@ import javax.validation.constraints.Pattern;
 @NoArgsConstructor
 public class PasswordChange {
 
-    @Pattern(message = "{auth.ui.usererror.format.password}", regexp = ValidatorUtil.PWD_LEGAL_CHARS_REGEX)
+    @Pattern(message = "{auth.ui.usererror.format.newpassword}", regexp = ValidatorUtil.PWD_LEGAL_CHARS_REGEX)
+    @Password
     private String newPassword;
 
-    @Pattern(message = "{auth.ui.usererror.format.password}", regexp = ValidatorUtil.PWD_LEGAL_CHARS_REGEX)
+    @Pattern(message = "{auth.ui.usererror.format.newpassword}", regexp = ValidatorUtil.PWD_LEGAL_CHARS_REGEX)
     private String reenterPassword;
 }
