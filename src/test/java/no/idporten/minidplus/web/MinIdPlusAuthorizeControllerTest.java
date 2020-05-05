@@ -23,6 +23,7 @@ import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -47,7 +48,7 @@ public class MinIdPlusAuthorizeControllerTest {
     @Test
     public void test_authorization_session_parameters_set() throws Exception {
 
-        when(authenticationService.authenticateUser(anyString(), anyString(), anyString(), eq(sp))).thenReturn(true);
+        when(authenticationService.authenticateUser(anyString(), anyString(), anyString(), eq(sp), any(LevelOfAssurance.class))).thenReturn(true);
         AuthorizationRequest ar = getAuthorizationRequest();
         MvcResult mvcResult = mockMvc.perform(get("/authorize")
                 .param(HTTP_SESSION_CLIENT_ID, ar.getSpEntityId())

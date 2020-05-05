@@ -20,7 +20,7 @@ linkmobility:
     connect-timeout: <%= @linkmobility_connect_timeout %>
     read-timeout: <%= @linkmobility_read_timeout %>
     sender: <%= @linkmobility_sender %>
-    ttl: <%= @linkmobility_ttl %>
+    ttl: <%= @sms_onetimepassword_ttl_seconds %>
 
 spring:
   ldap:
@@ -37,12 +37,14 @@ event:
 
 minid-plus:
   token-lifetime-seconds: <%= @token_lifetime_seconds%>
+  code-lifetime-seconds: <%= @code_lifetime_seconds%>
   cache:
-     otp-ttl-in-ms: <%= @sms_onetimepassword_ttl %>
+    otp-ttl-in-s: <%= @sms_onetimepassword_ttl_seconds %>
+  registrationUri: <%= @minidonthefly_registrationUri %>
 email:
-    url: <%= @email_url %>
-    connect-timeout: <%= @email_connect_timeout %>
-    read-timeout: <%= @email_read_timeout %>
+  url: <%= @email_url %>
+  connect-timeout: <%= @email_connect_timeout %>
+  read-timeout: <%= @email_read_timeout %>
 # Feature switches
 features:
     security-level-check: <%= @feature_security_level_check %>

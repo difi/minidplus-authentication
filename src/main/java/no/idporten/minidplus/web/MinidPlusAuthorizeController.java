@@ -11,13 +11,11 @@ import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.UserCredentials;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
-import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
-import no.idporten.minidplus.exception.minid.MinIDInvalidCredentialException;
-import no.idporten.minidplus.exception.minid.MinIDPincodeException;
-import no.idporten.minidplus.exception.minid.MinIDSystemException;
+import no.idporten.minidplus.exception.minid.*;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.minid.exception.MinidUserNotFoundException;
 import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -70,6 +68,9 @@ public class MinidPlusAuthorizeController {
 
     private final AuthenticationService authenticationService;
 
+    @Value("${minid-plus.registrationUri}")
+    private String registrationUri;
+
     @GetMapping(produces = "text/html; charset=utf-8")
     public String doGet(HttpServletRequest request, HttpServletResponse response, @Valid AuthorizationRequest authorizationRequest, Model model) {
         request.getSession().invalidate();
@@ -107,7 +108,7 @@ public class MinidPlusAuthorizeController {
             try {
                 ServiceProvider sp = new ServiceProvider(ar.getSpEntityId());
                 sp.setName(ar.getSpEntityId());//todo lookup from ldap
-                authenticationService.authenticateUser(sid, userCredentials.getPersonalIdNumber(), userCredentials.getPassword(), sp);
+                authenticationService.authenticateUser(sid, userCredentials.getPersonalIdNumber(), userCredentials.getPassword(), sp, ar.getAcrValues());
             } catch (MinIDIncorrectCredentialException e) {
                 result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.format.password"}, null, "Login failed"));
                 return getNextView(request, STATE_USERDATA);
@@ -123,6 +124,9 @@ public class MinidPlusAuthorizeController {
                 } else {
                     result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.error.line1"}, null, "Login failed"));
                 }
+                return getNextView(request, STATE_USERDATA);
+            } catch (MinIDInvalidAcrLevelException e) {
+                result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.module.minidplus.invalidacr"}, new Object[]{registrationUri}, "Login failed"));
                 return getNextView(request, STATE_USERDATA);
             }
 

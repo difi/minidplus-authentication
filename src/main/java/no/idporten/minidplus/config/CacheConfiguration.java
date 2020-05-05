@@ -1,5 +1,6 @@
 package no.idporten.minidplus.config;
 
+import no.idporten.minidplus.domain.Authorization;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -18,6 +19,7 @@ public class CacheConfiguration {
 
     public static final String SID_OTP = "sidOTP";
     public static final String SID_SSN = "sidSSN";
+    public static final String SID_AUTHORIZATION = "sidAuth";
 
     @Value("${minid-plus.cache.otp-ttl-in-s:600}")
     private int cacheTTL;
@@ -32,6 +34,11 @@ public class CacheConfiguration {
                                 .build())
                 .withCache(SID_OTP,
                         CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+                                ResourcePoolsBuilder.heap(100))
+                                .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(cacheTTL)))
+                                .build())
+                .withCache(SID_AUTHORIZATION,
+                        CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, Authorization.class,
                                 ResourcePoolsBuilder.heap(100))
                                 .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(cacheTTL)))
                                 .build())

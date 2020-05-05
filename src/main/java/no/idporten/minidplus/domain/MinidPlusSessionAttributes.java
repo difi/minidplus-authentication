@@ -2,7 +2,7 @@ package no.idporten.minidplus.domain;
 
 public class MinidPlusSessionAttributes {
 
-    public static final String SERVICE_NAME = "MinidPlus";
+    public static final String SERVICE_NAME = "start-service";
 
     public static final String HTTP_SESSION_REDIRECT_URI = "redirect_uri";
 

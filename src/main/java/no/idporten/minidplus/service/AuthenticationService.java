@@ -7,17 +7,18 @@ import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.PersonNumber;
 import no.idporten.log.audit.AuditLogger;
+import no.idporten.minidplus.domain.Authorization;
+import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
-import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
-import no.idporten.minidplus.exception.minid.MinIDInvalidCredentialException;
-import no.idporten.minidplus.exception.minid.MinIDPincodeException;
-import no.idporten.minidplus.exception.minid.MinIDSystemException;
+import no.idporten.minidplus.exception.minid.*;
 import no.idporten.minidplus.logging.audit.AuditID;
 import no.idporten.minidplus.logging.event.EventService;
 import no.idporten.minidplus.util.FeatureSwitches;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
 import org.springframework.stereotype.Service;
+
+import java.time.Instant;
 
 @RequiredArgsConstructor
 @Service
@@ -36,16 +37,21 @@ public class AuthenticationService {
 
     private final EventService eventService;
 
-    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp) throws MinidUserNotFoundException, MinIDIncorrectCredentialException, MinIDInvalidCredentialException, MinIDSystemException {
+    private final String minidplusSourcePrefix = "minid-on-the-fly";
 
+    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp, LevelOfAssurance levelOfAssurance) throws MinidUserNotFoundException, MinIDIncorrectCredentialException, MinIDSystemException, MinIDInvalidAcrLevelException, MinIDInvalidCredentialException {
+        LevelOfAssurance assignedLevelOfAssurance = LevelOfAssurance.LEVEL4; //default
         MinidUser identity = findUserFromPid(pid);
 
         if (identity == null) {
-            warn("User not found for user");
-            throw new MinidUserNotFoundException("User not found uid=" + pid);
+            warn("User not found.");
+            throw new MinidUserNotFoundException("User not found");
         }
-        if (featureSwitches.isRequestObjectEnabled() && !identity.getSecurityLevel().equals("4")) {
-            throw new MinIDInvalidCredentialException(IDPortenExceptionID.IDENTITY_INVALID_SECURITY_LEVEL, "User must be level 4 to log in.");
+        if (featureSwitches.isRequestObjectEnabled()) {
+            if (!identity.getSecurityLevel().equals(String.valueOf(levelOfAssurance.getLevel()))) {
+                throw new MinIDInvalidCredentialException(IDPortenExceptionID.IDENTITY_INVALID_SECURITY_LEVEL, "User must be level " + levelOfAssurance.getExternalName() + " to log in.");
+            }
+            assignedLevelOfAssurance = getLevelOfAssurance(identity.getSource(), levelOfAssurance);
         }
         if (identity.isOneTimeCodeLocked()) {
             warn("One time code is locked for user");
@@ -57,9 +63,8 @@ public class AuthenticationService {
             throw new MinIDIncorrectCredentialException(IDPortenExceptionID.IDENTITY_PASSWORD_INCORRECT, "Password validation failed");
         }
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
-
+        minidPlusCache.putAuthorization(sid, new Authorization(pid, assignedLevelOfAssurance, Instant.now().toEpochMilli()));
         otcPasswordService.sendSMSOtp(sid, sp, identity);
-
         return true;
     }
 
@@ -89,6 +94,18 @@ public class AuthenticationService {
         auditLogger.log(AuditID.PASSWORD_CHANGED.auditId(), null, pid, CorrelationId.get());
         eventService.logUserPasswordChanged(pid);
         return true;
+    }
+
+    protected LevelOfAssurance getLevelOfAssurance(String source, LevelOfAssurance requested) throws MinIDInvalidAcrLevelException, MinIDSystemException {
+        if (source.startsWith(minidplusSourcePrefix)) {
+            return LevelOfAssurance.LEVEL4;
+        } else if (requested.equals(LevelOfAssurance.LEVEL4)) {
+            throw new MinIDInvalidAcrLevelException("Only minid-on-the-fly-passport users can log in with level 4");
+        } else if (LevelOfAssurance.LEVEL3.equals(requested)) {
+            return LevelOfAssurance.LEVEL3;
+        } else {
+            throw new MinIDSystemException(IDPortenExceptionID.IDENTITY_INVALID_SECURITY_LEVEL, "Invalid security level");
+        }
     }
 
     public boolean authenticatePid(String sid, String pid, ServiceProvider sp) throws MinidUserNotFoundException, MinIDSystemException {

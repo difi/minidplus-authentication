@@ -15,7 +15,6 @@ class minidplus_authentication::params {
   $linkmobility_connect_timeout     = 5000
   $linkmobility_read_timeout        = 10000
   $linkmobility_sender              = 'Digdir'
-  $linkmobility_ttl                 = 600
   $application                      = 'minidplus-authentication'
   $server_tomcat_max_threads        = 200
   $server_tomcat_min_spare_threads  = 10
@@ -24,6 +23,7 @@ class minidplus_authentication::params {
   $auditlog_file                    = 'audit.log'
   $tomcat_tmp_dir                   = '/opt/minidplus-authentication/tmp'
   $token_lifetime_seconds           = 600
+  $code_lifetime_seconds = 6
   $ldap_url                         = hiera('idporten_opensso_opendj::url')
   $ldap_userdn                      = hiera('idporten_opensso_opendj::dn')
   $ldap_password                    = hiera('idporten_opensso_opendj::password')
@@ -33,5 +33,7 @@ class minidplus_authentication::params {
   $email_url                        = join([hiera('kontaktinfo_backend::url'), 'rest/notifyUser/'])
   $email_connect_timeout            = 5000
   $email_read_timeout               = 10000
-  $feature_security_level_check = false
+  $feature_security_level_check = true
+  $sms_onetimepassword_ttl_seconds = 600
+  $minidonthefly_registrationUri = 'https://eid-systest-static-web01'
 }

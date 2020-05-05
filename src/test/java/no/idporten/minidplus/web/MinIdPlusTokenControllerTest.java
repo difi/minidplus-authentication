@@ -1,6 +1,8 @@
 package no.idporten.minidplus.web;
 
 import no.idporten.log.audit.AuditLogger;
+import no.idporten.minidplus.domain.Authorization;
+import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.logging.audit.AuditID;
 import no.idporten.minidplus.service.MinidPlusCache;
 import org.junit.Test;
@@ -37,15 +39,16 @@ public class MinIdPlusTokenControllerTest {
     @Test
     public void test_token_generated_with_valid_code() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
-        when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
-
+        Authorization auth = new Authorization("55555555555", LevelOfAssurance.LEVEL4, 1000);
+        when(minidPlusCache.getAuthorization(code)).thenReturn(auth);
         MvcResult mvcResult = mockMvc.perform(post("/token")
                 .param("grant_type", "authorization_code")
                 .param("code", code)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
         )//.andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.ssn").value("55555555555"))
+                .andExpect(jsonPath("$.ssn").value(auth.getSsn()))
+                .andExpect(jsonPath("$.acr_level").value("Level4"))
                 .andExpect(jsonPath("$.expires_in").value(600))
                 .andReturn();
         verify(minidPlusCache).removeSession(code);
@@ -61,7 +64,7 @@ public class MinIdPlusTokenControllerTest {
         mockMvc.perform(post("/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .param("code", code))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isBadRequest());
         verifyNoInteractions(auditLogger);
     }
 

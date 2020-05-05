@@ -1,6 +1,8 @@
 package no.idporten.minidplus.service;
 
 import no.idporten.minidplus.config.CacheConfiguration;
+import no.idporten.minidplus.domain.Authorization;
+import no.idporten.minidplus.domain.LevelOfAssurance;
 import org.ehcache.CacheManager;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,16 +47,20 @@ public class MinidPlusCacheTest {
 
         String ssn = "13094812345";
         String otp = "12345";
+        Authorization auth = new Authorization(ssn, LevelOfAssurance.LEVEL4, 1000);
 
         minidPlusCache.putSSN(sid, ssn);
         minidPlusCache.putOTP(sid, otp);
+        minidPlusCache.putAuthorization(sid, auth);
 
         assertEquals(ssn, minidPlusCache.getSSN(sid));
         assertEquals(otp, minidPlusCache.getOTP(sid));
+        assertEquals(auth, minidPlusCache.getAuthorization(sid));
 
         minidPlusCache.removeSession(sid);
 
         assertNull(minidPlusCache.getSSN(sid));
         assertNull(minidPlusCache.getOTP(sid));
+        assertNull(minidPlusCache.getAuthorization(sid));
     }
 }

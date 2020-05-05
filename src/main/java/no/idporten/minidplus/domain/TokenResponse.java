@@ -19,4 +19,7 @@ public class TokenResponse {
     @JsonProperty("expires_in")
     private long expiresIn;
 
+    @JsonProperty("acr_level")
+    private String acrLevelExternalName;
+
 }

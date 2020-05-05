@@ -5,8 +5,11 @@ import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.MobilePhoneNumber;
 import no.idporten.domain.user.PersonNumber;
 import no.idporten.log.audit.AuditLogger;
+import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
+import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
 import no.idporten.minidplus.exception.minid.MinIDInvalidCredentialException;
+import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
 import no.idporten.minidplus.logging.audit.AuditID;
 import no.idporten.minidplus.util.FeatureSwitches;
@@ -20,8 +23,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import static junit.framework.TestCase.assertTrue;
-import static junit.framework.TestCase.fail;
+import static junit.framework.TestCase.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -34,6 +36,7 @@ public class AuthenticationServiceTest {
     private static final String password = "password123";
     private static final String otp = "abc123";
     private final ServiceProvider sp = new ServiceProvider("idporten");
+    private final String minidplusSource = "minid-on-the-fly-passport";
 
     @Value("${minid-plus.credential-error-max-number}")
     private int MAX_NUMBER_OF_CREDENTIAL_ERRORS;
@@ -66,7 +69,7 @@ public class AuthenticationServiceTest {
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(true);
         try {
-            authenticationService.authenticateUser(sid, pid, password, eq(sp));
+            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
         } catch (Exception e) {
             fail("Should not have thrown exception " + e);
         }
@@ -76,7 +79,7 @@ public class AuthenticationServiceTest {
     public void testAuthenticationFailedPidDoesNotExist() {
         when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
         try {
-            authenticationService.authenticateUser(sid, pid, password, eq(sp));
+            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
             fail("should have failed");
         } catch (Exception e) {
             assertTrue(e instanceof MinidUserNotFoundException);
@@ -94,7 +97,7 @@ public class AuthenticationServiceTest {
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(false);
         try {
-            authenticationService.authenticateUser(sid, pid, password, eq(sp));
+            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
             fail("should have failed");
         } catch (Exception e) {
             assertTrue(e instanceof MinIDIncorrectCredentialException);
@@ -112,7 +115,7 @@ public class AuthenticationServiceTest {
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(true);
         try {
-            authenticationService.authenticateUser(sid, pid, password, eq(sp));
+            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
             fail("should have failed");
         } catch (Exception e) {
             assertTrue(e instanceof MinIDInvalidCredentialException);
@@ -156,5 +159,25 @@ public class AuthenticationServiceTest {
         verifyNoInteractions(auditLogger);
     }
 
+    @Test
+    public void test_source_starts_with_minid_on_the_fly_gives_level4_no_matter() throws MinIDInvalidAcrLevelException, MinIDSystemException {
+        assertEquals(LevelOfAssurance.LEVEL4, authenticationService.getLevelOfAssurance(minidplusSource, LevelOfAssurance.LEVEL4));
+        assertEquals(LevelOfAssurance.LEVEL4, authenticationService.getLevelOfAssurance(minidplusSource, LevelOfAssurance.LEVEL3));
+    }
 
+    @Test
+    public void test_source_doesnt_start_with_minid_on_the_fly_should_not_allow_level4() throws MinIDInvalidAcrLevelException {
+        try {
+            authenticationService.getLevelOfAssurance("minid-pinbrev", LevelOfAssurance.LEVEL4);
+            fail("Should have thrown exception");
+        } catch (Exception e) {
+            assertTrue(e instanceof MinIDInvalidAcrLevelException);
+        }
+    }
+
+
+    @Test
+    public void test_source_doesnt_start_with_minid_on_the_fly_should_allow_level3() throws MinIDInvalidAcrLevelException, MinIDSystemException {
+        assertEquals(LevelOfAssurance.LEVEL3, authenticationService.getLevelOfAssurance("minid-pinbrev", LevelOfAssurance.LEVEL3));
+    }
 }
