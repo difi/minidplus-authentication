@@ -8,7 +8,6 @@ import no.idporten.log.audit.AuditLogger;
 import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
-import no.idporten.minidplus.exception.minid.MinIDInvalidCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
 import no.idporten.minidplus.logging.audit.AuditID;
@@ -35,6 +34,7 @@ public class AuthenticationServiceTest {
     private static final String pid = "23079422487";
     private static final String password = "password123";
     private static final String otp = "abc123";
+    public static final String MINID_ON_THE_FLY_PASSPORT = "minid-on-the-fly-passport";
     private final ServiceProvider sp = new ServiceProvider("idporten");
     private final String minidplusSource = "minid-on-the-fly-passport";
 
@@ -66,6 +66,7 @@ public class AuthenticationServiceTest {
         MinidUser minidUser = new MinidUser(personNumber);
         minidUser.setSecurityLevel("4");
         minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        minidUser.setSource(MINID_ON_THE_FLY_PASSPORT);
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(true);
         try {
@@ -94,6 +95,7 @@ public class AuthenticationServiceTest {
         minidUser.setPersonNumber(personNumber);
         minidUser.setSecurityLevel("4");
         minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        minidUser.setSource(MINID_ON_THE_FLY_PASSPORT);
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(false);
         try {
@@ -112,13 +114,14 @@ public class AuthenticationServiceTest {
         MinidUser minidUser = new MinidUser(personNumber);
         minidUser.setSecurityLevel("3");
         minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        minidUser.setSource(MINID_ON_THE_FLY_PASSPORT);
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(true);
         try {
             authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
             fail("should have failed");
         } catch (Exception e) {
-            assertTrue(e instanceof MinIDInvalidCredentialException);
+            assertTrue(e instanceof MinIDInvalidAcrLevelException);
         }
     }
 
