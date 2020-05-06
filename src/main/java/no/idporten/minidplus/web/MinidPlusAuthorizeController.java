@@ -35,7 +35,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import javax.validation.ConstraintViolation;
 import javax.validation.Valid;
+import javax.validation.ValidatorFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
@@ -56,6 +58,7 @@ public class MinidPlusAuthorizeController {
     protected static final int STATE_VERIFICATION_CODE = 2;
     protected static final int STATE_ERROR = 3;
     protected static final int STATE_CANCEL = 4;
+    protected static final int STATE_CONSTRAINT_VIOLATIONS = 4;
 
     private static final String MOBILE_NUMBER = "mobileNumber";
     private static final String PERSONAL_ID_NUMBER = "personalIdNumber";
@@ -69,22 +72,32 @@ public class MinidPlusAuthorizeController {
     public static final String MODEL_USER_CREDENTIALS = "userCredentials";
 
     private static final String ABORTED_BY_USER = "aborted_by_user";
+    private static final String CONSTRAINT_VIOLATIONS = "contraint_violations_in_authorize_request";
+    private static final String START_SERVICE = "start-service";
 
     private final LocaleResolver localeResolver;
 
     private final AuthenticationService authenticationService;
 
+    private final ValidatorFactory validatorFactory;
+
     @Value("${minid-plus.registrationUri}")
     private String registrationUri;
 
     @GetMapping(produces = "text/html; charset=utf-8")
-    public String doGet(HttpServletRequest request, HttpServletResponse response, @Valid AuthorizationRequest authorizationRequest, Model model) {
-        request.getSession().invalidate();
-        request.getSession().setAttribute(HTTP_SESSION_AUTH_TYPE, AuthType.MINID_PLUS);
-        request.getSession().setAttribute(HTTP_SESSION_SID, UUID.randomUUID().toString());
-
-        setLocale(request, response, authorizationRequest);
-        request.getSession().setAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST, authorizationRequest);
+    public String doGet(HttpServletRequest request, HttpServletResponse response, AuthorizationRequest authorizationRequest, Model model) {
+        Object state = request.getSession().getAttribute(HTTP_SESSION_STATE);
+        if (state == null || (int) state != MinidPlusPasswordController.STATE_CANCEL) {
+            request.getSession().invalidate();
+            request.getSession().setAttribute(HTTP_SESSION_AUTH_TYPE, AuthType.MINID_PLUS);
+            request.getSession().setAttribute(HTTP_SESSION_SID, UUID.randomUUID().toString());
+            setLocale(request, response, authorizationRequest);
+            Set<ConstraintViolation<AuthorizationRequest>> violations = validatorFactory.getValidator().validate(authorizationRequest);
+            if (!violations.isEmpty()) {
+                return getNextView(request, STATE_CONSTRAINT_VIOLATIONS);
+            }
+            request.getSession().setAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST, authorizationRequest);
+        }
 
         UserCredentials userCredentials = new UserCredentials();
         model.addAttribute(MODEL_USER_CREDENTIALS, userCredentials);
@@ -108,10 +121,10 @@ public class MinidPlusAuthorizeController {
         AuthorizationRequest ar = (AuthorizationRequest) request.getSession().getAttribute(AUTHORIZATION_REQUEST);
         // Check cancel
         if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
-            model.addAttribute("redirectUrl", buildUrl(request, true));
+            model.addAttribute("redirectUrl", buildUrl(request, STATE_CANCEL));
             return getNextView(request, STATE_CANCEL);
         }
-        if (state == STATE_USERDATA) {
+        if (state == STATE_USERDATA || state == STATE_CANCEL) {
             if (result.hasErrors()) {
                 return getNextView(request, STATE_USERDATA);
             }
@@ -140,20 +153,24 @@ public class MinidPlusAuthorizeController {
         } else {
             result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.error.line1"}, null, "System error"));
             result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
-            String requestUrl = request.getRequestURL().toString();
-            model.addAttribute("requestUrl", requestUrl);
-            Map<String, String[]> params = request.getParameterMap();
-            HashMap<String, String> finalParams = new HashMap<>();
-            params.keySet().forEach(key -> finalParams.put(key, (request.getParameterMap().get(key) != null && request.getParameterMap().get(key).length > 0) ? request.getParameterMap().get(key)[0] : null));
-            finalParams.remove("personalIdNumber");
-            finalParams.remove("password");
-            model.addAttribute("params", finalParams);
+            prepareErrorPage(request, model);
             return getNextView(request, STATE_ERROR);
         }
         OneTimePassword oneTimePassword = new OneTimePassword();
         model.addAttribute(oneTimePassword);
         return getNextView(request, STATE_VERIFICATION_CODE);
 
+    }
+
+    private void prepareErrorPage(HttpServletRequest request, Model model) {
+        String requestUrl = request.getRequestURL().toString();
+        model.addAttribute("requestUrl", requestUrl);
+        Map<String, String[]> params = request.getParameterMap();
+        HashMap<String, String> finalParams = new HashMap<>();
+        params.keySet().forEach(key -> finalParams.put(key, (request.getParameterMap().get(key) != null && request.getParameterMap().get(key).length > 0) ? request.getParameterMap().get(key)[0] : null));
+        finalParams.remove("personalIdNumber");
+        finalParams.remove("password");
+        model.addAttribute("params", finalParams);
     }
 
     private boolean buttonIsPushed(HttpServletRequest request, MinidPlusButtonType type) {
@@ -167,12 +184,12 @@ public class MinidPlusAuthorizeController {
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
             // Check cancel
             if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
-                model.addAttribute("redirectUrl", buildUrl(request, true));
+                model.addAttribute("redirectUrl", buildUrl(request, STATE_CANCEL));
                 return getNextView(request, STATE_CANCEL);
             }
             if (state == STATE_VERIFICATION_CODE) {
                 if (authenticationService.authenticateOtpStep(sid, oneTimePassword.getOtpCode())) {
-                    model.addAttribute("redirectUrl", buildUrl(request, false));
+                    model.addAttribute("redirectUrl", buildUrl(request, STATE_AUTHENTICATED));
                     return getNextView(request, STATE_AUTHENTICATED);
                 } else {
                     result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
@@ -197,7 +214,8 @@ public class MinidPlusAuthorizeController {
             return "minidplus_enter_credentials";
         } else if (state == STATE_ERROR) {
             return "error";
-        } else if (state == STATE_AUTHENTICATED || state == STATE_CANCEL) {
+        } else if (state == STATE_AUTHENTICATED || state == STATE_CANCEL || state == STATE_CONSTRAINT_VIOLATIONS) {
+            request.getSession().invalidate();
             return "redirect_to_idporten";
         }
         return "error";
@@ -207,7 +225,7 @@ public class MinidPlusAuthorizeController {
         request.getSession().setAttribute(HTTP_SESSION_STATE, state);
     }
 
-    private String buildUrl(HttpServletRequest request, boolean cancelled) {
+    private String buildUrl(HttpServletRequest request, int state) {
         HttpSession session = request.getSession();
         String sid = (String) session.getAttribute("sid");
         AuthorizationRequest ar = (AuthorizationRequest) session.getAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST);
@@ -222,8 +240,14 @@ public class MinidPlusAuthorizeController {
                         .queryParam(HTTP_SESSION_GOTO, ar.getGotoParam())
                         .queryParam(HTTP_SESSION_CLIENT_STATE, ar.getState())
                         .queryParam(HTTP_SESSION_SERVICE, SERVICE_NAME);
-                if (cancelled) {
+                if (state == STATE_CANCEL) {
                     uriComponentsBuilder.queryParam("error", ABORTED_BY_USER);
+                    uriComponentsBuilder.queryParam(HTTP_SESSION_SERVICE, START_SERVICE);
+                } else if (state == STATE_CONSTRAINT_VIOLATIONS) {
+                    uriComponentsBuilder.queryParam("error", CONSTRAINT_VIOLATIONS);
+                    uriComponentsBuilder.queryParam(HTTP_SESSION_SERVICE, START_SERVICE);
+                } else {
+                    uriComponentsBuilder.queryParam(HTTP_SESSION_SERVICE, SERVICE_NAME);
                 }
                 return uriComponentsBuilder.build()
                         .toUriString();

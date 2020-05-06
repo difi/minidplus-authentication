@@ -5,6 +5,7 @@ import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.MinidPlusCache;
 import no.idporten.minidplus.service.OTCPasswordService;
+import no.idporten.ui.impl.MinidPlusButtonType;
 import no.minid.exception.MinidUserNotFoundException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,6 +18,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.HTTP_SESSION_STATE;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.core.StringContains.containsString;
@@ -179,6 +181,17 @@ public class MinIdPlusPasswordControllerTest {
                 .andExpect(view().name("minidplus_password_change"))
                 .andReturn();
 
+    }
+
+    public void test_user_cancels_otp_returns_to_authorization() throws Exception {
+
+        mockMvc.perform(post("/password")
+                .param("personalIdNumber", "")
+                .param(MinidPlusButtonType.CANCEL.id(), "")
+                .sessionAttr(HTTP_SESSION_STATE, 1)
+        )
+                .andExpect(status().isOk())
+                .andExpect(view().name("minidplus_enter_credentials"));
     }
 
 

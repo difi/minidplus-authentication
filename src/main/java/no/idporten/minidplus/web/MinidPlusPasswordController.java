@@ -12,6 +12,7 @@ import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.OTCPasswordService;
+import no.idporten.ui.impl.MinidPlusButtonType;
 import no.minid.exception.MinidUserNotFoundException;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Controller;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.LocaleResolver;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -45,8 +47,10 @@ public class MinidPlusPasswordController {
     protected static final int STATE_VERIFICATION_CODE_SMS = 2;
     protected static final int STATE_VERIFICATION_CODE_EMAIL = 3;
     protected static final int STATE_NEW_PASSWORD = 4;
+    protected static final int STATE_CANCEL = 9;
     protected static final int STATE_ERROR = 10;
 
+    private static final String ABORTED_BY_USER = "aborted_by_user";
 
     public static final String MODEL_USER_PERSONID = "personIdInput";
     public static final String MODEL_ONE_TIME_CODE = "oneTimePassword";
@@ -76,11 +80,14 @@ public class MinidPlusPasswordController {
     }
 
     @PostMapping
-    public String postPersonId(HttpServletRequest request, @Valid @ModelAttribute(MODEL_USER_PERSONID) PersonIdInput personId, BindingResult result, Model model) {
+    public String postPersonId(HttpServletRequest request, @Valid @ModelAttribute(MODEL_USER_PERSONID) PersonIdInput personId, BindingResult result, Model model, RedirectAttributes redirectAttributes) {
 
         int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
         String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
-
+        // Check cancel
+        if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
+            return getNextView(request, STATE_CANCEL);
+        }
         if (state == STATE_PERSONID) {
             if (result.hasErrors()) {
                 return getNextView(request, STATE_PERSONID);
@@ -102,6 +109,7 @@ public class MinidPlusPasswordController {
             }
 
         } else {
+            log.error("invalid state : " + state);
             result.addError(new ObjectError(MODEL_USER_PERSONID, new String[]{"no.idporten.error.line1"}, null, "System error"));
             result.addError(new ObjectError(MODEL_USER_PERSONID, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
             return getNextView(request, STATE_PERSONID);
@@ -117,6 +125,10 @@ public class MinidPlusPasswordController {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
+            // Check cancel
+            if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
+                return getNextView(request, STATE_CANCEL);
+            }
             if (state == STATE_VERIFICATION_CODE_SMS) {
                 if (otcPasswordService.checkOTCCode(sid, oneTimePassword.getOtpCode())) {
                     oneTimePassword = new OneTimePassword();
@@ -142,6 +154,10 @@ public class MinidPlusPasswordController {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
+            // Check cancel
+            if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
+                return getNextView(request, STATE_CANCEL);
+            }
             if (state == STATE_VERIFICATION_CODE_EMAIL) {
                 if (otcPasswordService.checkOTCCode(sid, oneTimePassword.getOtpCode())) {
                     model.addAttribute(MODEL_PASSWORDCHANGE, new PasswordChange());
@@ -165,6 +181,10 @@ public class MinidPlusPasswordController {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
+            // Check cancel
+            if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
+                return getNextView(request, STATE_CANCEL);
+            }
             if (state == STATE_NEW_PASSWORD) {
                 if (newPassword.getNewPassword().equals(newPassword.getReenterPassword())) { //extra backend check
                     if (authenticationService.changePassword(sid, newPassword.getNewPassword())) {
@@ -193,12 +213,18 @@ public class MinidPlusPasswordController {
             return "minidplus_password_change";
         } else if (state == STATE_PASSWORD_CHANGED) {
             return "minidplus_password_success";
+        } else if (state == STATE_CANCEL) {
+            return "redirect:/authorize";
         }
         return "error";
     }
 
     private void setSessionState(HttpServletRequest request, int state) {
         request.getSession().setAttribute(HTTP_SESSION_STATE, state);
+    }
+
+    private boolean buttonIsPushed(HttpServletRequest request, MinidPlusButtonType type) {
+        return request.getParameter(type.id()) != null;
     }
 
     private void warn(String message) {
