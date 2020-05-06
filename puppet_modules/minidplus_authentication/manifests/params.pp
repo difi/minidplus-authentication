@@ -33,7 +33,6 @@ class minidplus_authentication::params {
   $email_url                        = join([hiera('kontaktinfo_backend::url'), 'rest/notifyUser/'])
   $email_connect_timeout            = 5000
   $email_read_timeout               = 10000
-  $feature_security_level_check = false
   $sms_onetimepassword_ttl_seconds = 600
   $minidonthefly_registrationUri = 'https://eid-systest-static-web01'
 }

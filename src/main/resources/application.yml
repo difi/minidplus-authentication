@@ -75,6 +75,3 @@ email:
 server:
   tomcat:
     additional-tld-skip-patterns: xercesImpl.jar,xml-apis.jar,serializer.jar,xml-apis.jar
-
-features:
-  security-level-check: false

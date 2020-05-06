@@ -11,7 +11,10 @@ import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.UserCredentials;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
-import no.idporten.minidplus.exception.minid.*;
+import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
+import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
+import no.idporten.minidplus.exception.minid.MinIDPincodeException;
+import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.ui.impl.MinidPlusButtonType;
 import no.minid.exception.MinidUserNotFoundException;
@@ -122,9 +125,6 @@ public class MinidPlusAuthorizeController {
                 return getNextView(request, STATE_USERDATA);
             } catch (MinidUserNotFoundException e) {
                 result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.usererror.format.ssn"}, null, "Login failed"));
-                return getNextView(request, STATE_USERDATA);
-            } catch (MinIDInvalidCredentialException e) {
-                result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.usererror.format.loa"}, null, "Login failed"));
                 return getNextView(request, STATE_USERDATA);
             } catch (MinIDSystemException e) {
                 if (e.getExceptionId().equals(IDPortenExceptionID.LDAP_ATTRIBUTE_MISSING)) {
