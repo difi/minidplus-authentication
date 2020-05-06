@@ -49,10 +49,10 @@ public class AuthenticationService {
         }
         if (featureSwitches.isRequestObjectEnabled()) {
             if (!identity.getSecurityLevel().equals(String.valueOf(levelOfAssurance.getLevel()))) {
-                throw new MinIDInvalidCredentialException(IDPortenExceptionID.IDENTITY_INVALID_SECURITY_LEVEL, "User must be level " + levelOfAssurance.getExternalName() + " to log in.");
+                throw new MinIDInvalidAcrLevelException("User must be level " + levelOfAssurance.getExternalName() + " to log in.");
             }
-            assignedLevelOfAssurance = getLevelOfAssurance(identity.getSource(), levelOfAssurance);
         }
+        assignedLevelOfAssurance = getLevelOfAssurance(identity.getSource(), levelOfAssurance);
         if (identity.isOneTimeCodeLocked()) {
             warn("One time code is locked for user");
             return false;
