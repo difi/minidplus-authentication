@@ -38,8 +38,7 @@ import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Locale;
-import java.util.UUID;
+import java.util.*;
 
 import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
 
@@ -141,7 +140,15 @@ public class MinidPlusAuthorizeController {
         } else {
             result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.error.line1"}, null, "System error"));
             result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
-            return getNextView(request, STATE_USERDATA);
+            String requestUrl = request.getRequestURL().toString();
+            model.addAttribute("requestUrl", requestUrl);
+            Map<String, String[]> params = request.getParameterMap();
+            HashMap<String, String> finalParams = new HashMap<>();
+            params.keySet().forEach(key -> finalParams.put(key, (request.getParameterMap().get(key) != null && request.getParameterMap().get(key).length > 0) ? request.getParameterMap().get(key)[0] : null));
+            finalParams.remove("personalIdNumber");
+            finalParams.remove("password");
+            model.addAttribute("params", finalParams);
+            return getNextView(request, STATE_ERROR);
         }
         OneTimePassword oneTimePassword = new OneTimePassword();
         model.addAttribute(oneTimePassword);
