@@ -238,8 +238,7 @@ public class MinidPlusAuthorizeController {
                 uriComponentsBuilder.queryParam(HTTP_SESSION_REDIRECT_URI, ar.getRedirectUri())
                         .queryParam(HTTP_SESSION_LOCALE, ar.getLocale())
                         .queryParam(HTTP_SESSION_GOTO, ar.getGotoParam())
-                        .queryParam(HTTP_SESSION_CLIENT_STATE, ar.getState())
-                        .queryParam(HTTP_SESSION_SERVICE, SERVICE_NAME);
+                        .queryParam(HTTP_SESSION_CLIENT_STATE, ar.getState());
                 if (state == STATE_CANCEL) {
                     uriComponentsBuilder.queryParam("error", ABORTED_BY_USER);
                     uriComponentsBuilder.queryParam(HTTP_SESSION_SERVICE, START_SERVICE);
