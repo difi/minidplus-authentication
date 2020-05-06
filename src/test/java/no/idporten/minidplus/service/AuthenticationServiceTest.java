@@ -8,7 +8,6 @@ import no.idporten.log.audit.AuditLogger;
 import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
-import no.idporten.minidplus.exception.minid.MinIDInvalidCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
 import no.idporten.minidplus.logging.audit.AuditID;
@@ -35,6 +34,7 @@ public class AuthenticationServiceTest {
     private static final String pid = "23079422487";
     private static final String password = "password123";
     private static final String otp = "abc123";
+    public static final String MINID_ON_THE_FLY_PASSPORT = "minid-on-the-fly-passport";
     private final ServiceProvider sp = new ServiceProvider("idporten");
     private final String minidplusSource = "minid-on-the-fly-passport";
 
@@ -64,8 +64,8 @@ public class AuthenticationServiceTest {
         when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
         PersonNumber personNumber = new PersonNumber(pid);
         MinidUser minidUser = new MinidUser(personNumber);
-        minidUser.setSecurityLevel("4");
         minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        minidUser.setSource(MINID_ON_THE_FLY_PASSPORT);
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(true);
         try {
@@ -92,8 +92,8 @@ public class AuthenticationServiceTest {
         PersonNumber personNumber = new PersonNumber(pid);
         MinidUser minidUser = new MinidUser(personNumber);
         minidUser.setPersonNumber(personNumber);
-        minidUser.setSecurityLevel("4");
         minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        minidUser.setSource(MINID_ON_THE_FLY_PASSPORT);
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(false);
         try {
@@ -105,29 +105,27 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void testAuthenticationWrongSecurityLevel() {
+    public void testAuthenticationWrongSource() {
         when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
-        when(featureSwitches.isRequestObjectEnabled()).thenReturn(true);
         PersonNumber personNumber = new PersonNumber(pid);
         MinidUser minidUser = new MinidUser(personNumber);
-        minidUser.setSecurityLevel("3");
         minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        minidUser.setSource("skattekort");
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(true);
         try {
             authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
             fail("should have failed");
         } catch (Exception e) {
-            assertTrue(e instanceof MinIDInvalidCredentialException);
+            assertTrue(e instanceof MinIDInvalidAcrLevelException);
         }
     }
 
     @Test
-    public void testChangePassword() throws MinidUserNotFoundException {
+    public void testChangePassword() {
         when(minidPlusCache.getSSN(eq(sid))).thenReturn(pid);
         PersonNumber personNumber = new PersonNumber(pid);
         MinidUser minidUser = new MinidUser(personNumber);
-        minidUser.setSecurityLevel("4");
         minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         try {
@@ -146,7 +144,6 @@ public class AuthenticationServiceTest {
         when(minidPlusCache.getSSN(eq(sid))).thenReturn(pid);
         PersonNumber personNumber = new PersonNumber(pid);
         MinidUser minidUser = new MinidUser(personNumber);
-        minidUser.setSecurityLevel("4");
         minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         doThrow(new MinidUserNotFoundException("bruker finnes ikke")).when(minIDService).updatePassword(eq(personNumber), eq(password));

@@ -10,7 +10,10 @@ import no.idporten.log.audit.AuditLogger;
 import no.idporten.minidplus.domain.Authorization;
 import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
-import no.idporten.minidplus.exception.minid.*;
+import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
+import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
+import no.idporten.minidplus.exception.minid.MinIDPincodeException;
+import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import no.idporten.minidplus.logging.audit.AuditID;
 import no.idporten.minidplus.logging.event.EventService;
 import no.idporten.minidplus.util.FeatureSwitches;
@@ -39,7 +42,7 @@ public class AuthenticationService {
 
     private final String minidplusSourcePrefix = "minid-on-the-fly";
 
-    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp, LevelOfAssurance levelOfAssurance) throws MinidUserNotFoundException, MinIDIncorrectCredentialException, MinIDSystemException, MinIDInvalidAcrLevelException, MinIDInvalidCredentialException {
+    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp, LevelOfAssurance levelOfAssurance) throws MinidUserNotFoundException, MinIDIncorrectCredentialException, MinIDSystemException, MinIDInvalidAcrLevelException {
         LevelOfAssurance assignedLevelOfAssurance = LevelOfAssurance.LEVEL4; //default
         MinidUser identity = findUserFromPid(pid);
 
@@ -47,12 +50,8 @@ public class AuthenticationService {
             warn("User not found.");
             throw new MinidUserNotFoundException("User not found");
         }
-        if (featureSwitches.isRequestObjectEnabled()) {
-            if (!identity.getSecurityLevel().equals(String.valueOf(levelOfAssurance.getLevel()))) {
-                throw new MinIDInvalidCredentialException(IDPortenExceptionID.IDENTITY_INVALID_SECURITY_LEVEL, "User must be level " + levelOfAssurance.getExternalName() + " to log in.");
-            }
-            assignedLevelOfAssurance = getLevelOfAssurance(identity.getSource(), levelOfAssurance);
-        }
+
+        assignedLevelOfAssurance = getLevelOfAssurance(identity.getSource(), levelOfAssurance);
         if (identity.isOneTimeCodeLocked()) {
             warn("One time code is locked for user");
             return false;
