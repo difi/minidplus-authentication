@@ -275,7 +275,7 @@ public class OTCPasswordService {
      * @return Message for given key and locale, where argument placeholders are replaced with values from args.
      */
     private String getMessage(String key, Object[] args) {
-        return messageSource.getMessage(key, args, new Locale("en_GB"));
+        return messageSource.getMessage(key, args, new Locale("en"));
     }
 
     private void updateUserAfterSuccessfulLogin(MinidUser user) throws MinidUserNotFoundException {

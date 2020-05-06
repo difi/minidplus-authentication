@@ -66,6 +66,6 @@ public class AuthorizationRequest implements Serializable {
      *   Locale to use. Default is english.
      **/
     @ParamName(HTTP_SESSION_LOCALE)
-    private String locale = "en_gb"; //uses browser default of not set
+    private String locale = "en"; //uses browser default of not set
 
 }

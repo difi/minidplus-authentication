@@ -106,9 +106,6 @@ public class MinidPlusAuthorizeController {
 
     private void setLocale(HttpServletRequest request, HttpServletResponse response, AuthorizationRequest authorizationRequest) {
         String locale = authorizationRequest.getLocale();
-        if (StringUtils.isEmpty(locale)) {
-            locale = request.getLocale().toString();
-        }
         localeResolver.setLocale(request, response, new Locale(locale));
         request.getSession().setAttribute("locale", locale);
     }

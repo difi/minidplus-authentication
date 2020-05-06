@@ -53,7 +53,7 @@ public class MinIdPlusPasswordControllerTest {
     public void test_initiate_change_password() throws Exception {
 
         MvcResult mvcResult = mockMvc.perform(get("/password")
-                .param(MinidPlusSessionAttributes.HTTP_SESSION_LOCALE, "en_gb"))
+                .param(MinidPlusSessionAttributes.HTTP_SESSION_LOCALE, "en"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("minidplus_password_personid"))
                 .andExpect(content().string(containsString("")))
@@ -61,7 +61,7 @@ public class MinIdPlusPasswordControllerTest {
                 .andExpect(request().sessionAttribute("session.state", is(MinidPlusPasswordController.STATE_PERSONID)))
                 .andExpect(request().sessionAttribute("sid", is(notNullValue())))
                 .andReturn();
-        assertEquals("en_gb", mvcResult.getResponse().getLocale().toString());
+        assertEquals("en", mvcResult.getResponse().getLocale().toString());
     }
 
     @Test
