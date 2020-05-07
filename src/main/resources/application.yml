@@ -22,6 +22,7 @@ spring:
     base: dc=norge,dc=no
     maxConnections: 10
     maxWait: 5000
+    serviceproviderBase: ou=serviceproviders,dc=idporten,dc=no
 
 management:
   health:

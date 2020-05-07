@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.ldap.core.ContextSource;
+import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.ldap.core.support.LdapContextSource;
 
 @Configuration
@@ -46,6 +47,23 @@ public class MinidConfig {
         contextSource.setPooled(false);
         contextSource.afterPropertiesSet();
         return contextSource;
+    }
+
+    @Bean
+    public LdapTemplate springLdapTemplate(final ContextSource idportenContextSource) {
+        return new LdapTemplate(idportenContextSource);
+    }
+
+
+    @Bean
+    public ContextSource idportenContextSource(LdapConfig ldapConfig) {
+        final LdapContextSource ldapContextSource = new LdapContextSource();
+        ldapContextSource.setUrl(ldapConfig.getUrls());
+        ldapContextSource.setBase(ldapConfig.getServiceproviderBase());
+        ldapContextSource.setUserDn(ldapConfig.getUsername());
+        ldapContextSource.setPassword(ldapConfig.getPassword());
+        ldapContextSource.setPooled(true);
+        return ldapContextSource;
     }
 
 }

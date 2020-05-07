@@ -20,6 +20,7 @@ public class LdapConfig {
     private String username;
     private String password;
     private String base;
+    private String serviceproviderBase;
     @Min(1)
     private int maxConnections;
     @Min(1)

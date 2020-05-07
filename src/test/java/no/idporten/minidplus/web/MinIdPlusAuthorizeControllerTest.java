@@ -6,6 +6,7 @@ import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.MinidPlusCache;
+import no.idporten.minidplus.service.ServiceproviderService;
 import no.idporten.ui.impl.MinidPlusButtonType;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,6 +18,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
 import static org.hamcrest.CoreMatchers.*;
@@ -35,8 +39,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 public class MinIdPlusAuthorizeControllerTest {
 
-    private final ServiceProvider sp = new ServiceProvider("idporten");
-
     @Autowired
     private MockMvc mockMvc;
 
@@ -46,10 +48,14 @@ public class MinIdPlusAuthorizeControllerTest {
     @MockBean
     MinidPlusCache minidPlusCache;
 
+    @MockBean
+    ServiceproviderService serviceproviderService;
+
     @Test
     public void test_authorization_session_parameters_set() throws Exception {
-
-        when(authenticationService.authenticateUser(anyString(), anyString(), anyString(), eq(sp), any(LevelOfAssurance.class))).thenReturn(true);
+        ServiceProvider serviceProvider = new ServiceProvider("NAV");
+        when(authenticationService.authenticateUser(anyString(), anyString(), anyString(), eq(serviceProvider), any(LevelOfAssurance.class))).thenReturn(true);
+        when(serviceproviderService.findByEntityIdFilter(anyString())).thenReturn(Arrays.asList(serviceProvider));
         AuthorizationRequest ar = getAuthorizationRequest();
         MvcResult mvcResult = mockMvc.perform(get("/authorize")
                 .param(HTTP_SESSION_CLIENT_ID, ar.getSpEntityId())
@@ -69,14 +75,15 @@ public class MinIdPlusAuthorizeControllerTest {
                 .andExpect(request().sessionAttribute("session.state", is(1)))
                 .andExpect(request().sessionAttribute("sid", is(notNullValue())))
                 .andExpect(model().attribute("authorizationRequest", equalTo(ar)))
+                .andExpect(model().attribute("serviceprovider", equalTo(serviceProvider)))
                 .andReturn();
         assertEquals("nb", mvcResult.getResponse().getLocale().toString());
     }
 
     @Test
     public void test_unsupported_locale_defaults_to_en() throws Exception {
-
-        when(authenticationService.authenticateUser(anyString(), anyString(), anyString(), eq(sp), any(LevelOfAssurance.class))).thenReturn(true);
+        ServiceProvider serviceProvider = new ServiceProvider("NAV");
+        when(authenticationService.authenticateUser(anyString(), anyString(), anyString(), eq(serviceProvider), any(LevelOfAssurance.class))).thenReturn(true);
         AuthorizationRequest ar = getAuthorizationRequest();
         MvcResult mvcResult = mockMvc.perform(get("/authorize")
                 .param(HTTP_SESSION_CLIENT_ID, ar.getSpEntityId())

@@ -4,8 +4,8 @@
 The one above title is displayed on desktop only. the one below on mobile only. -->
 
 <div class='Box_Section Box_Section-ServiceProvider'>
-    <div class='Box_Section_Title'>NAV</div>
-    <img src="images/nav-logo.gif" alt='tjenestetilbyder logo' />
+    <div class='Box_Section_Title'><spring:message text="${serviceprovider.name}"/></div>
+    <img src="/opensso/images/${serviceprovider.logoPath}" alt='${serviceprovider.name}' />
 </div>
 <div class='Box_header'>
     <h1 class='Box_header-title with-logo logo-eid-gray'><spring:message code="no.idporten.module.minid.header" text="Logg inn med MinId"/></h1>

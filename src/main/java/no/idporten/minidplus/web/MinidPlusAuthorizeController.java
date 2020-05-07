@@ -16,6 +16,8 @@ import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import no.idporten.minidplus.service.AuthenticationService;
+import no.idporten.minidplus.service.OTCPasswordService;
+import no.idporten.minidplus.service.ServiceproviderService;
 import no.idporten.ui.impl.MinidPlusButtonType;
 import no.minid.exception.MinidUserNotFoundException;
 import org.apache.commons.lang.StringUtils;
@@ -84,6 +86,9 @@ public class MinidPlusAuthorizeController {
 
     private final ValidatorFactory validatorFactory;
 
+    private final OTCPasswordService otcPasswordService;
+    private final ServiceproviderService serviceproviderService;
+
     @Value("${minid-plus.registrationUri}")
     private String registrationUri;
 
@@ -100,6 +105,17 @@ public class MinidPlusAuthorizeController {
                 return getNextView(request, STATE_CONSTRAINT_VIOLATIONS);
             }
             request.getSession().setAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST, authorizationRequest);
+        }
+
+        ServiceProvider sp;
+        try {
+            List<ServiceProvider> serviceProviders = serviceproviderService.findByEntityIdFilter(authorizationRequest.getSpEntityId());
+            serviceProviders = serviceProviders.stream().filter(e -> e.getEntityId().equalsIgnoreCase(authorizationRequest.getSpEntityId())).collect(Collectors.toList());
+            sp = serviceProviders.get(0);
+            model.addAttribute("serviceprovider", sp);
+            request.getSession().setAttribute(SERVICEPROVIDER, sp);
+        } catch (Exception e) {
+            warn("Exception handling otp: " + e.getMessage());
         }
 
         UserCredentials userCredentials = new UserCredentials();
@@ -121,6 +137,8 @@ public class MinidPlusAuthorizeController {
 
         int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
         String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
+        ServiceProvider sp = (ServiceProvider) request.getSession().getAttribute(SERVICEPROVIDER);
+
         AuthorizationRequest ar = (AuthorizationRequest) request.getSession().getAttribute(AUTHORIZATION_REQUEST);
         // Check cancel
         if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
@@ -132,8 +150,6 @@ public class MinidPlusAuthorizeController {
                 return getNextView(request, STATE_USERDATA);
             }
             try {
-                ServiceProvider sp = new ServiceProvider(ar.getSpEntityId());
-                sp.setName(ar.getSpEntityId());//todo lookup from ldap
                 authenticationService.authenticateUser(sid, userCredentials.getPersonalIdNumber(), userCredentials.getPassword(), sp, ar.getAcrValues());
             } catch (MinIDIncorrectCredentialException e) {
                 result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.format.password"}, null, "Login failed"));
