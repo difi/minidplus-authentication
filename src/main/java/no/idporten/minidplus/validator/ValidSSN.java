@@ -21,5 +21,4 @@ public @interface ValidSSN {
 
     Class<? extends Payload>[] payload() default {};
 
-    boolean allowsFragments() default true;
 }

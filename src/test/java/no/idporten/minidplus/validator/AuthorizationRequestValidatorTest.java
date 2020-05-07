@@ -1,5 +1,7 @@
-package no.idporten.minidplus.domain;
+package no.idporten.minidplus.validator;
 
+import no.idporten.minidplus.domain.AuthorizationRequest;
+import no.idporten.minidplus.domain.LevelOfAssurance;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -53,6 +55,37 @@ public class AuthorizationRequestValidatorTest {
         assertFalse(violations.isEmpty());
         assertEquals(2, violations.size());
     }
+
+    @Test
+    public void authorization_request_has_invalid_locale_length_and_chars() {
+        AuthorizationRequest ar = new AuthorizationRequest();
+        ar.setRedirectUri("http://localhost");
+        ar.setState("123abc");
+        ar.setAcrValues(LevelOfAssurance.LEVEL4);
+        ar.setResponseType("authorization_code");
+        ar.setLocale("jabbadabba#¤%&/()");
+        ar.setGotoParam("http://localhost");
+        ar.setSpEntityId("NAV");
+        Set<ConstraintViolation<AuthorizationRequest>> violations = validator.validate(ar);
+        assertFalse(violations.isEmpty());
+        assertEquals(2, violations.size());
+    }
+
+    @Test
+    public void authorization_request_has_invalid_chars_in_response_type_and_entity_id() {
+        AuthorizationRequest ar = new AuthorizationRequest();
+        ar.setRedirectUri("http://localhost");
+        ar.setState("123abc");
+        ar.setAcrValues(LevelOfAssurance.LEVEL4);
+        ar.setResponseType("2343rfsd09uv9u#¤%&/()");
+        ar.setLocale("nn");
+        ar.setGotoParam("http://localhost");
+        ar.setSpEntityId("#¤%&/()=");
+        Set<ConstraintViolation<AuthorizationRequest>> violations = validator.validate(ar);
+        assertFalse(violations.isEmpty());
+        assertEquals(2, violations.size());
+    }
+
 
     @Test
     public void should_return_violation() {

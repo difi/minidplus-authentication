@@ -41,6 +41,8 @@ import javax.validation.ValidatorFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
 
@@ -74,6 +76,7 @@ public class MinidPlusAuthorizeController {
     private static final String ABORTED_BY_USER = "aborted_by_user";
     private static final String CONSTRAINT_VIOLATIONS = "contraint_violations_in_authorize_request";
     private static final String START_SERVICE = "start-service";
+    private static final Set<String> supportedLocales = Stream.of("nb", "nn", "en").collect(Collectors.toSet());
 
     private final LocaleResolver localeResolver;
 
@@ -106,6 +109,9 @@ public class MinidPlusAuthorizeController {
 
     private void setLocale(HttpServletRequest request, HttpServletResponse response, AuthorizationRequest authorizationRequest) {
         String locale = authorizationRequest.getLocale();
+        if (!supportedLocales.contains(locale)) {
+            locale = "en";
+        }
         localeResolver.setLocale(request, response, new Locale(locale));
         request.getSession().setAttribute("locale", locale);
     }

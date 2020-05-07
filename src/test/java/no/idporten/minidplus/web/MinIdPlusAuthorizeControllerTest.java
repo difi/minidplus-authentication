@@ -70,7 +70,26 @@ public class MinIdPlusAuthorizeControllerTest {
                 .andExpect(request().sessionAttribute("sid", is(notNullValue())))
                 .andExpect(model().attribute("authorizationRequest", equalTo(ar)))
                 .andReturn();
-        assertEquals("nb_no", mvcResult.getResponse().getLocale().toString());
+        assertEquals("nb", mvcResult.getResponse().getLocale().toString());
+    }
+
+    @Test
+    public void test_unsupported_locale_defaults_to_en() throws Exception {
+
+        when(authenticationService.authenticateUser(anyString(), anyString(), anyString(), eq(sp), any(LevelOfAssurance.class))).thenReturn(true);
+        AuthorizationRequest ar = getAuthorizationRequest();
+        MvcResult mvcResult = mockMvc.perform(get("/authorize")
+                .param(HTTP_SESSION_CLIENT_ID, ar.getSpEntityId())
+                .param(HTTP_SESSION_REDIRECT_URI, ar.getRedirectUri())
+                .param(HTTP_SESSION_RESPONSE_TYPE, ar.getResponseType())
+                .param(HTTP_SESSION_GOTO, ar.getGotoParam())
+                .param(HTTP_SESSION_LOCALE, "pf")
+                .param(HTTP_SESSION_ACR_VALUES, ar.getAcrValues().getExternalName())
+                .param(HTTP_SESSION_CLIENT_STATE, ar.getState())
+        )
+                .andExpect(status().isOk())
+                .andReturn();
+        assertEquals("en", mvcResult.getResponse().getLocale().toString());
     }
 
     @Test
@@ -135,7 +154,7 @@ public class MinIdPlusAuthorizeControllerTest {
     private AuthorizationRequest getAuthorizationRequest() {
         AuthorizationRequest ar = new AuthorizationRequest();
         ar.setRedirectUri("http://localhost");
-        ar.setLocale("nb_no");
+        ar.setLocale("nb");
         ar.setState("123");
         ar.setGotoParam("http://localhost");
         ar.setSpEntityId("NAV");

@@ -9,6 +9,7 @@ import no.idporten.minidplus.validator.ValidURI;
 
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Pattern;
+import javax.validation.constraints.Size;
 import java.io.Serializable;
 
 import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
@@ -26,7 +27,7 @@ public class AuthorizationRequest implements Serializable {
      *   Redirect url to something back in idporten...
      **/
     @NotEmpty
-    @ValidURI
+    @ValidURI(message = "{no.minidplus.validuri}")
     @ParamName(HTTP_SESSION_REDIRECT_URI)
     private String redirectUri = "";
 
@@ -35,9 +36,12 @@ public class AuthorizationRequest implements Serializable {
      **/
     @NotEmpty
     @ParamName(HTTP_SESSION_CLIENT_ID)
+    @Pattern(regexp = "^[\\x20-\\x7E]+$", message = "invalid_request")
+    @Size(max = 255, message = "Please enter at most {max} characters")
     private String spEntityId = "";
 
     @ParamName(HTTP_SESSION_RESPONSE_TYPE)
+    @Pattern(regexp = "^[a-zA-Z_]*$", message = "invalid_request")
     private String responseType = "authorization_code";  //will always be code atm
 
     /**
@@ -56,7 +60,7 @@ public class AuthorizationRequest implements Serializable {
      *   Redirect uri back to service provider
      **/
     @NotEmpty
-    @ValidURI
+    @ValidURI(message = "{no.minidplus.validuri}")
     @ParamName(HTTP_SESSION_GOTO)
     private String gotoParam="";
 
@@ -66,6 +70,8 @@ public class AuthorizationRequest implements Serializable {
      *   Locale to use. Default is english.
      **/
     @ParamName(HTTP_SESSION_LOCALE)
+    @Size(max = 2, message = "Please enter at most {max} characters")
+    @Pattern(regexp = "^[a-zA-Z]*$", message = "invalid_request")
     private String locale = "en"; //uses browser default of not set
 
 }
