@@ -34,6 +34,7 @@
                                     code="no.idporten.module.minidplus.input.personalidnumber"
                                     text="Personnummer"/></label>
                             <form:input tabindex="1"
+                                        autofocus="autofocus"
                                         maxlength="11"
                                         path="personalIdNumber"
                                         type="tel"

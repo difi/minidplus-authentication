@@ -35,6 +35,7 @@
                         <div class="fm-Field${not empty otpCodeHasError ? ' error' : ''}">
                             <label for="otpCode"><spring:message code="auth.ui.prompt.otc" text="Kode fra SMS"/></label>
                             <form:input tabindex="1"
+                                        autofocus="autofocus"
                                         maxlength="5"
                                         path="otpCode"
                                         type="tel"

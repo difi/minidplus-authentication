@@ -40,6 +40,7 @@
                             <label for="otpCode"><spring:message code="auth.ui.prompt.tempcode.email"
                                                                  text="Kode fra Email"/></label>
                             <form:input tabindex="1"
+                                        autofocus="autofocus"
                                         maxlength="5"
                                         path="otpCode"
                                         type="tel"

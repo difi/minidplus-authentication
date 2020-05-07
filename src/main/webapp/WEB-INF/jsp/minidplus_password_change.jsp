@@ -42,6 +42,7 @@
                             <label for="newPassword"><spring:message code="auth.ui.prompt.newpassword"
                                                                      text="Create password"/></label>
                             <form:input tabindex="1"
+                                        autofocus="autofocus"
                                         maxlength="100"
                                         path="newPassword"
                                         type="password"
