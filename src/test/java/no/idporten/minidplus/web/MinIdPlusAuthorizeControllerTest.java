@@ -19,7 +19,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 
 import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
@@ -30,6 +29,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -38,6 +38,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @RunWith(SpringRunner.class)
 @AutoConfigureMockMvc
 public class MinIdPlusAuthorizeControllerTest {
+
+    protected final ServiceProvider sp = new ServiceProvider("idporten");
 
     @Autowired
     private MockMvc mockMvc;
@@ -107,6 +109,7 @@ public class MinIdPlusAuthorizeControllerTest {
                 .param("password", "")
                 .param(MinidPlusButtonType.CANCEL.id(), "")
                 .sessionAttr(HTTP_SESSION_STATE, 1)
+                .with(csrf())
         )
                 .andExpect(status().isOk())
                 .andExpect(view().name("redirect_to_idporten"));
@@ -124,6 +127,7 @@ public class MinIdPlusAuthorizeControllerTest {
                 .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
                 .param("otpCode", code)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .with(csrf())
         )
                 .andExpect(status().isOk())
                 .andExpect(view().name("redirect_to_idporten"))
@@ -140,6 +144,7 @@ public class MinIdPlusAuthorizeControllerTest {
                 .sessionAttr(HTTP_SESSION_STATE, 2)
                 .param("otpCode", code)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .with(csrf())
         )//.andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(view().name("minidplus_enter_otp"))

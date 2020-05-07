@@ -32,7 +32,7 @@
 <script type="text/javascript" src="js/check-enable-save.js"></script>
 <script type="text/javascript" src="js/radio-enable-save.js"></script>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js">
+<script src="js/jquery-3.5.1.slim.min.js">
 </script>
 
 </body>

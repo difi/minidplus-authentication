@@ -76,3 +76,8 @@ email:
 server:
   tomcat:
     additional-tld-skip-patterns: xercesImpl.jar,xml-apis.jar,serializer.jar,xml-apis.jar
+    protocol-header: x-forwarded-proto
+  servlet:
+    session:
+      cookie:
+        http-only: true

@@ -1,7 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
 <head>
-    <%@ include file="pageHeader.jspf"%>
     <title>MinID Plus</title>
     <link rel="stylesheet" href="fonts/open-sans/open-sans.css">
     <link rel="stylesheet" href="font-awesome/css/font-awesome.min.css">

@@ -25,6 +25,7 @@ import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -73,7 +74,8 @@ public class MinIdPlusPasswordControllerTest {
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, MinidPlusPasswordController.STATE_PERSONID)
                 .param("personalIdNumber", pid)
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("minidplus_password_otp_sms"))
                 .andReturn();
@@ -89,7 +91,8 @@ public class MinIdPlusPasswordControllerTest {
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 2)
                 .param("otpCode", code)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-        )//.andDo(print())
+                .with(csrf())
+        )
                 .andExpect(status().isOk())
                 .andExpect(view().name("minidplus_password_otp_email"))
                 .andReturn();
@@ -105,6 +108,7 @@ public class MinIdPlusPasswordControllerTest {
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 2)
                 .param("otpCode", code)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .with(csrf())
         )//.andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(view().name("minidplus_password_otp_sms"))
@@ -122,6 +126,7 @@ public class MinIdPlusPasswordControllerTest {
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 3)
                 .param("otpCode", code)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .with(csrf())
         )//.andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(view().name("minidplus_password_change"))
@@ -138,6 +143,7 @@ public class MinIdPlusPasswordControllerTest {
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 3)
                 .param("otpCode", code)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .with(csrf())
         )//.andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(view().name("minidplus_password_otp_email"))
@@ -157,6 +163,7 @@ public class MinIdPlusPasswordControllerTest {
                 .param("newPassword", newPassword)
                 .param("reenterPassword", newPassword)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .with(csrf())
         )
                 .andExpect(status().isOk())
                 .andExpect(view().name("minidplus_password_success"))
@@ -175,6 +182,7 @@ public class MinIdPlusPasswordControllerTest {
                 .param("newPassword", newPassword)
                 .param("reenterPassword", "pølse")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .with(csrf())
         )
                 .andExpect(status().isOk())
                 .andExpect(model().hasErrors())

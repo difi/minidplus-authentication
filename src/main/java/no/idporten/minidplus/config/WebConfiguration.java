@@ -11,7 +11,6 @@ import org.springframework.format.FormatterRegistry;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.LocaleResolver;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
@@ -26,20 +25,12 @@ public class WebConfiguration implements WebMvcConfigurer {
     @Autowired
     AcrToLevelOfAssurance acrToLevelOfAssurance;
 
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOrigins("http://localhost:8080", "https://testmijøsomething.no") //todo kommenter ut etterhvert
-                .allowedOrigins("*")
-                .allowedMethods("OPTIONS", "GET", "POST", "HEAD")
-                .allowCredentials(true);
-    }
-
     @Bean
     public MessageSource messageSource() {
         ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
         messageSource.setBasenames("messages");
         messageSource.setDefaultEncoding("UTF-8");
-        // messageSource.setUseCodeAsDefaultMessage(true);
+        messageSource.setUseCodeAsDefaultMessage(true);
 
         return messageSource;
     }
