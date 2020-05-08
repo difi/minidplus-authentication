@@ -8,10 +8,10 @@ import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.PersonNumber;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
-import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
 import no.idporten.minidplus.notification.NotificationService;
 import no.idporten.validation.util.RandomUtil;
+import no.minid.exception.MinidUserInvalidException;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
 import org.apache.commons.lang.StringUtils;
@@ -154,7 +154,7 @@ public class OTCPasswordService {
         return true;
     }
 
-    void sendSMSOtp(String sid, ServiceProvider sp, MinidUser identity) throws MinIDSystemException {
+    void sendSMSOtp(String sid, ServiceProvider sp, MinidUser identity) throws MinidUserInvalidException {
         // Generates one time code and sends SMS with one time code to user's mobile phone number
         // Does not send one time code to users that are not allowed to get temporary passwords
         // Does not resend one time code
@@ -162,7 +162,7 @@ public class OTCPasswordService {
             String generatedOneTimeCode = generateOTCPassword();
             minidPlusCache.putOTP(sid, generatedOneTimeCode);
             if (identity.getPhoneNumber() == null) {
-                throw new MinIDSystemException(IDPortenExceptionID.LDAP_ATTRIBUTE_MISSING, "Mobile number not found not found for user");
+                throw new MinidUserInvalidException("Mobile number not found not found for user");
             }
             final String mobileNumber = identity.getPhoneNumber().getNumber();
             linkMobilityClient.sendSms(mobileNumber, getMessageBody(sp, generatedOneTimeCode, now().plusSeconds(otpTtl)));

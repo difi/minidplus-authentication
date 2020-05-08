@@ -17,6 +17,7 @@ import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import no.idporten.minidplus.logging.audit.AuditID;
 import no.idporten.minidplus.logging.event.EventService;
 import no.idporten.minidplus.util.FeatureSwitches;
+import no.minid.exception.MinidUserInvalidException;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
 import org.springframework.stereotype.Service;
@@ -42,7 +43,7 @@ public class AuthenticationService {
 
     private final String minidplusSourcePrefix = "minid-on-the-fly";
 
-    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp, LevelOfAssurance levelOfAssurance) throws MinidUserNotFoundException, MinIDIncorrectCredentialException, MinIDSystemException, MinIDInvalidAcrLevelException {
+    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp, LevelOfAssurance levelOfAssurance) throws MinidUserNotFoundException, MinIDIncorrectCredentialException, MinIDSystemException, MinIDInvalidAcrLevelException, MinidUserInvalidException {
         LevelOfAssurance assignedLevelOfAssurance = LevelOfAssurance.LEVEL4; //default
         MinidUser identity = findUserFromPid(pid);
 
@@ -67,14 +68,14 @@ public class AuthenticationService {
         return true;
     }
 
-    public boolean verifyUserByEmail(String sid) throws MinIDSystemException, MinidUserNotFoundException {
+    public boolean verifyUserByEmail(String sid) throws MinidUserNotFoundException, MinidUserInvalidException {
 
         String pid = minidPlusCache.getSSN(sid);
         MinidUser identity = findUserFromPid(pid);
 
         if (identity.getEmail() == null) {
             warn("Email not found not found for user");
-            throw new MinIDSystemException(IDPortenExceptionID.LDAP_ATTRIBUTE_MISSING, "Email not found not found for user");
+            throw new MinidUserInvalidException("Email not found not found for user");
         }
 
         if (identity.isOneTimeCodeLocked()) {
@@ -107,7 +108,7 @@ public class AuthenticationService {
         }
     }
 
-    public boolean authenticatePid(String sid, String pid, ServiceProvider sp) throws MinidUserNotFoundException, MinIDSystemException {
+    public boolean authenticatePid(String sid, String pid, ServiceProvider sp) throws MinidUserNotFoundException, MinidUserInvalidException {
         MinidUser identity = findUserFromPid(pid);
         if (identity.isOneTimeCodeLocked()) {
             warn("One time code is locked");

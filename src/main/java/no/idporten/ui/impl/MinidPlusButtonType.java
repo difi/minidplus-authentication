@@ -7,6 +7,7 @@ public enum MinidPlusButtonType {
 
     NEXT,
     CLOSE, // contact info module close info-lightbox button
+    CONTINUE,
     CANCEL; // cancel button
 
     public String id() {

@@ -10,15 +10,14 @@ import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.UserCredentials;
-import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
-import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.OTCPasswordService;
 import no.idporten.minidplus.service.ServiceproviderService;
 import no.idporten.ui.impl.MinidPlusButtonType;
+import no.minid.exception.MinidUserInvalidException;
 import no.minid.exception.MinidUserNotFoundException;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -95,7 +94,7 @@ public class MinidPlusAuthorizeController {
     @GetMapping(produces = "text/html; charset=utf-8")
     public String doGet(HttpServletRequest request, HttpServletResponse response, AuthorizationRequest authorizationRequest, Model model) {
         Object state = request.getSession().getAttribute(HTTP_SESSION_STATE);
-        if (state == null || (int) state != MinidPlusPasswordController.STATE_CANCEL) {
+        if (state == null || !((int) state == MinidPlusPasswordController.STATE_CANCEL || (int) state == MinidPlusPasswordController.STATE_CONTINUE)) {
             request.getSession().invalidate();
             request.getSession().setAttribute(HTTP_SESSION_AUTH_TYPE, AuthType.MINID_PLUS);
             request.getSession().setAttribute(HTTP_SESSION_SID, UUID.randomUUID().toString());
@@ -132,7 +131,7 @@ public class MinidPlusAuthorizeController {
         request.getSession().setAttribute("locale", locale);
     }
 
-    @PostMapping
+    @PostMapping(params = "personalIdNumber")
     public String postUserCredentials(HttpServletRequest request, @Valid @ModelAttribute(MODEL_USER_CREDENTIALS) UserCredentials userCredentials, BindingResult result, Model model) {
 
         int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
@@ -151,33 +150,32 @@ public class MinidPlusAuthorizeController {
             }
             try {
                 authenticationService.authenticateUser(sid, userCredentials.getPersonalIdNumber(), userCredentials.getPassword(), sp, ar.getAcrValues());
+                OneTimePassword oneTimePassword = new OneTimePassword();
+                model.addAttribute(oneTimePassword);
+                return getNextView(request, STATE_VERIFICATION_CODE);
             } catch (MinIDIncorrectCredentialException e) {
                 result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.format.password"}, null, "Login failed"));
                 return getNextView(request, STATE_USERDATA);
             } catch (MinidUserNotFoundException e) {
                 result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.usererror.format.ssn"}, null, "Login failed"));
                 return getNextView(request, STATE_USERDATA);
-            } catch (MinIDSystemException e) {
-                if (e.getExceptionId().equals(IDPortenExceptionID.LDAP_ATTRIBUTE_MISSING)) {
-                    result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.usererror.format.missing.mobile"}, null, "Mobile number not registered on your user"));
-                } else {
-                    result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.error.line1"}, null, "Login failed"));
-                }
-                return getNextView(request, STATE_USERDATA);
+            } catch (MinidUserInvalidException e) {
+                warn("User exception occurred " + e.getMessage());
+                result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.usererror.format.missing.mobile"}, null, "Mobile number not registered on your user"));
             } catch (MinIDInvalidAcrLevelException e) {
                 result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.module.minidplus.invalidacr"}, new Object[]{registrationUri}, "Login failed"));
                 return getNextView(request, STATE_USERDATA);
+            } catch (Exception e) {
+                log.error("Unexpected exception occurred during post user credentials", e);
+                result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.error.line1"}, null, "Login failed"));
             }
-
+            return getNextView(request, STATE_USERDATA);
         } else {
             result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.error.line1"}, null, "System error"));
             result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
             prepareErrorPage(request, model);
             return getNextView(request, STATE_ERROR);
         }
-        OneTimePassword oneTimePassword = new OneTimePassword();
-        model.addAttribute(oneTimePassword);
-        return getNextView(request, STATE_VERIFICATION_CODE);
 
     }
 

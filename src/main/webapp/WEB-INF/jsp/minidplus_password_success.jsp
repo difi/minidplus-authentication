@@ -1,5 +1,7 @@
+<%@ page import="no.idporten.ui.impl.MinidPlusButtonType" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
+<%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
 
 <jsp:include page="sections/header.jsp"/>
 
@@ -25,12 +27,20 @@
                         code="no.idporten.forgottenpassword.success.info2"/></span></a></p>
 
             </div>
-            <!-- //todo må lede en plass PBLEID-20245 Controls placeholder with centered action button only. used in receipts -->
-            <div class='fm-Controls with-Action with-Action-centered'>
-                <button class='btn btn-Action' type='submit'><span><spring:message
-                        code="no.idporten.button.continue"/></span></button>
-            </div>
-            <!-- //Controls placeholder with action button only -->
+
+            <form:form action="#" class="login" method="post">
+                <input type="hidden" id="success" name="success" value="true"/>
+                <fieldset>
+
+                    <div class='fm-Controls with-Action with-Action-centered'>
+                        <button autofocus="autofocus" class='btn btn-Normal' tabindex="11"
+                                id="<%= MinidPlusButtonType.CONTINUE.id() %>"
+                                name="<%= MinidPlusButtonType.CONTINUE.id() %>">
+                            <span><spring:message code="no.idporten.button.continue"/></span>
+                        </button>
+                    </div>
+                </fieldset>
+            </form:form>
 
         </div>
 

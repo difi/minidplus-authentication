@@ -7,12 +7,11 @@ import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.PasswordChange;
 import no.idporten.minidplus.domain.PersonIdInput;
-import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
-import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.OTCPasswordService;
 import no.idporten.ui.impl.MinidPlusButtonType;
+import no.minid.exception.MinidUserInvalidException;
 import no.minid.exception.MinidUserNotFoundException;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Controller;
@@ -47,6 +46,7 @@ public class MinidPlusPasswordController {
     protected static final int STATE_VERIFICATION_CODE_SMS = 2;
     protected static final int STATE_VERIFICATION_CODE_EMAIL = 3;
     protected static final int STATE_NEW_PASSWORD = 4;
+    protected static final int STATE_CONTINUE = 8;
     protected static final int STATE_CANCEL = 9;
     protected static final int STATE_ERROR = 10;
 
@@ -79,7 +79,7 @@ public class MinidPlusPasswordController {
         request.getSession().setAttribute("locale", locale);
     }
 
-    @PostMapping
+    @PostMapping(params = "personalIdNumber")
     public String postPersonId(HttpServletRequest request, @Valid @ModelAttribute(MODEL_USER_PERSONID) PersonIdInput personId, BindingResult result, Model model, RedirectAttributes redirectAttributes) {
 
         int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
@@ -96,27 +96,27 @@ public class MinidPlusPasswordController {
                 ServiceProvider sp = new ServiceProvider("Idporten");
                 sp.setName("idporten");
                 authenticationService.authenticatePid(sid, personId.getPersonalIdNumber(), sp);
+                OneTimePassword oneTimePassword = new OneTimePassword();
+                model.addAttribute(oneTimePassword);
+                return getNextView(request, STATE_VERIFICATION_CODE_SMS);
+
             } catch (MinidUserNotFoundException e) {
                 result.addError(new ObjectError(MODEL_USER_PERSONID, new String[]{"auth.ui.usererror.format.ssn"}, null, "Login failed"));
                 return getNextView(request, STATE_PERSONID);
-            } catch (MinIDSystemException e) {
-                if (e.getExceptionId().equals(IDPortenExceptionID.LDAP_ATTRIBUTE_MISSING)) {
-                    result.addError(new ObjectError(MODEL_USER_PERSONID, new String[]{"auth.ui.usererror.format.missing.mobile"}, null, "Mobile number not registered on your user"));
-                } else {
-                    result.addError(new ObjectError(MODEL_USER_PERSONID, new String[]{"no.idporten.error.line1"}, null, "Login failed"));
-                }
-                return getNextView(request, STATE_PERSONID);
+            } catch (MinidUserInvalidException e) {
+                warn("Users exception handling otp. : " + e.getMessage());
+                result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.format.missing.mobile"}, null, "Mobile number not registered on your user"));
+            } catch (Exception e) {
+                warn("Unexpected exception occurred " + e.getMessage());
+                result.addError(new ObjectError(MODEL_USER_PERSONID, new String[]{"no.idporten.error.line1"}, null, "Login failed"));
             }
-
+            return getNextView(request, STATE_PERSONID);
         } else {
             log.error("invalid state : " + state);
             result.addError(new ObjectError(MODEL_USER_PERSONID, new String[]{"no.idporten.error.line1"}, null, "System error"));
             result.addError(new ObjectError(MODEL_USER_PERSONID, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
-            return getNextView(request, STATE_PERSONID);
+            return getNextView(request, STATE_ERROR);
         }
-        OneTimePassword oneTimePassword = new OneTimePassword();
-        model.addAttribute(oneTimePassword);
-        return getNextView(request, STATE_VERIFICATION_CODE_SMS);
 
     }
 
@@ -136,11 +136,19 @@ public class MinidPlusPasswordController {
                     authenticationService.verifyUserByEmail(sid);
                     return getNextView(request, STATE_VERIFICATION_CODE_EMAIL);
                 } else {
+                    warn("Wrong pincode ");
                     result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
                 }
+            } else {
+                warn("Illegal state in postOTP sms " + state);
+                result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line1"}, null, "System error"));
             }
         } catch (MinIDPincodeException e) {
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.format.otc.locked"}, null, "Too many attempts"));
+            warn("Pincode locked " + e.getMessage());
+        } catch (MinidUserInvalidException e) {
+            warn("Exception handling otp. : " + e.getMessage());
+            result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.format.missing.email"}, null, "Missing email"));
         } catch (Exception e) {
             warn("Exception handling otp: " + e.getMessage());
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line1"}, null, "System error"));
@@ -165,8 +173,12 @@ public class MinidPlusPasswordController {
                 } else {
                     result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
                 }
+            } else {
+                warn("Illegal state in postOTPEmail" + state);
+                result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line1"}, null, "System error"));
             }
         } catch (MinIDPincodeException e) {
+            warn("Pincode locked " + e.getMessage());
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.format.otc.locked"}, null, "Too many attempts"));
         } catch (Exception e) {
             warn("Exception handling otp: " + e.getMessage());
@@ -201,6 +213,18 @@ public class MinidPlusPasswordController {
         return getNextView(request, STATE_NEW_PASSWORD);
     }
 
+    @PostMapping(params = "minidplus.inputbutton.CONTINUE")
+    public String postPasswordChange(HttpServletRequest request) {
+        int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
+        if (state == STATE_PASSWORD_CHANGED) {
+            return getNextView(request, STATE_CONTINUE);
+        } else {
+            warn("Illegal state " + state);
+            return getNextView(request, STATE_ERROR);
+        }
+    }
+
+
     private String getNextView(HttpServletRequest request, int state) {
         setSessionState(request, state);
         if (state == STATE_PERSONID) {
@@ -213,7 +237,7 @@ public class MinidPlusPasswordController {
             return "minidplus_password_change";
         } else if (state == STATE_PASSWORD_CHANGED) {
             return "minidplus_password_success";
-        } else if (state == STATE_CANCEL) {
+        } else if (state == STATE_CONTINUE || state == STATE_CANCEL) {
             return "redirect:/authorize";
         }
         return "error";

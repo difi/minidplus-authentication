@@ -191,15 +191,29 @@ public class MinIdPlusPasswordControllerTest {
 
     }
 
+    @Test
+    public void test_success_receipt_continue_returns_to_authorization() throws Exception {
+
+        mockMvc.perform(post("/password")
+                .param(MinidPlusButtonType.CONTINUE.id(), "")
+                .sessionAttr(HTTP_SESSION_STATE, -1)
+                .with(csrf())
+        )
+                .andExpect(status().is3xxRedirection())
+                .andExpect(view().name("redirect:/authorize"));
+    }
+
+    @Test
     public void test_user_cancels_otp_returns_to_authorization() throws Exception {
 
         mockMvc.perform(post("/password")
                 .param("personalIdNumber", "")
                 .param(MinidPlusButtonType.CANCEL.id(), "")
                 .sessionAttr(HTTP_SESSION_STATE, 1)
+                .with(csrf())
         )
-                .andExpect(status().isOk())
-                .andExpect(view().name("minidplus_enter_credentials"));
+                .andExpect(status().is3xxRedirection())
+                .andExpect(view().name("redirect:/authorize"));
     }
 
 
