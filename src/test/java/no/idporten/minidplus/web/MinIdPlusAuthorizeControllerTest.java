@@ -4,6 +4,8 @@ import no.idporten.domain.auth.AuthType;
 import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.LevelOfAssurance;
+import no.idporten.minidplus.exception.IDPortenExceptionID;
+import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.MinidPlusCache;
 import no.idporten.minidplus.service.ServiceproviderService;
@@ -40,6 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class MinIdPlusAuthorizeControllerTest {
 
     protected final ServiceProvider sp = new ServiceProvider("idporten");
+    private final String pid = "23079421189";
 
     @Autowired
     private MockMvc mockMvc;
@@ -117,15 +120,74 @@ public class MinIdPlusAuthorizeControllerTest {
     }
 
     @Test
+    public void test_post_credentials_successful() throws Exception {
+        String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
+        when(minidPlusCache.getSSN(code)).thenReturn(pid);
+        when(authenticationService.authenticateUser(eq(code), eq(pid), eq("abc"), eq(sp), any(LevelOfAssurance.class))).thenReturn(true);
+        MvcResult mvcResult = mockMvc.perform(post("/authorize")
+                .sessionAttr(HTTP_SESSION_SID, code)
+                .sessionAttr(HTTP_SESSION_STATE, 1)
+                .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
+                .param("personalIdNumber", pid)
+                .param("password", "abc")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .with(csrf())
+        )
+                .andExpect(status().isOk())
+                .andExpect(view().name("minidplus_enter_otp"))
+                .andReturn();
+    }
+
+    @Test
+    public void test_post_pid_wrong_format() throws Exception {
+        String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
+        MvcResult mvcResult = mockMvc.perform(post("/authorize")
+                .sessionAttr(HTTP_SESSION_SID, code)
+                .sessionAttr(HTTP_SESSION_STATE, 1)
+                .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
+                .param("personalIdNumber", "123")
+                .param("password", "abc")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .with(csrf())
+        )
+                .andExpect(status().isOk())
+                .andExpect(view().name("minidplus_enter_credentials"))
+                .andExpect(model().hasErrors())
+                .andReturn();
+    }
+
+    @Test
+    public void test_post_pwd_wrong() throws Exception {
+        String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
+        when(authenticationService.authenticateUser(eq(code), eq(pid), eq("helloWorld"), eq(sp), any(LevelOfAssurance.class))).thenThrow(new MinIDIncorrectCredentialException(IDPortenExceptionID.IDENTITY_PASSWORD_INCORRECT, "Password validation failed"));
+        MvcResult mvcResult = mockMvc.perform(post("/authorize")
+                .sessionAttr(HTTP_SESSION_SID, code)
+                .sessionAttr(HTTP_SESSION_STATE, 1)
+                .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
+                .sessionAttr(SERVICEPROVIDER, sp)
+                .param("personalIdNumber", pid)
+                .param("password", "helloWorld")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .with(csrf())
+        )
+                .andExpect(status().isOk())
+                .andExpect(view().name("minidplus_enter_credentials"))
+                .andExpect(model().hasErrors())
+                .andReturn();
+    }
+
+
+    @Test
     public void test_post_otp_successful() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
+        String otp = "abc12";
         when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
-        when(authenticationService.authenticateOtpStep(eq(code), eq(code))).thenReturn(true);
+        when(authenticationService.authenticateOtpStep(eq(code), eq(otp))).thenReturn(true);
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
                 .sessionAttr(HTTP_SESSION_STATE, 2)
                 .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
-                .param("otpCode", code)
+                .param("otpCode", otp)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .with(csrf())
         )

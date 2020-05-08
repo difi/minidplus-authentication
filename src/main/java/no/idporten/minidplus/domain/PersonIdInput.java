@@ -8,7 +8,7 @@ import no.difi.validation.constraints.Ssn;
 @NoArgsConstructor
 public class PersonIdInput {
 
-    @Ssn(message = "{no.idporten.module.minidplus.input.personalidnumber.error}")
+    @Ssn(message = "{auth.ui.usererror.format.ssn}")
     private String personalIdNumber;
 
 }

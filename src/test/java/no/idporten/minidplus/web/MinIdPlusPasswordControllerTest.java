@@ -84,12 +84,13 @@ public class MinIdPlusPasswordControllerTest {
     @Test
     public void test_post_otp_sms_successful() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
+        String otp = "ab123";
         when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
-        when(otcPasswordService.checkOTCCode(eq(code), eq(code))).thenReturn(true);
+        when(otcPasswordService.checkOTCCode(eq(code), eq(otp))).thenReturn(true);
         MvcResult mvcResult = mockMvc.perform(post("/password?otpType=sms")
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 2)
-                .param("otpCode", code)
+                .param("otpCode", otp)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .with(csrf())
         )
@@ -119,12 +120,13 @@ public class MinIdPlusPasswordControllerTest {
     @Test
     public void test_post_otp_email_successful() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
+        String otp = "ab123";
         when(minidPlusCache.getSSN(code)).thenReturn(pid);
-        when(otcPasswordService.checkOTCCode(eq(code), eq(code))).thenReturn(true);
+        when(otcPasswordService.checkOTCCode(eq(code), eq(otp))).thenReturn(true);
         MvcResult mvcResult = mockMvc.perform(post("/password?otpType=email")
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 3)
-                .param("otpCode", code)
+                .param("otpCode", otp)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .with(csrf())
         )//.andDo(print())
@@ -136,12 +138,13 @@ public class MinIdPlusPasswordControllerTest {
     @Test
     public void test_post_otp_email_unsuccessful() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
+        String otp = "ab123";
         when(minidPlusCache.getSSN(code)).thenReturn(pid);
-        when(otcPasswordService.checkOTCCode(eq(code), eq(code))).thenReturn(false);
+        when(otcPasswordService.checkOTCCode(eq(code), eq(otp))).thenReturn(false);
         MvcResult mvcResult = mockMvc.perform(post("/password?otpType=email")
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 3)
-                .param("otpCode", code)
+                .param("otpCode", otp)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .with(csrf())
         )//.andDo(print())
@@ -154,7 +157,7 @@ public class MinIdPlusPasswordControllerTest {
     @Test
     public void test_post_new_password_successful() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
-        String newPassword = "daWør6";
+        String newPassword = "Password0134";
         when(minidPlusCache.getSSN(code)).thenReturn(pid);
         when(authenticationService.changePassword(eq(code), eq(newPassword))).thenReturn(true);
         MvcResult mvcResult = mockMvc.perform(post("/password")
@@ -173,7 +176,7 @@ public class MinIdPlusPasswordControllerTest {
     @Test
     public void test_post_new_password_not_successful() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
-        String newPassword = "daWør6";
+        String newPassword = "Password0134";
         when(minidPlusCache.getSSN(code)).thenReturn(pid);
         when(authenticationService.changePassword(eq(code), eq(newPassword))).thenThrow(new MinidUserNotFoundException("User not here"));
         MvcResult mvcResult = mockMvc.perform(post("/password")

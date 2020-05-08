@@ -11,7 +11,7 @@ import javax.validation.constraints.Pattern;
 @NoArgsConstructor
 public class UserCredentials {
 
-    @Ssn(message = "{no.idporten.module.minidplus.input.personalidnumber.error}")
+    @Ssn(message = "{auth.ui.usererror.format.ssn}")
     private String personalIdNumber;
 
     @Pattern(message = "{auth.ui.usererror.format.password}", regexp = ValidatorUtil.PWD_LEGAL_CHARS_REGEX)

@@ -10,13 +10,14 @@ import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.UserCredentials;
-import no.idporten.minidplus.exception.minid.*;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
+import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.OTCPasswordService;
 import no.idporten.minidplus.service.ServiceproviderService;
+import no.idporten.minidplus.validator.InputTerminator;
 import no.idporten.ui.impl.MinidPlusButtonType;
 import no.minid.exception.MinidUserInvalidException;
 import no.minid.exception.MinidUserNotFoundException;
@@ -139,7 +140,10 @@ public class MinidPlusAuthorizeController {
         int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
         String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
         ServiceProvider sp = (ServiceProvider) request.getSession().getAttribute(SERVICEPROVIDER);
-
+        String pwd = userCredentials.getPassword();
+        String pid = userCredentials.getPersonalIdNumber();
+        userCredentials.setPersonalIdNumber("");
+        userCredentials.setPassword("");
         AuthorizationRequest ar = (AuthorizationRequest) request.getSession().getAttribute(AUTHORIZATION_REQUEST);
         // Check cancel
         if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
@@ -148,15 +152,16 @@ public class MinidPlusAuthorizeController {
         }
         if (state == STATE_USERDATA || state == STATE_CANCEL) {
             if (result.hasErrors()) {
+                InputTerminator.clearAllInput(userCredentials, result, model);
                 return getNextView(request, STATE_USERDATA);
             }
             try {
-                authenticationService.authenticateUser(sid, userCredentials.getPersonalIdNumber(), userCredentials.getPassword(), sp, ar.getAcrValues());
+                authenticationService.authenticateUser(sid, pid, pwd, sp, ar.getAcrValues());
                 OneTimePassword oneTimePassword = new OneTimePassword();
                 model.addAttribute(oneTimePassword);
                 return getNextView(request, STATE_VERIFICATION_CODE);
             } catch (MinIDIncorrectCredentialException e) {
-                result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.format.password"}, null, "Login failed"));
+                result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.wrong.credentials"}, null, "Login failed"));
                 return getNextView(request, STATE_USERDATA);
             } catch (MinidUserNotFoundException e) {
                 result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.usererror.format.ssn"}, null, "Login failed"));
@@ -170,8 +175,7 @@ public class MinidPlusAuthorizeController {
             } catch (MinIDQuarantinedUserException e) {
                 if (e.getMessage().equalsIgnoreCase("User is closed")) {
                     model.addAttribute("alertMessage", "auth.ui.error.closed.message");
-                }
-                else if (e.getMessage().equalsIgnoreCase("User has been in quarantine for more than one hour.")) {
+                } else if (e.getMessage().equalsIgnoreCase("User has been in quarantine for more than one hour.")) {
                     model.addAttribute("alertMessage", "auth.ui.error.locked.message");
                 } else {
                     model.addAttribute("alertMessage", "auth.ui.error.quarantined.message");
@@ -188,7 +192,6 @@ public class MinidPlusAuthorizeController {
             prepareErrorPage(request, model);
             return getNextView(request, STATE_ERROR);
         }
-
     }
 
     private void prepareErrorPage(HttpServletRequest request, Model model) {
@@ -211,13 +214,20 @@ public class MinidPlusAuthorizeController {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
+            String otp = oneTimePassword.getOtpCode();
+            oneTimePassword.setOtpCode("");
+
             // Check cancel
             if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
                 model.addAttribute("redirectUrl", buildUrl(request, STATE_CANCEL));
                 return getNextView(request, STATE_CANCEL);
             }
+            if (result.hasErrors()) {
+                InputTerminator.clearAllInput(oneTimePassword, result, model);
+                return getNextView(request, STATE_VERIFICATION_CODE);
+            }
             if (state == STATE_VERIFICATION_CODE) {
-                if (authenticationService.authenticateOtpStep(sid, oneTimePassword.getOtpCode())) {
+                if (authenticationService.authenticateOtpStep(sid, otp)) {
                     model.addAttribute("redirectUrl", buildUrl(request, STATE_AUTHENTICATED));
                     return getNextView(request, STATE_AUTHENTICATED);
                 } else {

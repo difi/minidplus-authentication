@@ -10,6 +10,7 @@ import no.idporten.minidplus.domain.PersonIdInput;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.OTCPasswordService;
+import no.idporten.minidplus.validator.InputTerminator;
 import no.idporten.ui.impl.MinidPlusButtonType;
 import no.minid.exception.MinidUserInvalidException;
 import no.minid.exception.MinidUserNotFoundException;
@@ -84,20 +85,22 @@ public class MinidPlusPasswordController {
 
         int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
         String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
+        String pid = personId.getPersonalIdNumber();
+        personId.setPersonalIdNumber("");
         // Check cancel
         if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
             return getNextView(request, STATE_CANCEL);
         }
         if (state == STATE_PERSONID) {
             if (result.hasErrors()) {
+                InputTerminator.clearAllInput(personId, result, model);
                 return getNextView(request, STATE_PERSONID);
             }
             try {
                 ServiceProvider sp = new ServiceProvider("Idporten");
                 sp.setName("idporten");
-                authenticationService.authenticatePid(sid, personId.getPersonalIdNumber(), sp);
-                OneTimePassword oneTimePassword = new OneTimePassword();
-                model.addAttribute(oneTimePassword);
+                authenticationService.authenticatePid(sid, pid, sp);
+                model.addAttribute(new OneTimePassword());
                 return getNextView(request, STATE_VERIFICATION_CODE_SMS);
 
             } catch (MinidUserNotFoundException e) {
@@ -125,12 +128,19 @@ public class MinidPlusPasswordController {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
+            String otp = oneTimePassword.getOtpCode();
+            oneTimePassword.setOtpCode("");
             // Check cancel
             if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
                 return getNextView(request, STATE_CANCEL);
             }
+
+            if (result.hasErrors()) {
+                InputTerminator.clearAllInput(oneTimePassword, result, model);
+                return getNextView(request, STATE_VERIFICATION_CODE_SMS);
+            }
             if (state == STATE_VERIFICATION_CODE_SMS) {
-                if (otcPasswordService.checkOTCCode(sid, oneTimePassword.getOtpCode())) {
+                if (otcPasswordService.checkOTCCode(sid, otp)) {
                     oneTimePassword = new OneTimePassword();
                     model.addAttribute(oneTimePassword);
                     authenticationService.verifyUserByEmail(sid);
@@ -162,12 +172,18 @@ public class MinidPlusPasswordController {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
+            String otp = oneTimePassword.getOtpCode();
+            oneTimePassword.setOtpCode("");
             // Check cancel
             if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
                 return getNextView(request, STATE_CANCEL);
             }
+            if (result.hasErrors()) {
+                InputTerminator.clearAllInput(oneTimePassword, result, model);
+                return getNextView(request, STATE_VERIFICATION_CODE_EMAIL);
+            }
             if (state == STATE_VERIFICATION_CODE_EMAIL) {
-                if (otcPasswordService.checkOTCCode(sid, oneTimePassword.getOtpCode())) {
+                if (otcPasswordService.checkOTCCode(sid, otp)) {
                     model.addAttribute(MODEL_PASSWORDCHANGE, new PasswordChange());
                     return getNextView(request, STATE_NEW_PASSWORD);
                 } else {
@@ -189,17 +205,26 @@ public class MinidPlusPasswordController {
     }
 
     @PostMapping(params = "newPassword")
-    public String postPasswordChange(HttpServletRequest request, @Valid @ModelAttribute(MODEL_PASSWORDCHANGE) PasswordChange newPassword, BindingResult result) {
+    public String postPasswordChange(HttpServletRequest request, @Valid @ModelAttribute(MODEL_PASSWORDCHANGE) PasswordChange newPassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
+            String newPwd = newPassword.getNewPassword();
+            String reenter = newPassword.getReenterPassword();
+            newPassword.setNewPassword("");
+            newPassword.setReenterPassword("");
+
             // Check cancel
             if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
                 return getNextView(request, STATE_CANCEL);
             }
+            if (result.hasErrors()) {
+                InputTerminator.clearAllInput(newPassword, result, model);
+                return getNextView(request, STATE_NEW_PASSWORD);
+            }
             if (state == STATE_NEW_PASSWORD) {
-                if (newPassword.getNewPassword().equals(newPassword.getReenterPassword())) { //extra backend check
-                    if (authenticationService.changePassword(sid, newPassword.getNewPassword())) {
+                if (newPwd.equals(reenter)) { //extra backend check
+                    if (authenticationService.changePassword(sid, newPwd)) {
                         return getNextView(request, STATE_PASSWORD_CHANGED);
                     }
                 } else {
