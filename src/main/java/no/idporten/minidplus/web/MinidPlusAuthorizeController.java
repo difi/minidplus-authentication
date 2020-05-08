@@ -10,6 +10,7 @@ import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.UserCredentials;
+import no.idporten.minidplus.exception.minid.*;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
@@ -62,6 +63,7 @@ public class MinidPlusAuthorizeController {
     protected static final int STATE_ERROR = 3;
     protected static final int STATE_CANCEL = 4;
     protected static final int STATE_CONSTRAINT_VIOLATIONS = 4;
+    protected static final int STATE_ALERT = 5;
 
     private static final String MOBILE_NUMBER = "mobileNumber";
     private static final String PERSONAL_ID_NUMBER = "personalIdNumber";
@@ -165,6 +167,16 @@ public class MinidPlusAuthorizeController {
             } catch (MinIDInvalidAcrLevelException e) {
                 result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.module.minidplus.invalidacr"}, new Object[]{registrationUri}, "Login failed"));
                 return getNextView(request, STATE_USERDATA);
+            } catch (MinIDQuarantinedUserException e) {
+                if (e.getMessage().equalsIgnoreCase("User is closed")) {
+                    model.addAttribute("alertMessage", "auth.ui.error.closed.message");
+                }
+                else if (e.getMessage().equalsIgnoreCase("User has been in quarantine for more than one hour.")) {
+                    model.addAttribute("alertMessage", "auth.ui.error.locked.message");
+                } else {
+                    model.addAttribute("alertMessage", "auth.ui.error.quarantined.message");
+                }
+                return getNextView(request, STATE_ALERT);
             } catch (Exception e) {
                 log.error("Unexpected exception occurred during post user credentials", e);
                 result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.error.line1"}, null, "Login failed"));
@@ -234,6 +246,8 @@ public class MinidPlusAuthorizeController {
         } else if (state == STATE_AUTHENTICATED || state == STATE_CANCEL || state == STATE_CONSTRAINT_VIOLATIONS) {
             request.getSession().invalidate();
             return "redirect_to_idporten";
+        } else if (state == STATE_ALERT) {
+            return "alert";
         }
         return "error";
     }

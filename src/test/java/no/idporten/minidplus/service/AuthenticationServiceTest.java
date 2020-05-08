@@ -8,6 +8,7 @@ import no.idporten.log.audit.AuditLogger;
 import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
+import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
 import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
 import no.idporten.minidplus.logging.audit.AuditID;
@@ -64,6 +65,7 @@ public class AuthenticationServiceTest {
         when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
         PersonNumber personNumber = new PersonNumber(pid);
         MinidUser minidUser = new MinidUser(personNumber);
+        minidUser.setState(MinidUser.State.NORMAL);
         minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
         minidUser.setSource(MINID_ON_THE_FLY_PASSPORT);
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
@@ -92,6 +94,7 @@ public class AuthenticationServiceTest {
         PersonNumber personNumber = new PersonNumber(pid);
         MinidUser minidUser = new MinidUser(personNumber);
         minidUser.setPersonNumber(personNumber);
+        minidUser.setState(MinidUser.State.NORMAL);
         minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
         minidUser.setSource(MINID_ON_THE_FLY_PASSPORT);
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
@@ -110,6 +113,7 @@ public class AuthenticationServiceTest {
         PersonNumber personNumber = new PersonNumber(pid);
         MinidUser minidUser = new MinidUser(personNumber);
         minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        minidUser.setState(MinidUser.State.NORMAL);
         minidUser.setSource("skattekort");
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(true);
@@ -169,6 +173,70 @@ public class AuthenticationServiceTest {
             fail("Should have thrown exception");
         } catch (Exception e) {
             assertTrue(e instanceof MinIDInvalidAcrLevelException);
+        }
+    }
+
+    @Test
+    public void testQuarantineCounter() {
+        when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
+        PersonNumber personNumber = new PersonNumber(pid);
+        MinidUser minidUser = new MinidUser(personNumber);
+        minidUser.setState(MinidUser.State.NORMAL);
+        minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        minidUser.setSource(MINID_ON_THE_FLY_PASSPORT);
+        when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
+        when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(false);
+        try {
+            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
+            fail("should have failed");
+        } catch (Exception e) {
+            assertTrue(e instanceof MinIDIncorrectCredentialException);
+        }
+        assertEquals(1, (int) minidUser.getQuarantineCounter());
+    }
+
+    @Test
+    public void testQuarantineCounterUserGetsQuarantined() {
+        when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
+        PersonNumber personNumber = new PersonNumber(pid);
+        MinidUser minidUser = new MinidUser(personNumber);
+        minidUser.setState(MinidUser.State.NORMAL);
+        minidUser.setQuarantineCounter(2);
+        minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        minidUser.setSource(MINID_ON_THE_FLY_PASSPORT);
+        when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
+        when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(false);
+        try {
+            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
+            fail("should have failed");
+        } catch (Exception e) {
+            assertTrue(e instanceof MinIDIncorrectCredentialException);
+        }
+        assertEquals(3, (int) minidUser.getQuarantineCounter());
+        try {
+            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
+            fail("should have failed");
+        } catch (Exception e) {
+            assertTrue(e instanceof MinIDQuarantinedUserException);
+        }
+    }
+
+    @Test
+    public void testUserClosed() {
+        when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
+        PersonNumber personNumber = new PersonNumber(pid);
+        MinidUser minidUser = new MinidUser(personNumber);
+        minidUser.setState(MinidUser.State.CLOSED);
+        minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        minidUser.setSource(MINID_ON_THE_FLY_PASSPORT);
+        when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
+        when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(false);
+        try {
+            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
+            fail("should have failed");
+        } catch (Exception e) {
+            assertTrue(e instanceof MinIDQuarantinedUserException);
+            assertEquals("User is closed", e.getMessage());
         }
     }
 
