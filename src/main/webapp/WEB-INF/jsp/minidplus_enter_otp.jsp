@@ -8,11 +8,11 @@
 
 <main id="minidplus-main">
     <section class="Box">
-        <jsp:include page="sections/box-header-password.jsp"/>
+        <jsp:include page="sections/box-header.jsp"/>
         <div class="Box_main" id="minidpluswrapper">
             <div class="fm-Progress_Container">
-                <div class="fm-Progress_Dot active"></div>
                 <div class="fm-Progress_Dot"></div>
+                <div class="fm-Progress_Dot active"></div>
             </div>
 
             <div class="notification with-Icon icon-sms">
