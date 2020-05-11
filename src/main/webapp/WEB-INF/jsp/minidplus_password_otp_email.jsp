@@ -37,7 +37,7 @@
                                         text='Skriv inn pinkode' var="pincodeHelpText"/>
 
                         <div class="fm-Field${not empty otpCodeHasError ? ' error' : ''}">
-                            <label for="otpCode"><spring:message code="auth.ui.prompt.tempcode.email"
+                            <label for="otpCode"><spring:message code="auth.ui.prompt.otc.email"
                                                                  text="Kode fra Email"/></label>
                             <form:input tabindex="1"
                                         autofocus="autofocus"
