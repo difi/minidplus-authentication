@@ -80,7 +80,7 @@ public class MinidPlusAuthorizeController {
     private static final String ABORTED_BY_USER = "aborted_by_user";
     private static final String CONSTRAINT_VIOLATIONS = "contraint_violations_in_authorize_request";
     private static final String START_SERVICE = "start-service";
-    private static final Set<String> supportedLocales = Stream.of("nb", "nn", "en").collect(Collectors.toSet());
+    private static final Set<String> supportedLocales = Stream.of("nb", "nn", "en", "se").collect(Collectors.toSet());
 
     private final LocaleResolver localeResolver;
 
@@ -161,14 +161,14 @@ public class MinidPlusAuthorizeController {
                 model.addAttribute(oneTimePassword);
                 return getNextView(request, STATE_VERIFICATION_CODE);
             } catch (MinIDIncorrectCredentialException e) {
-                result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.wrong.credentials"}, null, "Login failed"));
+                result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.wrong.credentials"}, null, "Wrong credentials"));
                 return getNextView(request, STATE_USERDATA);
             } catch (MinidUserNotFoundException e) {
                 result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.usererror.format.ssn"}, null, "Login failed"));
                 return getNextView(request, STATE_USERDATA);
             } catch (MinidUserInvalidException e) {
                 warn("User exception occurred " + e.getMessage());
-                result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.usererror.format.missing.mobile"}, null, "Mobile number not registered on your user"));
+                result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.error.sendingotc.messsage"}, null, "Mobile number not registered on your user"));
             } catch (MinIDInvalidAcrLevelException e) {
                 result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.module.minidplus.invalidacr"}, new Object[]{registrationUri}, "Login failed"));
                 return getNextView(request, STATE_USERDATA);

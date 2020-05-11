@@ -13,7 +13,6 @@ import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.*;
 import no.idporten.minidplus.logging.audit.AuditID;
 import no.idporten.minidplus.logging.event.EventService;
-import no.idporten.minidplus.util.FeatureSwitches;
 import no.minid.exception.MinidUserInvalidException;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
@@ -73,7 +72,7 @@ public class AuthenticationService {
         }
 
         if (!minIDService.validateUserPassword(identity.getPersonNumber(), password)) {
-            identity.setQuarantineCounter(identity.getQuarantineCounter() +1);
+            identity.setQuarantineCounter(identity.getQuarantineCounter() + 1);
             if (identity.getQuarantineCounter() == 3) {
                 identity.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant().plusSeconds(3600)));
             }
