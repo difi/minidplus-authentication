@@ -192,16 +192,16 @@ public class AuthenticationServiceTest {
         } catch (Exception e) {
             assertTrue(e instanceof MinIDIncorrectCredentialException);
         }
-        assertEquals(1, (int) minidUser.getQuarantineCounter());
+        assertEquals(1, (int) minidUser.getCredentialErrorCounter());
     }
 
     @Test
-    public void testQuarantineCounterUserGetsQuarantined() {
+    public void testCredentialErrorCounterUserGetsQuarantined() {
         when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
         PersonNumber personNumber = new PersonNumber(pid);
         MinidUser minidUser = new MinidUser(personNumber);
         minidUser.setState(MinidUser.State.NORMAL);
-        minidUser.setQuarantineCounter(2);
+        minidUser.setCredentialErrorCounter(2);
         minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
         minidUser.setSource(MINID_ON_THE_FLY_PASSPORT);
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
@@ -211,8 +211,9 @@ public class AuthenticationServiceTest {
             fail("should have failed");
         } catch (Exception e) {
             assertTrue(e instanceof MinIDIncorrectCredentialException);
+            assertTrue(e instanceof MinIDIncorrectCredentialException);
         }
-        assertEquals(3, (int) minidUser.getQuarantineCounter());
+        assertEquals(3, (int) minidUser.getCredentialErrorCounter());
         try {
             authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
             fail("should have failed");

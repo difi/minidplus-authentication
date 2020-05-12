@@ -48,6 +48,7 @@ minid-plus:
   token-lifetime-seconds: 600
   code-lifetime-seconds: 600 #60 default
   credential-error-max-number: 3
+  quarantine-counter-max-number: 3
   logging:
     categoryname: minidplus
   cache:

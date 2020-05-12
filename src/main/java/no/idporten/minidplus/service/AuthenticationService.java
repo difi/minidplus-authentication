@@ -16,6 +16,7 @@ import no.idporten.minidplus.logging.event.EventService;
 import no.minid.exception.MinidUserInvalidException;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -28,6 +29,9 @@ import java.util.Date;
 public class AuthenticationService {
 
     private final OTCPasswordService otcPasswordService;
+
+    @Value("${minid-plus.credential-error-max-number}")
+    private int maxNumberOfCredentialErrors;
 
     private final MinIDService minIDService;
 
@@ -42,8 +46,8 @@ public class AuthenticationService {
     public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp, LevelOfAssurance levelOfAssurance) throws MinIDQuarantinedUserException, MinidUserNotFoundException, MinIDIncorrectCredentialException, MinIDSystemException, MinIDInvalidAcrLevelException, MinidUserInvalidException {
         LevelOfAssurance assignedLevelOfAssurance = LevelOfAssurance.LEVEL4; //default
         MinidUser identity = findUserFromPid(pid);
-        if (identity.getQuarantineCounter() == null) {
-            identity.setQuarantineCounter(0);
+        if (identity.getCredentialErrorCounter() == null) {
+            identity.setCredentialErrorCounter(0);
         }
 
         if (identity == null) {
@@ -51,7 +55,7 @@ public class AuthenticationService {
             throw new MinidUserNotFoundException("User not found");
         }
 
-        if (identity.getQuarantineCounter() >= 3) {
+        if (identity.getCredentialErrorCounter() >= maxNumberOfCredentialErrors) {
             if (identity.getQuarantineExpiryDate().before(Date.from(Clock.systemUTC().instant().minusSeconds(3600)))) {
                 warn("User has been in quarantine for more than one hour.");
                 throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User has been in quarantine for more than one hour.");
@@ -68,20 +72,21 @@ public class AuthenticationService {
         assignedLevelOfAssurance = getLevelOfAssurance(identity.getSource(), levelOfAssurance);
         if (identity.isOneTimeCodeLocked()) {
             warn("One time code is locked for user");
-            return false;
+            throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "Pincode locked for user");
         }
 
         if (!minIDService.validateUserPassword(identity.getPersonNumber(), password)) {
-            identity.setQuarantineCounter(identity.getQuarantineCounter() + 1);
-            if (identity.getQuarantineCounter() == 3) {
+            identity.setCredentialErrorCounter(identity.getCredentialErrorCounter() +1);
+            if (identity.getCredentialErrorCounter() == maxNumberOfCredentialErrors) {
                 identity.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant().plusSeconds(3600)));
+                minIDService.setQuarantineExpiryDate(identity.getPersonNumber(), identity.getQuarantineExpiryDate());
             }
-            minIDService.updateContactInformation(identity);
+            minIDService.setCredentialErrorCounter(identity.getPersonNumber(), identity.getCredentialErrorCounter());
             warn("Password invalid for user");
             throw new MinIDIncorrectCredentialException(IDPortenExceptionID.IDENTITY_PASSWORD_INCORRECT, "Password validation failed");
         }
-        identity.setQuarantineCounter(0);
-        minIDService.updateContactInformation(identity);
+        identity.setCredentialErrorCounter(0);
+        minIDService.setCredentialErrorCounter(identity.getPersonNumber(), identity.getCredentialErrorCounter());
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
         minidPlusCache.putAuthorization(sid, new Authorization(pid, assignedLevelOfAssurance, Instant.now().toEpochMilli()));
         otcPasswordService.sendSMSOtp(sid, sp, identity);

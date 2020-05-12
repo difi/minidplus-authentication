@@ -236,6 +236,8 @@ public class MinidPlusAuthorizeController {
             }
         } catch (MinIDPincodeException e) {
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.format.otc.locked"}, null, "Too many attempts"));
+            model.addAttribute("alertMessage", "auth.ui.error.quarantined.message");
+            return getNextView(request, STATE_ALERT);
         } catch (Exception e) {
             warn("Exception handling otp: " + e.getMessage());
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line1"}, null, "System error"));

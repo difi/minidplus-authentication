@@ -8,6 +8,7 @@ import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.PersonNumber;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
+import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
 import no.idporten.minidplus.notification.NotificationService;
 import no.idporten.validation.util.RandomUtil;
@@ -20,6 +21,7 @@ import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
@@ -42,9 +44,6 @@ public class OTCPasswordService {
     @Value("${idporten.serviceprovider.default-name}")
     private String serviceProviderDefaultName;
 
-    @Value("${minid-plus.credential-error-max-number}")
-    private int maxNumberOfCredentialErrors;
-
     @Value("${minid-plus.cache.otp-ttl-in-s:600}")
     private int otpTtl;
 
@@ -55,6 +54,9 @@ public class OTCPasswordService {
     private static final Pattern NUMBER_PATTERN = Pattern.compile("^.*[0-9].*$");
     /** Regular expression complied pattern for letters in a password. */
     private static final Pattern LETTER_PATTERN = Pattern.compile("^.*[a-zA-Z].*$");
+
+    @Value("${minid-plus.quarantine-counter-max-number}")
+    private int maxNumberOfQuarantineCounters;
 
     /**
      * Map from entity encodings to characters.
@@ -190,17 +192,21 @@ public class OTCPasswordService {
     public boolean checkOTCCode(String sid, String inputOneTimeCode) throws MinIDPincodeException, MinidUserNotFoundException {
 
         MinidUser user = minIDService.findByPersonNumber(new PersonNumber(minidPlusCache.getSSN(sid)));
-        //todo sjekk om dette er ok
-        if (user.getCredentialErrorCounter() == null) {
-            user.setCredentialErrorCounter(0);
+        if (user.getQuarantineCounter() == null) {
+            user.setQuarantineCounter(0);
         }
         if (user.isOneTimeCodeLocked()) {
+            if (user.getQuarantineExpiryDate().before(Date.from(Clock.systemUTC().instant().minusSeconds(3600)))) {
+                warn("User has been in quarantine for more than one hour.", user.getPersonNumber().getSsn());
+                throw new MinIDPincodeException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User has been in quarantine for more than one hour.");
+            }
             warn("Pincode locked for ssn=", user.getPersonNumber().getSsn());
             throw new MinIDPincodeException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "pin code is locked");
         }
 
-        if (user.getCredentialErrorCounter() == maxNumberOfCredentialErrors) {
+        if (user.getQuarantineCounter() >= maxNumberOfQuarantineCounters) {
             user.setOneTimeCodeLocked(true);
+            minIDService.blockOneTimeCode(user.getPersonNumber(), user.getOneTimeCodeLocked());
             warn("Pincode is locked for ssn=", user.getPersonNumber().getSsn());
             throw new MinIDPincodeException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "pin code is locked");
         }
@@ -209,11 +215,16 @@ public class OTCPasswordService {
             minidPlusCache.removeOTP(sid);
             // resetting counters when setting user to authenticated.
             resetCountersOnIdentity(user);
+            minIDService.setQuarantineCounter(user.getPersonNumber(), user.getQuarantineCounter());
             updateUserAfterSuccessfulLogin(user);
             return true;
         } else { // Increments the error counter
-            user.setCredentialErrorCounter(user.getCredentialErrorCounter() + 1);
-            minIDService.updateContactInformation(user);
+            user.setQuarantineCounter(user.getQuarantineCounter() +1);
+            if (user.getQuarantineCounter() >= maxNumberOfQuarantineCounters) {
+                user.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant().plusSeconds(3600)));
+                minIDService.setQuarantineExpiryDate(user.getPersonNumber(), user.getQuarantineExpiryDate());
+            }
+            minIDService.setQuarantineCounter(user.getPersonNumber(), user.getQuarantineCounter());
             if (checkIfLastTry(user)) {
                 if (log.isDebugEnabled()) {
                     log.debug("Last attempt for user " + user);
@@ -284,16 +295,16 @@ public class OTCPasswordService {
     }
 
     private boolean checkIfLastTry(MinidUser user) {
-        return user.getCredentialErrorCounter() == maxNumberOfCredentialErrors - 1;
+        return user.getQuarantineCounter() == maxNumberOfQuarantineCounters  - 1;
 
     }
 
     /**
-     * Resets the quarantine and credential error counters on MinidUser.
+     * Resets the quarantine counters on MinidUser.
      */
     private MinidUser resetCountersOnIdentity(MinidUser user) {
-        if (user.getCredentialErrorCounter() > 0) {
-            user.setCredentialErrorCounter(0);
+        if (user.getQuarantineCounter() > 0) {
+            user.setQuarantineCounter(0);
         }
         return user;
     }

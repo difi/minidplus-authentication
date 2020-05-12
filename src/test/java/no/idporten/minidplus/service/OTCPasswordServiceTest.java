@@ -16,6 +16,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.time.Clock;
+import java.util.Date;
+
 import static junit.framework.TestCase.assertTrue;
 import static junit.framework.TestCase.fail;
 import static org.junit.Assert.assertEquals;
@@ -33,9 +36,6 @@ public class OTCPasswordServiceTest {
     private static final String password = "password123";
     private static final String otp = "abc123";
     private final ServiceProvider sp = new ServiceProvider("idporten");
-
-    @Value("${minid-plus.credential-error-max-number}")
-    private int MAX_NUMBER_OF_CREDENTIAL_ERRORS;
 
     @MockBean
     private MinidPlusCache minidPlusCache;
@@ -68,7 +68,7 @@ public class OTCPasswordServiceTest {
     @Test
     public void checkOTCCodeNegativeTest() throws MinidUserNotFoundException, MinIDPincodeException {
         MinidUser user = new MinidUser();
-        user.setCredentialErrorCounter(0);
+        user.setQuarantineCounter(0);
         user.setPersonNumber(new PersonNumber(pid));
         String sessionId = "123";
 
@@ -76,13 +76,13 @@ public class OTCPasswordServiceTest {
         when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
         when(minIDService.findByPersonNumber(any())).thenReturn(user);
         assertFalse(otcPasswordService.checkOTCCode("otctestWrong", sessionId));
-        assert (user.getCredentialErrorCounter() == 1);
+        assert (user.getQuarantineCounter() == 1);
     }
 
     @Test
     public void checkOTCCodeNegativeTestLastTry() throws MinidUserNotFoundException, MinIDPincodeException {
         MinidUser user = new MinidUser();
-        user.setCredentialErrorCounter(1);
+        user.setQuarantineCounter(1);
         user.setPersonNumber(new PersonNumber(pid));
         String sessionId = "123";
 
@@ -91,14 +91,14 @@ public class OTCPasswordServiceTest {
         when(minIDService.findByPersonNumber(any())).thenReturn(user);
 
         assertFalse(otcPasswordService.checkOTCCode("otctestWrong", sessionId));
-        assert (user.getCredentialErrorCounter() == 2);
+        assert (user.getQuarantineCounter() == 2);
 
     }
 
     @Test
     public void checkOTCCodMaxErrors() throws MinidUserNotFoundException {
         MinidUser user = new MinidUser();
-        user.setCredentialErrorCounter(MAX_NUMBER_OF_CREDENTIAL_ERRORS);
+        user.setQuarantineCounter(3);
         user.setPersonNumber(new PersonNumber(pid));
 
         String sessionId = "123";
@@ -119,7 +119,8 @@ public class OTCPasswordServiceTest {
     @Test
     public void checkOTCCodeLocked() throws MinidUserNotFoundException {
         MinidUser user = new MinidUser();
-        user.setCredentialErrorCounter(0);
+        user.setQuarantineCounter(0);
+        user.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant()));
         user.setOneTimeCodeLocked(true);
         user.setPersonNumber(new PersonNumber(pid));
         String sessionId = "123";
