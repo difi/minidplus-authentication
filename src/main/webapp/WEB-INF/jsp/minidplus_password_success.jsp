@@ -22,9 +22,6 @@
             <div class='receipt with-Link'>
                 <h2><spring:message code="no.idporten.forgottenpassword.success"
                                     text="Your password has been changed"/></h2>
-                <p><spring:message code="no.idporten.forgottenpassword.success.info1"/> <a
-                        href="/minprofil"><span><spring:message
-                        code="no.idporten.forgottenpassword.success.info2"/></span></a></p>
 
             </div>
 
