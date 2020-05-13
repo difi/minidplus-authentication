@@ -13,10 +13,12 @@ import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.*;
 import no.idporten.minidplus.logging.audit.AuditID;
 import no.idporten.minidplus.logging.event.EventService;
+import no.minid.exception.MinidUserAlreadyExistsException;
 import no.minid.exception.MinidUserInvalidException;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
 import org.springframework.beans.factory.annotation.Value;
+import no.minid.service.impl.util.DummyUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -43,16 +45,23 @@ public class AuthenticationService {
 
     private final String minidplusSourcePrefix = "minid-on-the-fly";
 
-    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp, LevelOfAssurance levelOfAssurance) throws MinIDQuarantinedUserException, MinidUserNotFoundException, MinIDIncorrectCredentialException, MinIDSystemException, MinIDInvalidAcrLevelException, MinidUserInvalidException {
+    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp, LevelOfAssurance levelOfAssurance) throws MinidUserNotFoundException, MinIDQuarantinedUserException, MinIDIncorrectCredentialException, MinIDSystemException, MinIDInvalidAcrLevelException, MinidUserInvalidException {
         LevelOfAssurance assignedLevelOfAssurance = LevelOfAssurance.LEVEL4; //default
-        MinidUser identity = findUserFromPid(pid);
-        if (identity.getCredentialErrorCounter() == null) {
-            identity.setCredentialErrorCounter(0);
+        MinidUser identity;
+        try {
+            identity =  findUserFromPid(pid);
+        } catch (MinidUserNotFoundException e) {
+            warn("User not found. Creating dummy user");
+            try {
+                identity = minIDService.createDummyUser(new PersonNumber(pid));
+            } catch (MinidUserAlreadyExistsException x) {
+                //Should never happen
+                identity =  findUserFromPid(pid);
+            }
         }
 
-        if (identity == null) {
-            warn("User not found.");
-            throw new MinidUserNotFoundException("User not found");
+        if (identity.getCredentialErrorCounter() == null) {
+            identity.setCredentialErrorCounter(0);
         }
 
         if (identity.getCredentialErrorCounter() >= maxNumberOfCredentialErrors) {
@@ -137,7 +146,18 @@ public class AuthenticationService {
     }
 
     public boolean authenticatePid(String sid, String pid, ServiceProvider sp) throws MinidUserNotFoundException, MinidUserInvalidException {
-        MinidUser identity = findUserFromPid(pid);
+        MinidUser identity;
+        try {
+            identity =  findUserFromPid(pid);
+        } catch (MinidUserNotFoundException e) {
+            warn("User not found. Creating dummy user");
+            try {
+                identity = minIDService.createDummyUser(new PersonNumber(pid));
+            } catch (MinidUserAlreadyExistsException x) {
+                //Should never happen
+                identity =  findUserFromPid(pid);
+            }
+        }
         if (identity.isOneTimeCodeLocked()) {
             warn("One time code is locked");
             return false;

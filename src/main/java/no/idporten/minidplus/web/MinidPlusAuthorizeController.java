@@ -167,8 +167,7 @@ public class MinidPlusAuthorizeController {
                 return getNextView(request, STATE_VERIFICATION_CODE);
             } catch (MinIDIncorrectCredentialException e) {
                 result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.wrong.credentials"}, null, "Wrong credentials"));
-            } catch (MinidUserNotFoundException e) {
-                result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.usererror.format.ssn"}, null, "Login failed"));
+                return getNextView(request, STATE_USERDATA);
             } catch (MinidUserInvalidException e) {
                 warn("User exception occurred " + e.getMessage());
                 result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.error.sendingotc.messsage"}, null, "Mobile number not registered on your user"));

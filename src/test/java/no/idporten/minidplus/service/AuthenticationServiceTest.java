@@ -6,13 +6,11 @@ import no.idporten.domain.user.MobilePhoneNumber;
 import no.idporten.domain.user.PersonNumber;
 import no.idporten.log.audit.AuditLogger;
 import no.idporten.minidplus.domain.LevelOfAssurance;
-import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
-import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
-import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
-import no.idporten.minidplus.exception.minid.MinIDSystemException;
+import no.idporten.minidplus.exception.minid.*;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
 import no.idporten.minidplus.logging.audit.AuditID;
 import no.idporten.minidplus.util.FeatureSwitches;
+import no.minid.exception.MinidUserAlreadyExistsException;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
 import org.junit.Test;
@@ -78,13 +76,18 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void testAuthenticationFailedPidDoesNotExist() {
+    public void testCreateDummyUserWhenAuthenticatingWithANonexistantSsn() throws MinidUserAlreadyExistsException {
+        MinidUser minidUser = new MinidUser(new PersonNumber(pid));
+        minidUser.setState(MinidUser.State.NORMAL);
+        minidUser.setSource("minid");
+        minidUser.setSecurityLevel("Level 3");
         when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
+        when(minIDService.createDummyUser(new PersonNumber(pid))).thenReturn(minidUser);
         try {
             authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
             fail("should have failed");
         } catch (Exception e) {
-            assertTrue(e instanceof MinidUserNotFoundException);
+            assertTrue(e instanceof MinIDIncorrectCredentialException);
         }
     }
 
@@ -259,7 +262,6 @@ public class AuthenticationServiceTest {
             assertEquals("User is closed", e.getMessage());
         }
     }
-
 
     @Test
     public void test_source_doesnt_start_with_minid_on_the_fly_should_allow_level3() throws MinIDInvalidAcrLevelException, MinIDSystemException {

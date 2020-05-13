@@ -21,7 +21,7 @@
         <artifactory.url>http://eid-artifactory.dmz.local:8080/artifactory</artifactory.url>
         <logstash.logback.version>5.2</logstash.logback.version>
         <org.projectlombok>1.18.12</org.projectlombok>
-        <eid.common.version>2020-05-08-1412-dbd06bc</eid.common.version>
+        <eid.common.version>2020-05-13-0728-e24c225</eid.common.version>
         <org.springframework.ldap>2.3.2.RELEASE</org.springframework.ldap>
         <no.idporten>2019-12-17-0851-b193609</no.idporten>
         <org.apache.client>4.5.12</org.apache.client>
