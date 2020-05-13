@@ -8,7 +8,6 @@ import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.PersonNumber;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
-import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
 import no.idporten.minidplus.notification.NotificationService;
 import no.idporten.validation.util.RandomUtil;
@@ -219,7 +218,7 @@ public class OTCPasswordService {
             updateUserAfterSuccessfulLogin(user);
             return true;
         } else { // Increments the error counter
-            user.setQuarantineCounter(user.getQuarantineCounter() +1);
+            user.setQuarantineCounter(user.getQuarantineCounter() + 1);
             if (user.getQuarantineCounter() >= maxNumberOfQuarantineCounters) {
                 user.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant().plusSeconds(3600)));
                 minIDService.setQuarantineExpiryDate(user.getPersonNumber(), user.getQuarantineExpiryDate());
@@ -267,7 +266,7 @@ public class OTCPasswordService {
      * - the name is the default configured for ID-porten
      */
     private boolean isDummySp(final ServiceProvider sp) {
-        if (StringUtils.isEmpty(sp.getName()) || sp.isDummy() || "default".equals(sp.getName())) {
+        if (sp == null || StringUtils.isEmpty(sp.getName()) || sp.isDummy() || "default".equals(sp.getName())) {
             return true;
         }
         return sp.getName().equals(serviceProviderDefaultName);
@@ -295,7 +294,7 @@ public class OTCPasswordService {
     }
 
     private boolean checkIfLastTry(MinidUser user) {
-        return user.getQuarantineCounter() == maxNumberOfQuarantineCounters  - 1;
+        return user.getQuarantineCounter() == maxNumberOfQuarantineCounters - 1;
 
     }
 

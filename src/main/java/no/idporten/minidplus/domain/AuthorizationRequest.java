@@ -49,7 +49,7 @@ public class AuthorizationRequest implements Serializable {
      **/
     @ValidAcr
     @ParamName(HTTP_SESSION_ACR_VALUES)
-    private LevelOfAssurance acrValues = LevelOfAssurance.LEVEL3;
+    private LevelOfAssurance acrValues = LevelOfAssurance.LEVEL4;
 
     @NotEmpty
     @Pattern(regexp = "^[\\x20-\\x7E]+$", message = "invalid_request")

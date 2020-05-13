@@ -9,7 +9,9 @@ public enum LevelOfAssurance {
 
     UNKNOWN("unknown", 0, "unknown"),
     LEVEL3("Level3", 3, "substantial"),
-    LEVEL4("Level4", 4, "high");
+    LEVEL4("Level4", 4, "high"),
+    LEVEL5("Level5", 5, "highest");
+
 
     private String externalName;
     private String eidasExternalName;

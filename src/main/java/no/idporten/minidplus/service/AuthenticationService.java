@@ -76,7 +76,7 @@ public class AuthenticationService {
         }
 
         if (!minIDService.validateUserPassword(identity.getPersonNumber(), password)) {
-            identity.setCredentialErrorCounter(identity.getCredentialErrorCounter() +1);
+            identity.setCredentialErrorCounter(identity.getCredentialErrorCounter() + 1);
             if (identity.getCredentialErrorCounter() == maxNumberOfCredentialErrors) {
                 identity.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant().plusSeconds(3600)));
                 minIDService.setQuarantineExpiryDate(identity.getPersonNumber(), identity.getQuarantineExpiryDate());
@@ -129,7 +129,8 @@ public class AuthenticationService {
         } else if (LevelOfAssurance.LEVEL3.equals(requested)) {
             return LevelOfAssurance.LEVEL3;
         } else {
-            throw new MinIDSystemException(IDPortenExceptionID.IDENTITY_INVALID_SECURITY_LEVEL, "Invalid security level");
+            log.error("Service tried to request level " + requested.getExternalName() + " with source " + source);
+            throw new MinIDInvalidAcrLevelException("Invalid security level");
         }
     }
 

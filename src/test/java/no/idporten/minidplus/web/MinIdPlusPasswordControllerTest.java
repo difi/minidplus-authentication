@@ -89,7 +89,7 @@ public class MinIdPlusPasswordControllerTest {
         when(otcPasswordService.checkOTCCode(eq(code), eq(otp))).thenReturn(true);
         MvcResult mvcResult = mockMvc.perform(post("/password?otpType=sms")
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
-                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 2)
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, MinidPlusPasswordController.STATE_VERIFICATION_CODE_SMS)
                 .param("otpCode", otp)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .with(csrf())
@@ -125,7 +125,7 @@ public class MinIdPlusPasswordControllerTest {
         when(otcPasswordService.checkOTCCode(eq(code), eq(otp))).thenReturn(true);
         MvcResult mvcResult = mockMvc.perform(post("/password?otpType=email")
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
-                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 3)
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, MinidPlusPasswordController.STATE_VERIFICATION_CODE_EMAIL)
                 .param("otpCode", otp)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .with(csrf())
@@ -162,7 +162,7 @@ public class MinIdPlusPasswordControllerTest {
         when(authenticationService.changePassword(eq(code), eq(newPassword))).thenReturn(true);
         MvcResult mvcResult = mockMvc.perform(post("/password")
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
-                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 4)
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, MinidPlusPasswordController.STATE_NEW_PASSWORD)
                 .param("newPassword", newPassword)
                 .param("reenterPassword", newPassword)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
@@ -181,7 +181,7 @@ public class MinIdPlusPasswordControllerTest {
         when(authenticationService.changePassword(eq(code), eq(newPassword))).thenThrow(new MinidUserNotFoundException("User not here"));
         MvcResult mvcResult = mockMvc.perform(post("/password")
                 .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_SID, code)
-                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, 4)
+                .sessionAttr(MinidPlusSessionAttributes.HTTP_SESSION_STATE, MinidPlusPasswordController.STATE_NEW_PASSWORD)
                 .param("newPassword", newPassword)
                 .param("reenterPassword", "pølse")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
@@ -199,7 +199,7 @@ public class MinIdPlusPasswordControllerTest {
 
         mockMvc.perform(post("/password")
                 .param(MinidPlusButtonType.CONTINUE.id(), "")
-                .sessionAttr(HTTP_SESSION_STATE, -1)
+                .sessionAttr(HTTP_SESSION_STATE, MinidPlusPasswordController.STATE_PASSWORD_CHANGED)
                 .with(csrf())
         )
                 .andExpect(status().is3xxRedirection())

@@ -8,6 +8,9 @@ import org.springframework.validation.ObjectError;
 
 public class InputTerminator {
 
+    private InputTerminator() {
+    }
+
     public static void clearAllInput(Object target, BindingResult result, Model model) {
         BeanPropertyBindingResult result2 = new BeanPropertyBindingResult(target, result.getObjectName());
         for (ObjectError error : result.getGlobalErrors()) {

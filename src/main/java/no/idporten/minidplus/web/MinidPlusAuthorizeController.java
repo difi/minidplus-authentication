@@ -62,9 +62,10 @@ public class MinidPlusAuthorizeController {
     protected static final int STATE_USERDATA = 1;
     protected static final int STATE_VERIFICATION_CODE = 2;
     protected static final int STATE_ERROR = 3;
-    protected static final int STATE_CANCEL = 4;
-    protected static final int STATE_CONSTRAINT_VIOLATIONS = 4;
-    protected static final int STATE_ALERT = 5;
+    protected static final int STATE_WRONG_ACR = 4;
+    protected static final int STATE_CANCEL = 8;
+    protected static final int STATE_CONSTRAINT_VIOLATIONS = 9;
+    protected static final int STATE_ALERT = 10;
 
     private static final String MOBILE_NUMBER = "mobileNumber";
     private static final String PERSONAL_ID_NUMBER = "personalIdNumber";
@@ -96,6 +97,10 @@ public class MinidPlusAuthorizeController {
 
     @GetMapping(produces = "text/html; charset=utf-8")
     public String doGet(HttpServletRequest request, HttpServletResponse response, AuthorizationRequest authorizationRequest, Model model) {
+        if (log.isDebugEnabled()) {
+            log.debug("Authorizing user with " + authorizationRequest.toString());
+        }
+
         Object state = request.getSession().getAttribute(HTTP_SESSION_STATE);
         if (state == null || !((int) state == MinidPlusPasswordController.STATE_CANCEL || (int) state == MinidPlusPasswordController.STATE_CONTINUE)) {
             request.getSession().invalidate();
@@ -136,8 +141,8 @@ public class MinidPlusAuthorizeController {
 
     @PostMapping(params = "personalIdNumber")
     public String postUserCredentials(HttpServletRequest request, @Valid @ModelAttribute(MODEL_USER_CREDENTIALS) UserCredentials userCredentials, BindingResult result, Model model) {
+        Object state = request.getSession().getAttribute(HTTP_SESSION_STATE);
 
-        int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
         String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
         ServiceProvider sp = (ServiceProvider) request.getSession().getAttribute(SERVICEPROVIDER);
         String pwd = userCredentials.getPassword();
@@ -147,11 +152,11 @@ public class MinidPlusAuthorizeController {
         AuthorizationRequest ar = (AuthorizationRequest) request.getSession().getAttribute(AUTHORIZATION_REQUEST);
         // Check cancel
         if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
-            model.addAttribute("redirectUrl", buildUrl(request, STATE_CANCEL));
-            return getNextView(request, STATE_CANCEL);
+            return backToIdporten(request, model, STATE_CANCEL);
         }
-        if (state == STATE_USERDATA || state == STATE_CANCEL) {
+        if (state != null && ((int) state == STATE_USERDATA || (int) state == STATE_CANCEL)) {
             if (result.hasErrors()) {
+                warn("There are contraint violations: " + result.getAllErrors().toArray().toString());
                 InputTerminator.clearAllInput(userCredentials, result, model);
                 return getNextView(request, STATE_USERDATA);
             }
@@ -162,16 +167,15 @@ public class MinidPlusAuthorizeController {
                 return getNextView(request, STATE_VERIFICATION_CODE);
             } catch (MinIDIncorrectCredentialException e) {
                 result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.wrong.credentials"}, null, "Wrong credentials"));
-                return getNextView(request, STATE_USERDATA);
             } catch (MinidUserNotFoundException e) {
                 result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.usererror.format.ssn"}, null, "Login failed"));
-                return getNextView(request, STATE_USERDATA);
             } catch (MinidUserInvalidException e) {
                 warn("User exception occurred " + e.getMessage());
                 result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.error.sendingotc.messsage"}, null, "Mobile number not registered on your user"));
             } catch (MinIDInvalidAcrLevelException e) {
-                result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.module.minidplus.invalidacr"}, new Object[]{registrationUri}, "Login failed"));
-                return getNextView(request, STATE_USERDATA);
+                warn("User attempted to log in with wrong acr: " + e.getMessage());
+                model.addAttribute("serviceprovider", sp);
+                return getNextView(request, STATE_WRONG_ACR);
             } catch (MinIDQuarantinedUserException e) {
                 if (e.getMessage().equalsIgnoreCase("User is closed")) {
                     model.addAttribute("alertMessage", "auth.ui.error.closed.message");
@@ -187,11 +191,17 @@ public class MinidPlusAuthorizeController {
             }
             return getNextView(request, STATE_USERDATA);
         } else {
+            log.error("Illegal state " + state);
             result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.error.line1"}, null, "System error"));
             result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
             prepareErrorPage(request, model);
             return getNextView(request, STATE_ERROR);
         }
+    }
+
+    private String backToIdporten(HttpServletRequest request, Model model, int backState) {
+        model.addAttribute("redirectUrl", buildUrl(request, backState));
+        return getNextView(request, backState);
     }
 
     private void prepareErrorPage(HttpServletRequest request, Model model) {
@@ -219,8 +229,7 @@ public class MinidPlusAuthorizeController {
 
             // Check cancel
             if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
-                model.addAttribute("redirectUrl", buildUrl(request, STATE_CANCEL));
-                return getNextView(request, STATE_CANCEL);
+                return backToIdporten(request, model, STATE_CANCEL);
             }
             if (result.hasErrors()) {
                 InputTerminator.clearAllInput(oneTimePassword, result, model);
@@ -228,8 +237,7 @@ public class MinidPlusAuthorizeController {
             }
             if (state == STATE_VERIFICATION_CODE) {
                 if (authenticationService.authenticateOtpStep(sid, otp)) {
-                    model.addAttribute("redirectUrl", buildUrl(request, STATE_AUTHENTICATED));
-                    return getNextView(request, STATE_AUTHENTICATED);
+                    return backToIdporten(request, model, STATE_AUTHENTICATED);
                 } else {
                     result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
                 }
@@ -260,6 +268,8 @@ public class MinidPlusAuthorizeController {
             return "redirect_to_idporten";
         } else if (state == STATE_ALERT) {
             return "alert";
+        } else if (state == STATE_WRONG_ACR) {
+            return "error_acr";
         }
         return "error";
     }
