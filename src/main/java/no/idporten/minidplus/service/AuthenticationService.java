@@ -104,10 +104,15 @@ public class AuthenticationService {
         return true;
     }
 
-    public boolean verifyUserByEmail(String sid) throws MinidUserNotFoundException, MinidUserInvalidException {
+    public boolean verifyUserByEmail(String sid) throws MinidUserNotFoundException, MinidUserInvalidException, MinIDTimeoutException {
 
         String pid = minidPlusCache.getSSN(sid);
-        MinidUser identity = findUserFromPid(pid);
+        MinidUser identity;
+        if (pid != null) {
+            identity = minIDService.findByPersonNumber(new PersonNumber(pid));
+        } else {
+            throw new MinIDTimeoutException("Otc code timed out");
+        }
 
         if (identity.getEmail() == null) {
             warn("Email not found not found for user");
@@ -167,7 +172,7 @@ public class AuthenticationService {
         return true;
     }
 
-    public boolean authenticateOtpStep(String sid, String inputOneTimeCode) throws MinidUserNotFoundException, MinIDPincodeException {
+    public boolean authenticateOtpStep(String sid, String inputOneTimeCode) throws MinidUserNotFoundException, MinIDPincodeException, MinIDTimeoutException {
         if (otcPasswordService.checkOTCCode(sid, inputOneTimeCode)) {
             eventService.logUserAuthenticated(minidPlusCache.getSSN(sid));
             return true;

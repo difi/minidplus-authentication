@@ -8,6 +8,7 @@ import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.PasswordChange;
 import no.idporten.minidplus.domain.PersonIdInput;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
+import no.idporten.minidplus.exception.minid.MinIDTimeoutException;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.OTCPasswordService;
 import no.idporten.minidplus.validator.InputTerminator;
@@ -141,8 +142,6 @@ public class MinidPlusPasswordController {
             }
             if (state == STATE_VERIFICATION_CODE_SMS) {
                 if (otcPasswordService.checkOTCCode(sid, otp)) {
-                    oneTimePassword = new OneTimePassword();
-                    model.addAttribute(oneTimePassword);
                     authenticationService.verifyUserByEmail(sid);
                     return getNextView(request, STATE_VERIFICATION_CODE_EMAIL);
                 } else {
@@ -159,6 +158,10 @@ public class MinidPlusPasswordController {
         } catch (MinidUserInvalidException e) {
             warn("Exception handling otp. : " + e.getMessage());
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.format.missing.email"}, null, "Missing email"));
+        } catch (MinIDTimeoutException e) {
+            warn("Otc timed out " + e.getMessage());
+            result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.module.minidplus.timeout"}, null, "timeout"));
+            getNextView(request, STATE_ERROR);
         } catch (Exception e) {
             warn("Exception handling otp: " + e.getMessage());
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line1"}, null, "System error"));
@@ -279,4 +282,5 @@ public class MinidPlusPasswordController {
     private void warn(String message) {
         log.warn(CorrelationId.get() + " " + message);
     }
+
 }

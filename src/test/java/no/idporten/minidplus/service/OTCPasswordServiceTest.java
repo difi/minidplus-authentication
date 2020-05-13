@@ -5,6 +5,7 @@ import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.PersonNumber;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
+import no.idporten.minidplus.exception.minid.MinIDTimeoutException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
@@ -49,7 +50,7 @@ public class OTCPasswordServiceTest {
     LINKMobilityClient linkMobilityClient;
 
     @Test
-    public void checkOTCCodePositiveTest() throws MinidUserNotFoundException, MinIDPincodeException {
+    public void checkOTCCodePositiveTest() throws MinidUserNotFoundException, MinIDPincodeException, MinIDTimeoutException {
         MinidUser user = new MinidUser();
         user.setCredentialErrorCounter(0);
         user.setPersonNumber(new PersonNumber(pid));
@@ -65,7 +66,7 @@ public class OTCPasswordServiceTest {
     }
 
     @Test
-    public void checkOTCCodeNegativeTest() throws MinidUserNotFoundException, MinIDPincodeException {
+    public void checkOTCCodeNegativeTest() throws MinidUserNotFoundException, MinIDPincodeException, MinIDTimeoutException {
         MinidUser user = new MinidUser();
         user.setQuarantineCounter(0);
         user.setPersonNumber(new PersonNumber(pid));
@@ -79,7 +80,7 @@ public class OTCPasswordServiceTest {
     }
 
     @Test
-    public void checkOTCCodeNegativeTestLastTry() throws MinidUserNotFoundException, MinIDPincodeException {
+    public void checkOTCCodeNegativeTestLastTry() throws MinidUserNotFoundException, MinIDPincodeException, MinIDTimeoutException {
         MinidUser user = new MinidUser();
         user.setQuarantineCounter(1);
         user.setPersonNumber(new PersonNumber(pid));
@@ -109,7 +110,7 @@ public class OTCPasswordServiceTest {
         try {
             otcPasswordService.checkOTCCode("otctest", sessionId);
             fail("Should have thrown MinIdPincodeException");
-        } catch (MinIDPincodeException e) {
+        } catch (MinIDPincodeException | MinIDTimeoutException e) {
             assertEquals(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, e.getExceptionID());
             assertTrue(user.isOneTimeCodeLocked());
         }
@@ -130,7 +131,7 @@ public class OTCPasswordServiceTest {
 
         try {
             otcPasswordService.checkOTCCode("otctest", sessionId);
-        } catch (MinIDPincodeException e) {
+        } catch (MinIDPincodeException | MinIDTimeoutException e) {
             assertEquals(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, e.getExceptionID());
             assertTrue(user.isOneTimeCodeLocked());
         }

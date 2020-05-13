@@ -22,14 +22,15 @@
                 <p><spring:message code="auth.ui.fp.newpwd.tip.paragraph1"/></p>
                 <p><spring:message code="auth.ui.fp.newpwd.tip.paragraph2"/></p>
             </div>
+            <c:set var="otpCodeHasError">
+                <form:errors path="*"/>
+            </c:set>
 
             <form:form id="complete" action="#" modelAttribute="passwordChange" class="login"
                        method="post">
                 <form:errors path="*" class="notification notification-error" element="div"
                              htmlEscape="false"/>
-                <c:set var="otpCodeHasError">
-                    <form:errors path="*"/>
-                </c:set>
+
                 <fieldset>
                     <div class="fm-Fields">
                         <spring:message code='auth.ui.prompt.newpassword'

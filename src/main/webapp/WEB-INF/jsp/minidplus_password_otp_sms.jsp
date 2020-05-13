@@ -22,15 +22,15 @@
                 <p><spring:message code="no.idporten.module.minid.step2.otc.info"
                                    text="You will now receive a single-use code by SMS from Digdir."/></p>
             </div>
-
+            <c:set var="otpCodeHasError">
+                <form:errors path="*"/>
+            </c:set>
             <form:form id="complete" action="#" modelAttribute="oneTimePassword" class="login"
                        method="post">
                 <input type="hidden" id="type" name="otpType" value="sms"/>
                 <form:errors path="*" class="notification notification-error with-Icon icon-error" element="div"
                              htmlEscape="false"/>
-                <c:set var="otpCodeHasError">
-                    <form:errors path="*"/>
-                </c:set>
+
                 <fieldset>
                     <div class="fm-Fields">
                         <spring:message code='auth.ui.inputhelp.onetimecode'

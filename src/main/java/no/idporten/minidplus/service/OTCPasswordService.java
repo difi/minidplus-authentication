@@ -8,6 +8,7 @@ import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.PersonNumber;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
+import no.idporten.minidplus.exception.minid.MinIDTimeoutException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
 import no.idporten.minidplus.notification.NotificationService;
 import no.idporten.validation.util.RandomUtil;
@@ -174,7 +175,7 @@ public class OTCPasswordService {
     }
 
     public void sendEmailOtp(String sid, MinidUser identity) {
-        // Generates one time code and sends SMS with one time code to user's mobile phone number
+        // Generates one time code and sends one time code to user's email
         // Does not send one time code to users that are not allowed to get temporary passwords
         // Does not resend one time code
         if (minidPlusCache.getOTP(sid) == null) {
@@ -188,9 +189,14 @@ public class OTCPasswordService {
         }
     }
 
-    public boolean checkOTCCode(String sid, String inputOneTimeCode) throws MinIDPincodeException, MinidUserNotFoundException {
-
-        MinidUser user = minIDService.findByPersonNumber(new PersonNumber(minidPlusCache.getSSN(sid)));
+    public boolean checkOTCCode(String sid, String inputOneTimeCode) throws MinIDPincodeException, MinidUserNotFoundException, MinIDTimeoutException {
+        String pid = minidPlusCache.getSSN(sid);
+        MinidUser user;
+        if (pid != null) {
+            user = minIDService.findByPersonNumber(new PersonNumber(pid));
+        } else {
+            throw new MinIDTimeoutException("Otc code timed out");
+        }
         if (user.getQuarantineCounter() == null) {
             user.setQuarantineCounter(0);
         }

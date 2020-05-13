@@ -16,6 +16,7 @@
                     <br><spring:message code="no.idporten.module.minidplus.error.text3"/> <c:out value="${errorCode}"
                                                                                                  escapeXml="true"/>
                 </c:if>
+                <form:errors path="*"/>
             </div>
             <c:if test="${not empty requestUrl}">
                 <form:form method="get" action="${requestUrl}">
