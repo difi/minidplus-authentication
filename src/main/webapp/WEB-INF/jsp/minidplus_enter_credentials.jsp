@@ -67,6 +67,7 @@
                     </div>
                 </fieldset>
                 <jsp:include page="sections/controls.jsp"/>
+                <jsp:include page="sections/registerFooter.jsp"/>
             </form:form>
 
         </div>
