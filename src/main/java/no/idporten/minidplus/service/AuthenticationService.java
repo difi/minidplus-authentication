@@ -69,7 +69,6 @@ public class AuthenticationService {
             throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User is closed");
         }
 
-        assignedLevelOfAssurance = getLevelOfAssurance(identity.getSource(), levelOfAssurance);
         if (identity.isOneTimeCodeLocked()) {
             warn("One time code is locked for user");
             throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "Pincode locked for user");
@@ -85,6 +84,9 @@ public class AuthenticationService {
             warn("Password invalid for user");
             throw new MinIDIncorrectCredentialException(IDPortenExceptionID.IDENTITY_PASSWORD_INCORRECT, "Password validation failed");
         }
+
+        assignedLevelOfAssurance = getLevelOfAssurance(identity.getSource(), levelOfAssurance);
+
         identity.setCredentialErrorCounter(0);
         minIDService.setCredentialErrorCounter(identity.getPersonNumber(), identity.getCredentialErrorCounter());
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());

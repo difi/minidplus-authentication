@@ -196,6 +196,25 @@ public class AuthenticationServiceTest {
     }
 
     @Test
+    public void test_user_with_wrong_source_and_wrong_pwd_show_wrong_pwd() {
+        when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
+        PersonNumber personNumber = new PersonNumber(pid);
+        MinidUser minidUser = new MinidUser(personNumber);
+        minidUser.setState(MinidUser.State.NORMAL);
+        minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        minidUser.setSource("jalla");
+        when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
+        when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(false);
+        try {
+            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
+            fail("should have failed");
+        } catch (Exception e) {
+            assertTrue(e instanceof MinIDIncorrectCredentialException);
+        }
+        assertEquals(1, (int) minidUser.getCredentialErrorCounter());
+    }
+
+    @Test
     public void testCredentialErrorCounterUserGetsQuarantined() {
         when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
         PersonNumber personNumber = new PersonNumber(pid);
