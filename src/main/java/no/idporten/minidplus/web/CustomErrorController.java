@@ -57,7 +57,7 @@ public class CustomErrorController implements ErrorController {
     public String handleRetry(HttpServletRequest request, Model model) {
         if (request.getSession().getAttribute("retry") == null) {
             request.getSession().setAttribute("retry", true);
-            return "redirect:authorize";
+            return "redirect:/authorize";
         } else {
             if (request.getSession().getAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST) != null) {
                 AuthorizationRequest ar = (AuthorizationRequest) request.getSession().getAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST);
