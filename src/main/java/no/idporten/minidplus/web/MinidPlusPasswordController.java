@@ -17,6 +17,7 @@ import no.idporten.ui.impl.MinidPlusButtonType;
 import no.minid.exception.MinidUserInvalidException;
 import no.minid.exception.MinidUserNotFoundException;
 import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -61,6 +62,9 @@ public class MinidPlusPasswordController {
     private final AuthenticationService authenticationService;
 
     private final OTCPasswordService otcPasswordService;
+
+    @Value("${minid-plus.context-path}")
+    public String contextPath = "";
 
     @GetMapping(produces = "text/html; charset=utf-8")
     public String doGet(HttpServletRequest request, HttpServletResponse response, Model model) {
@@ -263,7 +267,7 @@ public class MinidPlusPasswordController {
         } else if (state == STATE_PASSWORD_CHANGED) {
             return "minidplus_password_success";
         } else if (state == MinidState.STATE_CONTINUE || state == MinidState.STATE_CANCEL) {
-            return "redirect:/authorize";
+            return "redirect:" + contextPath + "/authorize";
         }
         return "error";
     }
