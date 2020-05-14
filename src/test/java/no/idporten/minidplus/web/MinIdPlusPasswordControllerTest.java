@@ -203,7 +203,7 @@ public class MinIdPlusPasswordControllerTest {
                 .with(csrf())
         )
                 .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:authorize"));
+                .andExpect(view().name("redirect:/authorize"));
     }
 
     @Test
@@ -216,7 +216,7 @@ public class MinIdPlusPasswordControllerTest {
                 .with(csrf())
         )
                 .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:authorize"));
+                .andExpect(view().name("redirect:/authorize"));
     }
 
 
