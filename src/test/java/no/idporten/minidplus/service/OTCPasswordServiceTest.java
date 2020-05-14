@@ -5,6 +5,7 @@ import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.PersonNumber;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
+import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
 import no.idporten.minidplus.exception.minid.MinIDTimeoutException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
 import no.minid.exception.MinidUserNotFoundException;
@@ -50,10 +51,11 @@ public class OTCPasswordServiceTest {
     LINKMobilityClient linkMobilityClient;
 
     @Test
-    public void checkOTCCodePositiveTest() throws MinidUserNotFoundException, MinIDPincodeException, MinIDTimeoutException {
+    public void checkOTCCodePositiveTest() throws MinidUserNotFoundException, MinIDPincodeException, MinIDTimeoutException, MinIDQuarantinedUserException {
         MinidUser user = new MinidUser();
         user.setCredentialErrorCounter(0);
         user.setPersonNumber(new PersonNumber(pid));
+        user.setState(MinidUser.State.NORMAL);
         String sessionId = "123";
 
         when(minidPlusCache.getSSN(anyString())).thenReturn(pid);
@@ -66,10 +68,11 @@ public class OTCPasswordServiceTest {
     }
 
     @Test
-    public void checkOTCCodeNegativeTest() throws MinidUserNotFoundException, MinIDPincodeException, MinIDTimeoutException {
+    public void checkOTCCodeNegativeTest() throws MinidUserNotFoundException, MinIDPincodeException, MinIDTimeoutException, MinIDQuarantinedUserException {
         MinidUser user = new MinidUser();
         user.setQuarantineCounter(0);
         user.setPersonNumber(new PersonNumber(pid));
+        user.setState(MinidUser.State.NORMAL);
         String sessionId = "123";
 
         when(minidPlusCache.getSSN(anyString())).thenReturn(pid);
@@ -80,10 +83,11 @@ public class OTCPasswordServiceTest {
     }
 
     @Test
-    public void checkOTCCodeNegativeTestLastTry() throws MinidUserNotFoundException, MinIDPincodeException, MinIDTimeoutException {
+    public void checkOTCCodeNegativeTestLastTry() throws MinidUserNotFoundException, MinIDPincodeException, MinIDTimeoutException, MinIDQuarantinedUserException {
         MinidUser user = new MinidUser();
         user.setQuarantineCounter(1);
         user.setPersonNumber(new PersonNumber(pid));
+        user.setState(MinidUser.State.NORMAL);
         String sessionId = "123";
 
         when(minidPlusCache.getSSN(anyString())).thenReturn(pid);
@@ -96,10 +100,11 @@ public class OTCPasswordServiceTest {
     }
 
     @Test
-    public void checkOTCCodMaxErrors() throws MinidUserNotFoundException {
+    public void checkOTCCodMaxErrors() throws MinidUserNotFoundException, MinIDQuarantinedUserException {
         MinidUser user = new MinidUser();
         user.setQuarantineCounter(3);
         user.setPersonNumber(new PersonNumber(pid));
+        user.setState(MinidUser.State.NORMAL);
 
         String sessionId = "123";
 
@@ -110,18 +115,19 @@ public class OTCPasswordServiceTest {
         try {
             otcPasswordService.checkOTCCode("otctest", sessionId);
             fail("Should have thrown MinIdPincodeException");
-        } catch (MinIDPincodeException | MinIDTimeoutException e) {
-            assertEquals(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, e.getExceptionID());
+        } catch (MinIDPincodeException | MinIDTimeoutException | MinIDQuarantinedUserException e) {
+            assertEquals(IDPortenExceptionID.IDENTITY_QUARANTINED, e.getExceptionID());
         }
     }
 
     @Test
-    public void checkOTCCodeLocked() throws MinidUserNotFoundException {
+    public void checkOTCCodeLocked() throws MinidUserNotFoundException, MinIDQuarantinedUserException {
         MinidUser user = new MinidUser();
         user.setQuarantineCounter(0);
         user.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant()));
         user.setOneTimeCodeLocked(true);
         user.setPersonNumber(new PersonNumber(pid));
+        user.setState(MinidUser.State.NORMAL);
         String sessionId = "123";
 
         when(minidPlusCache.getSSN(anyString())).thenReturn(pid);
@@ -130,7 +136,7 @@ public class OTCPasswordServiceTest {
 
         try {
             otcPasswordService.checkOTCCode("otctest", sessionId);
-        } catch (MinIDPincodeException | MinIDTimeoutException e) {
+        } catch (MinIDPincodeException | MinIDTimeoutException | MinIDQuarantinedUserException e) {
             assertEquals(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, e.getExceptionID());
             assertTrue(user.isOneTimeCodeLocked());
         }

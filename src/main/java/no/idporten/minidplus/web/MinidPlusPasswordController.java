@@ -9,6 +9,7 @@ import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.PasswordChange;
 import no.idporten.minidplus.domain.PersonIdInput;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
+import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
 import no.idporten.minidplus.exception.minid.MinIDTimeoutException;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.OTCPasswordService;
@@ -49,6 +50,7 @@ public class MinidPlusPasswordController {
     protected static final int STATE_VERIFICATION_CODE_SMS = 102;
     protected static final int STATE_VERIFICATION_CODE_EMAIL = 103;
     protected static final int STATE_NEW_PASSWORD = 104;
+    protected static final int STATE_ALERT = 105;
 
     private static final String ABORTED_BY_USER = "aborted_by_user";
 
@@ -101,6 +103,9 @@ public class MinidPlusPasswordController {
                 model.addAttribute(new OneTimePassword());
                 return getNextView(request, STATE_VERIFICATION_CODE_SMS);
 
+            } catch (MinIDQuarantinedUserException e) {
+                addQuarantinedMessage(e, model);
+                return getNextView(request, STATE_ALERT);
             } catch (MinidUserNotFoundException e) {
                 result.addError(new ObjectError(MODEL_USER_PERSONID, new String[]{"auth.ui.usererror.format.ssn"}, null, "Login failed"));
                 return getNextView(request, STATE_PERSONID);
@@ -149,9 +154,13 @@ public class MinidPlusPasswordController {
                 warn("Illegal state in postOTP sms " + state);
                 result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line1"}, null, "System error"));
             }
+        } catch (MinIDQuarantinedUserException e) {
+            addQuarantinedMessage(e, model);
+            return getNextView(request, STATE_ALERT);
         } catch (MinIDPincodeException e) {
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.format.otc.locked"}, null, "Too many attempts"));
-            warn("Pincode locked " + e.getMessage());
+            model.addAttribute("alertMessage", "auth.ui.error.quarantined.message");
+            return getNextView(request, STATE_ALERT);
         } catch (MinidUserInvalidException e) {
             warn("Exception handling otp. : " + e.getMessage());
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.format.missing.email"}, null, "Missing email"));
@@ -193,6 +202,9 @@ public class MinidPlusPasswordController {
                 warn("Illegal state in postOTPEmail" + state);
                 result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line1"}, null, "System error"));
             }
+        } catch (MinIDQuarantinedUserException e) {
+            addQuarantinedMessage(e, model);
+            return getNextView(request, STATE_ALERT);
         } catch (MinIDPincodeException e) {
             warn("Pincode locked " + e.getMessage());
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.format.otc.locked"}, null, "Too many attempts"));
@@ -238,6 +250,16 @@ public class MinidPlusPasswordController {
         return getNextView(request, STATE_NEW_PASSWORD);
     }
 
+    private void addQuarantinedMessage(MinIDQuarantinedUserException e, Model model) {
+        if (e.getMessage().equalsIgnoreCase("User is closed")) {
+            model.addAttribute("alertMessage", "auth.ui.error.closed.message");
+        } else if (e.getMessage().equalsIgnoreCase("User has been in quarantine for more than one hour.")) {
+            model.addAttribute("alertMessage", "auth.ui.error.locked.message");
+        } else {
+            model.addAttribute("alertMessage", "auth.ui.error.quarantined.message");
+        }
+    }
+
     @PostMapping(params = "minidplus.inputbutton.CONTINUE")
     public String postPasswordChange(HttpServletRequest request) {
         int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
@@ -260,6 +282,8 @@ public class MinidPlusPasswordController {
             return "minidplus_password_otp_email";
         } else if (state == STATE_NEW_PASSWORD) {
             return "minidplus_password_change";
+        } else if (state == STATE_ALERT) {
+            return "alert";
         } else if (state == STATE_PASSWORD_CHANGED) {
             return "minidplus_password_success";
         } else if (state == MinidState.STATE_CONTINUE || state == MinidState.STATE_CANCEL) {
