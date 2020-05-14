@@ -78,6 +78,9 @@ public class MinidPlusAuthorizeController {
     private static final String START_SERVICE = "start-service";
     private static final Set<String> supportedLocales = Stream.of("nb", "nn", "en", "se").collect(Collectors.toSet());
 
+    @Value("${minid-plus.serverid}")
+    public String serverid;
+
     private final LocaleResolver localeResolver;
 
     private final AuthenticationService authenticationService;
@@ -268,7 +271,8 @@ public class MinidPlusAuthorizeController {
             try {
                 UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance()
                         .uri(new URI(ar.getRedirectUri()))
-                        .queryParam(HTTP_SESSION_SID, sid);
+                        .queryParam(HTTP_SESSION_SID, sid)
+                        .queryParam(HTTP_SESSION_SID, serverid);
 
                 uriComponentsBuilder.queryParam(HTTP_SESSION_REDIRECT_URI, ar.getRedirectUri())
                         .queryParam(HTTP_SESSION_LOCALE, ar.getLocale())

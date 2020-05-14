@@ -1,3 +1,10 @@
+<% if !(@fqdn.scan(/\d{2}/).empty?)
+@serverid = @fqdn.scan(/\d{2}/).last
+else
+@serverid = ''
+end
+-%>
+
 auditlog:
   dir: <%= @auditlog_dir %>
   file: <%= @auditlog_file %>
@@ -41,6 +48,7 @@ minid-plus:
   cache:
     otp-ttl-in-s: <%= @sms_onetimepassword_ttl_seconds %>
   registrationUri: <%= @minidonthefly_registrationUri %>
+  serverid: <% if !(@serverid.empty?) %>/<%= @serverid %>/<% end %>
 email:
   url: <%= @email_url %>
   connect-timeout: <%= @email_connect_timeout %>
