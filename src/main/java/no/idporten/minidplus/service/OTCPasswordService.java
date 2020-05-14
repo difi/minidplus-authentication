@@ -160,12 +160,12 @@ public class OTCPasswordService {
         // Generates one time code and sends SMS with one time code to user's mobile phone number
         // Does not send one time code to users that are not allowed to get temporary passwords
         // Does not resend one time code
+        if (identity.getPhoneNumber() == null) {
+            throw new MinidUserInvalidException("Mobile number not found not found for user");
+        }
         if (minidPlusCache.getOTP(sid) == null) {
             String generatedOneTimeCode = generateOTCPassword();
             minidPlusCache.putOTP(sid, generatedOneTimeCode);
-            if (identity.getPhoneNumber() == null) {
-                throw new MinidUserInvalidException("Mobile number not found not found for user");
-            }
             final String mobileNumber = identity.getPhoneNumber().getNumber();
             linkMobilityClient.sendSms(mobileNumber, getMessageBody(sp, generatedOneTimeCode, now().plusSeconds(otpTtl)));
             if (log.isInfoEnabled()) {

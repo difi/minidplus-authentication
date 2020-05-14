@@ -98,8 +98,7 @@ public class MinidPlusPasswordController {
                 return getNextView(request, STATE_PERSONID);
             }
             try {
-                ServiceProvider sp = new ServiceProvider("Idporten");
-                sp.setName("idporten");
+                ServiceProvider sp = (ServiceProvider) request.getSession().getAttribute(SERVICEPROVIDER);
                 authenticationService.authenticatePid(sid, pid, sp);
                 model.addAttribute(new OneTimePassword());
                 return getNextView(request, STATE_VERIFICATION_CODE_SMS);
