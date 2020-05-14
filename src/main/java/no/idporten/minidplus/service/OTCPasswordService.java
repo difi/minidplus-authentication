@@ -158,10 +158,15 @@ public class OTCPasswordService {
     }
 
     private void validateUserOTCState(MinidUser user) throws MinIDQuarantinedUserException {
+        if (user.getQuarantineCounter() == null) {
+            user.setQuarantineCounter(0);
+        }
         if (user.getQuarantineCounter() >= maxNumberOfQuarantineCounters) {
-            if (user.getQuarantineExpiryDate().before(Date.from(Clock.systemUTC().instant().minusSeconds(3600)))) {
-                warn("User has been in quarantine for more than one hour.", user.getPersonNumber().getSsn());
-                throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User has been in quarantine for more than one hour.");
+            if (user.getQuarantineExpiryDate() != null) {
+                if (user.getQuarantineExpiryDate().before(Date.from(Clock.systemUTC().instant().minusSeconds(3600)))) {
+                    warn("User has been in quarantine for more than one hour.", user.getPersonNumber().getSsn());
+                    throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User has been in quarantine for more than one hour.");
+                }
             }
             warn("Pincode locked for ssn=", user.getPersonNumber().getSsn());
             throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "pin code is locked");
@@ -177,6 +182,9 @@ public class OTCPasswordService {
     }
 
     void sendSMSOtp(String sid, ServiceProvider sp, MinidUser identity) throws MinidUserInvalidException, MinIDQuarantinedUserException {
+        if (identity.getQuarantineCounter() == null) {
+            identity.setQuarantineCounter(0);
+        }
         validateUserOTCState(identity);
         // Generates one time code and sends SMS with one time code to user's mobile phone number
         // Does not send one time code to users that are not allowed to get temporary passwords

@@ -96,10 +96,15 @@ public class AuthenticationService {
     }
 
     private void validateUserState(MinidUser identity) throws MinIDQuarantinedUserException {
+        if (identity.getCredentialErrorCounter() == null) {
+            identity.setCredentialErrorCounter(0);
+        }
         if (identity.getCredentialErrorCounter() >= maxNumberOfCredentialErrors) {
-            if (identity.getQuarantineExpiryDate().before(Date.from(Clock.systemUTC().instant().minusSeconds(3600)))) {
-                warn("User has been in quarantine for more than one hour.");
-                throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User has been in quarantine for more than one hour.");
+            if (identity.getQuarantineExpiryDate() != null) {
+                if (identity.getQuarantineExpiryDate().before(Date.from(Clock.systemUTC().instant().minusSeconds(3600)))) {
+                    warn("User has been in quarantine for more than one hour.");
+                    throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User has been in quarantine for more than one hour.");
+                }
             }
             warn("User is quarantined.");
             throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User is in quarantine, unauthorized");
