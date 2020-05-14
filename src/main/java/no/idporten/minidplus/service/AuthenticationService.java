@@ -35,6 +35,9 @@ public class AuthenticationService {
     @Value("${minid-plus.credential-error-max-number}")
     private int maxNumberOfCredentialErrors;
 
+    @Value("${minid-plus.quarantine-counter-max-number}")
+    private int maxNumberOfQuarantineCounters;
+
     private final MinIDService minIDService;
 
     private final MinidPlusCache minidPlusCache;
@@ -64,24 +67,7 @@ public class AuthenticationService {
             identity.setCredentialErrorCounter(0);
         }
 
-        if (identity.getCredentialErrorCounter() >= maxNumberOfCredentialErrors) {
-            if (identity.getQuarantineExpiryDate().before(Date.from(Clock.systemUTC().instant().minusSeconds(3600)))) {
-                warn("User has been in quarantine for more than one hour.");
-                throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User has been in quarantine for more than one hour.");
-            }
-            warn("User is quarantined.");
-            throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User is in quarantine, unauthorized");
-        }
-
-        if (identity.getState().equals(MinidUser.State.CLOSED)) {
-            warn("User has state CLOSED.");
-            throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User is closed");
-        }
-
-        if (identity.isOneTimeCodeLocked()) {
-            warn("One time code is locked for user");
-            throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "Pincode locked for user");
-        }
+        validateUserState(identity);
 
         if (!minIDService.validateUserPassword(identity.getPersonNumber(), password)) {
             identity.setCredentialErrorCounter(identity.getCredentialErrorCounter() + 1);
@@ -109,7 +95,23 @@ public class AuthenticationService {
         return true;
     }
 
-    public boolean verifyUserByEmail(String sid) throws MinidUserNotFoundException, MinidUserInvalidException, MinIDTimeoutException {
+    private void validateUserState(MinidUser identity) throws MinIDQuarantinedUserException {
+        if (identity.getCredentialErrorCounter() >= maxNumberOfCredentialErrors) {
+            if (identity.getQuarantineExpiryDate().before(Date.from(Clock.systemUTC().instant().minusSeconds(3600)))) {
+                warn("User has been in quarantine for more than one hour.");
+                throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User has been in quarantine for more than one hour.");
+            }
+            warn("User is quarantined.");
+            throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User is in quarantine, unauthorized");
+        }
+
+        if (identity.getState().equals(MinidUser.State.CLOSED)) {
+            warn("User has state CLOSED.");
+            throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User is closed");
+        }
+    }
+
+    public boolean verifyUserByEmail(String sid) throws MinIDQuarantinedUserException, MinidUserInvalidException, MinIDTimeoutException {
 
         String pid = minidPlusCache.getSSN(sid);
         MinidUser identity;
@@ -124,11 +126,7 @@ public class AuthenticationService {
             throw new MinidUserInvalidException("Email not found not found for user");
         }
 
-        if (identity.isOneTimeCodeLocked()) {
-            warn("One time code is locked for user");
-            return false;
-        }
-
+        validateUserState(identity);
         otcPasswordService.sendEmailOtp(sid, identity);
 
         return true;
@@ -155,7 +153,7 @@ public class AuthenticationService {
         }
     }
 
-    public boolean authenticatePid(String sid, String pid, ServiceProvider sp) throws MinidUserNotFoundException, MinidUserInvalidException {
+    public boolean authenticatePid(String sid, String pid, ServiceProvider sp) throws MinidUserNotFoundException, MinidUserInvalidException, MinIDQuarantinedUserException {
         MinidUser identity;
         try {
             identity =  findUserFromPid(pid);
@@ -168,16 +166,12 @@ public class AuthenticationService {
                 identity =  findUserFromPid(pid);
             }
         }
-        if (identity.isOneTimeCodeLocked()) {
-            warn("One time code is locked");
-            return false;
-        }
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
         otcPasswordService.sendSMSOtp(sid, sp, identity);
         return true;
     }
 
-    public boolean authenticateOtpStep(String sid, String inputOneTimeCode) throws MinidUserNotFoundException, MinIDPincodeException, MinIDTimeoutException {
+    public boolean authenticateOtpStep(String sid, String inputOneTimeCode) throws MinidUserNotFoundException, MinIDPincodeException, MinIDTimeoutException, MinIDQuarantinedUserException {
         if (otcPasswordService.checkOTCCode(sid, inputOneTimeCode)) {
             eventService.logUserAuthenticated(minidPlusCache.getSSN(sid));
             return true;
