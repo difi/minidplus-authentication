@@ -49,7 +49,7 @@ minid-plus:
     otp-ttl-in-s: <%= @sms_onetimepassword_ttl_seconds %>
   registrationUri: <%= @minidonthefly_registrationUri %>
   serverid: <% if !(@serverid.empty?) %>/<%= @serverid %>/<% end %>
-  context-path:/<%= @application %>
+  context-path: /<%= @application %>
 email:
   url: <%= @email_url %>
   connect-timeout: <%= @email_connect_timeout %>

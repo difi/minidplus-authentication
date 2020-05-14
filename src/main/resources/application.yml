@@ -56,7 +56,7 @@ minid-plus:
     otp-ttl-in-s: 600
   registrationUri:
     https://eid-systest-static-web01
-  context-path:"/"
+  context-path:
 event:
   jmsUrl: tcp://eid-systest-admin01.dmz.local:61616
   jmsQueue: logqueue
