@@ -5,6 +5,7 @@ import no.difi.resilience.CorrelationId;
 import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.domain.MinidState;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -21,6 +22,9 @@ import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.HTTP_SESSI
 @Controller
 @Slf4j
 public class CustomErrorController implements ErrorController {
+
+    @Value("${minid-plus.context-path}")
+    public String contextPath = "";
 
     @GetMapping("/error")
     public ModelAndView handleError(HttpServletRequest request) {
@@ -57,7 +61,7 @@ public class CustomErrorController implements ErrorController {
     public String handleRetry(HttpServletRequest request, Model model) {
         if (request.getSession().getAttribute("retry") == null) {
             request.getSession().setAttribute("retry", true);
-            return "redirect:/authorize";
+            return "redirect:" + contextPath + "/authorize";
         } else {
             if (request.getSession().getAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST) != null) {
                 AuthorizationRequest ar = (AuthorizationRequest) request.getSession().getAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST);
