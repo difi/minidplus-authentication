@@ -112,7 +112,6 @@ public class OTCPasswordServiceTest {
             fail("Should have thrown MinIdPincodeException");
         } catch (MinIDPincodeException | MinIDTimeoutException e) {
             assertEquals(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, e.getExceptionID());
-            assertTrue(user.isOneTimeCodeLocked());
         }
     }
 

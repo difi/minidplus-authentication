@@ -232,10 +232,10 @@ public class AuthenticationServiceTest {
             authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
             fail("should have failed");
         } catch (Exception e) {
-            assertTrue(e instanceof MinIDIncorrectCredentialException);
-            assertTrue(e instanceof MinIDIncorrectCredentialException);
+            assertTrue(e instanceof MinIDQuarantinedUserException);
         }
         assertEquals(3, (int) minidUser.getCredentialErrorCounter());
+        assertEquals(MinidUser.State.QUARANTINED, minidUser.getState());
         try {
             authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
             fail("should have failed");

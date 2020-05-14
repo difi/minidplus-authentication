@@ -85,9 +85,14 @@ public class AuthenticationService {
 
         if (!minIDService.validateUserPassword(identity.getPersonNumber(), password)) {
             identity.setCredentialErrorCounter(identity.getCredentialErrorCounter() + 1);
-            if (identity.getCredentialErrorCounter() == maxNumberOfCredentialErrors) {
+            if (identity.getCredentialErrorCounter() >= maxNumberOfCredentialErrors) {
                 identity.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant().plusSeconds(3600)));
+                identity.setState(MinidUser.State.QUARANTINED);
+                minIDService.setCredentialErrorCounter(identity.getPersonNumber(), identity.getCredentialErrorCounter());
+                minIDService.setUserStateQuarantined(identity.getPersonNumber());
                 minIDService.setQuarantineExpiryDate(identity.getPersonNumber(), identity.getQuarantineExpiryDate());
+                warn("User set in quarantined.");
+                throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User is in quarantine, unauthorized");
             }
             minIDService.setCredentialErrorCounter(identity.getPersonNumber(), identity.getCredentialErrorCounter());
             warn("Password invalid for user");
