@@ -6,10 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import no.difi.resilience.CorrelationId;
 import no.idporten.domain.auth.AuthType;
 import no.idporten.domain.sp.ServiceProvider;
-import no.idporten.minidplus.domain.AuthorizationRequest;
-import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
-import no.idporten.minidplus.domain.OneTimePassword;
-import no.idporten.minidplus.domain.UserCredentials;
+import no.idporten.minidplus.domain.*;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
@@ -20,7 +17,6 @@ import no.idporten.minidplus.service.ServiceproviderService;
 import no.idporten.minidplus.validator.InputTerminator;
 import no.idporten.ui.impl.MinidPlusButtonType;
 import no.minid.exception.MinidUserInvalidException;
-import no.minid.exception.MinidUserNotFoundException;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
@@ -63,7 +59,6 @@ public class MinidPlusAuthorizeController {
     protected static final int STATE_VERIFICATION_CODE = 2;
     protected static final int STATE_ERROR = 3;
     protected static final int STATE_WRONG_ACR = 4;
-    protected static final int STATE_CANCEL = 8;
     protected static final int STATE_CONSTRAINT_VIOLATIONS = 9;
     protected static final int STATE_ALERT = 10;
 
@@ -102,7 +97,7 @@ public class MinidPlusAuthorizeController {
         }
 
         Object state = request.getSession().getAttribute(HTTP_SESSION_STATE);
-        if (state == null || !((int) state == MinidPlusPasswordController.STATE_CANCEL || (int) state == MinidPlusPasswordController.STATE_CONTINUE)) {
+        if (state == null || !((int) state == MinidState.STATE_CANCEL || (int) state == MinidState.STATE_CONTINUE)) {
             request.getSession().invalidate();
             request.getSession().setAttribute(HTTP_SESSION_AUTH_TYPE, AuthType.MINID_PLUS);
             request.getSession().setAttribute(HTTP_SESSION_SID, UUID.randomUUID().toString());
@@ -152,11 +147,11 @@ public class MinidPlusAuthorizeController {
         AuthorizationRequest ar = (AuthorizationRequest) request.getSession().getAttribute(AUTHORIZATION_REQUEST);
         // Check cancel
         if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
-            return backToIdporten(request, model, STATE_CANCEL);
+            return backToIdporten(request, model, MinidState.STATE_CANCEL);
         }
-        if (state != null && ((int) state == STATE_USERDATA || (int) state == STATE_CANCEL)) {
+        if (state != null && ((int) state == STATE_USERDATA || (int) state == MinidState.STATE_CANCEL)) {
             if (result.hasErrors()) {
-                warn("There are contraint violations: " + result.getAllErrors().toArray().toString());
+                warn("There are contraint violations: " + Arrays.toString(result.getAllErrors().toArray()));
                 InputTerminator.clearAllInput(userCredentials, result, model);
                 return getNextView(request, STATE_USERDATA);
             }
@@ -193,7 +188,6 @@ public class MinidPlusAuthorizeController {
             log.error("Illegal state " + state);
             result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.error.line1"}, null, "System error"));
             result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
-            prepareErrorPage(request, model);
             return getNextView(request, STATE_ERROR);
         }
     }
@@ -201,17 +195,6 @@ public class MinidPlusAuthorizeController {
     private String backToIdporten(HttpServletRequest request, Model model, int backState) {
         model.addAttribute("redirectUrl", buildUrl(request, backState));
         return getNextView(request, backState);
-    }
-
-    private void prepareErrorPage(HttpServletRequest request, Model model) {
-        String requestUrl = request.getRequestURL().toString();
-        model.addAttribute("requestUrl", requestUrl);
-        Map<String, String[]> params = request.getParameterMap();
-        HashMap<String, String> finalParams = new HashMap<>();
-        params.keySet().forEach(key -> finalParams.put(key, (request.getParameterMap().get(key) != null && request.getParameterMap().get(key).length > 0) ? request.getParameterMap().get(key)[0] : null));
-        finalParams.remove("personalIdNumber");
-        finalParams.remove("password");
-        model.addAttribute("params", finalParams);
     }
 
     private boolean buttonIsPushed(HttpServletRequest request, MinidPlusButtonType type) {
@@ -228,7 +211,7 @@ public class MinidPlusAuthorizeController {
 
             // Check cancel
             if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
-                return backToIdporten(request, model, STATE_CANCEL);
+                return backToIdporten(request, model, MinidState.STATE_CANCEL);
             }
             if (result.hasErrors()) {
                 InputTerminator.clearAllInput(oneTimePassword, result, model);
@@ -262,7 +245,7 @@ public class MinidPlusAuthorizeController {
             return "minidplus_enter_credentials";
         } else if (state == STATE_ERROR) {
             return "error";
-        } else if (state == STATE_AUTHENTICATED || state == STATE_CANCEL || state == STATE_CONSTRAINT_VIOLATIONS) {
+        } else if (state == STATE_AUTHENTICATED || state == MinidState.STATE_CANCEL || state == STATE_CONSTRAINT_VIOLATIONS) {
             request.getSession().invalidate();
             return "redirect_to_idporten";
         } else if (state == STATE_ALERT) {
@@ -291,7 +274,7 @@ public class MinidPlusAuthorizeController {
                         .queryParam(HTTP_SESSION_LOCALE, ar.getLocale())
                         .queryParam(HTTP_SESSION_GOTO, ar.getGotoParam())
                         .queryParam(HTTP_SESSION_CLIENT_STATE, ar.getState());
-                if (state == STATE_CANCEL) {
+                if (state == MinidState.STATE_CANCEL) {
                     uriComponentsBuilder.queryParam("error", ABORTED_BY_USER);
                     uriComponentsBuilder.queryParam(HTTP_SESSION_SERVICE, START_SERVICE);
                 } else if (state == STATE_CONSTRAINT_VIOLATIONS) {
