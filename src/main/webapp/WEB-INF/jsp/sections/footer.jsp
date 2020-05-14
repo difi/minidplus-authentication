@@ -22,12 +22,7 @@
 <!-- /SECTION: FOOTER -->
 
 <script type="text/javascript" src="js/vendor.min.js"></script>
-<script type="text/javascript" src="js/accordion.js"></script>
-<script type="text/javascript" src="js/country-selector.js"></script>
-<script type="text/javascript" src="js/disabled-links.js"></script>
 <script type="text/javascript" src="js/header.js"></script>
-<script type="text/javascript" src="js/tab.js"></script>
-<script type="text/javascript" src="js/toggleMenues.js"></script>
 
 <script src="js/jquery-3.5.1.slim.min.js">
 </script>

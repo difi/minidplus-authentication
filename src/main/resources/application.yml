@@ -49,6 +49,7 @@ minid-plus:
   code-lifetime-seconds: 600 #60 default
   credential-error-max-number: 3
   quarantine-counter-max-number: 3
+  serverid:
   logging:
     categoryname: minidplus
   cache:

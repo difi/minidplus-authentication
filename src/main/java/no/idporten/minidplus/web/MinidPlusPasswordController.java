@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.difi.resilience.CorrelationId;
 import no.idporten.domain.sp.ServiceProvider;
+import no.idporten.minidplus.domain.MinidState;
 import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.PasswordChange;
 import no.idporten.minidplus.domain.PersonIdInput;
@@ -49,9 +50,6 @@ public class MinidPlusPasswordController {
     protected static final int STATE_VERIFICATION_CODE_SMS = 102;
     protected static final int STATE_VERIFICATION_CODE_EMAIL = 103;
     protected static final int STATE_NEW_PASSWORD = 104;
-    protected static final int STATE_CONTINUE = 108;
-    protected static final int STATE_CANCEL = 109;
-    protected static final int STATE_ERROR = 1010;
     protected static final int STATE_ALERT = 10;
 
     private static final String ABORTED_BY_USER = "aborted_by_user";
@@ -92,7 +90,7 @@ public class MinidPlusPasswordController {
         personId.setPersonalIdNumber("");
         // Check cancel
         if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
-            return getNextView(request, STATE_CANCEL);
+            return getNextView(request, MinidState.STATE_CANCEL);
         }
         if (state == STATE_PERSONID) {
             if (result.hasErrors()) {
@@ -129,7 +127,7 @@ public class MinidPlusPasswordController {
             log.error("invalid state : " + state);
             result.addError(new ObjectError(MODEL_USER_PERSONID, new String[]{"no.idporten.error.line1"}, null, "System error"));
             result.addError(new ObjectError(MODEL_USER_PERSONID, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
-            return getNextView(request, STATE_ERROR);
+            return getNextView(request, MinidState.STATE_ERROR);
         }
 
     }
@@ -143,7 +141,7 @@ public class MinidPlusPasswordController {
             oneTimePassword.setOtpCode("");
             // Check cancel
             if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
-                return getNextView(request, STATE_CANCEL);
+                return getNextView(request, MinidState.STATE_CANCEL);
             }
 
             if (result.hasErrors()) {
@@ -181,7 +179,7 @@ public class MinidPlusPasswordController {
         } catch (MinIDTimeoutException e) {
             warn("Otc timed out " + e.getMessage());
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.module.minidplus.timeout"}, null, "timeout"));
-            getNextView(request, STATE_ERROR);
+            getNextView(request, MinidState.STATE_ERROR);
         } catch (Exception e) {
             warn("Exception handling otp: " + e.getMessage());
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line1"}, null, "System error"));
@@ -199,7 +197,7 @@ public class MinidPlusPasswordController {
             oneTimePassword.setOtpCode("");
             // Check cancel
             if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
-                return getNextView(request, STATE_CANCEL);
+                return getNextView(request, MinidState.STATE_CANCEL);
             }
             if (result.hasErrors()) {
                 InputTerminator.clearAllInput(oneTimePassword, result, model);
@@ -248,7 +246,7 @@ public class MinidPlusPasswordController {
 
             // Check cancel
             if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
-                return getNextView(request, STATE_CANCEL);
+                return getNextView(request, MinidState.STATE_CANCEL);
             }
             if (result.hasErrors()) {
                 InputTerminator.clearAllInput(newPassword, result, model);
@@ -274,10 +272,10 @@ public class MinidPlusPasswordController {
     public String postPasswordChange(HttpServletRequest request) {
         int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
         if (state == STATE_PASSWORD_CHANGED) {
-            return getNextView(request, STATE_CONTINUE);
+            return getNextView(request, MinidState.STATE_CONTINUE);
         } else {
             warn("Illegal state " + state);
-            return getNextView(request, STATE_ERROR);
+            return getNextView(request, MinidState.STATE_ERROR);
         }
     }
 
@@ -296,8 +294,8 @@ public class MinidPlusPasswordController {
             return "alert";
         } else if (state == STATE_PASSWORD_CHANGED) {
             return "minidplus_password_success";
-        } else if (state == STATE_CONTINUE || state == STATE_CANCEL) {
-            return "redirect:/authorize";
+        } else if (state == MinidState.STATE_CONTINUE || state == MinidState.STATE_CANCEL) {
+            return "redirect:authorize";
         }
         return "error";
     }
