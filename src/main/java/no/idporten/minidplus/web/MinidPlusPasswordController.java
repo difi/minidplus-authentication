@@ -50,7 +50,7 @@ public class MinidPlusPasswordController {
     protected static final int STATE_VERIFICATION_CODE_SMS = 102;
     protected static final int STATE_VERIFICATION_CODE_EMAIL = 103;
     protected static final int STATE_NEW_PASSWORD = 104;
-    protected static final int STATE_ALERT = 10;
+    protected static final int STATE_ALERT = 105;
 
     private static final String ABORTED_BY_USER = "aborted_by_user";
 
