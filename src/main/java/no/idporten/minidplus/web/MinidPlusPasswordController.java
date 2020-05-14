@@ -287,7 +287,7 @@ public class MinidPlusPasswordController {
         } else if (state == STATE_PASSWORD_CHANGED) {
             return "minidplus_password_success";
         } else if (state == MinidState.STATE_CONTINUE || state == MinidState.STATE_CANCEL) {
-            return "redirect:authorize";
+            return "redirect:/authorize";
         }
         return "error";
     }
