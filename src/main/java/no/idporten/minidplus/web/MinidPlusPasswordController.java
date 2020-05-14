@@ -104,13 +104,7 @@ public class MinidPlusPasswordController {
                 return getNextView(request, STATE_VERIFICATION_CODE_SMS);
 
             } catch (MinIDQuarantinedUserException e) {
-                if (e.getMessage().equalsIgnoreCase("User is closed")) {
-                    model.addAttribute("alertMessage", "auth.ui.error.closed.message");
-                } else if (e.getMessage().equalsIgnoreCase("User has been in quarantine for more than one hour.")) {
-                    model.addAttribute("alertMessage", "auth.ui.error.locked.message");
-                } else {
-                    model.addAttribute("alertMessage", "auth.ui.error.quarantined.message");
-                }
+                addQuarantinedMessage(e, model);
                 return getNextView(request, STATE_ALERT);
             } catch (MinidUserNotFoundException e) {
                 result.addError(new ObjectError(MODEL_USER_PERSONID, new String[]{"auth.ui.usererror.format.ssn"}, null, "Login failed"));
@@ -161,13 +155,7 @@ public class MinidPlusPasswordController {
                 result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line1"}, null, "System error"));
             }
         } catch (MinIDQuarantinedUserException e) {
-            if (e.getMessage().equalsIgnoreCase("User is closed")) {
-                model.addAttribute("alertMessage", "auth.ui.error.closed.message");
-            } else if (e.getMessage().equalsIgnoreCase("User has been in quarantine for more than one hour.")) {
-                model.addAttribute("alertMessage", "auth.ui.error.locked.message");
-            } else {
-                model.addAttribute("alertMessage", "auth.ui.error.quarantined.message");
-            }
+            addQuarantinedMessage(e, model);
             return getNextView(request, STATE_ALERT);
         } catch (MinIDPincodeException e) {
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.format.otc.locked"}, null, "Too many attempts"));
@@ -215,13 +203,7 @@ public class MinidPlusPasswordController {
                 result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line1"}, null, "System error"));
             }
         } catch (MinIDQuarantinedUserException e) {
-            if (e.getMessage().equalsIgnoreCase("User is closed")) {
-                model.addAttribute("alertMessage", "auth.ui.error.closed.message");
-            } else if (e.getMessage().equalsIgnoreCase("User has been in quarantine for more than one hour.")) {
-                model.addAttribute("alertMessage", "auth.ui.error.locked.message");
-            } else {
-                model.addAttribute("alertMessage", "auth.ui.error.quarantined.message");
-            }
+            addQuarantinedMessage(e, model);
             return getNextView(request, STATE_ALERT);
         } catch (MinIDPincodeException e) {
             warn("Pincode locked " + e.getMessage());
@@ -266,6 +248,16 @@ public class MinidPlusPasswordController {
             result.addError(new ObjectError(MODEL_PASSWORDCHANGE, new String[]{"no.idporten.forgottenpassword.failed"}, null, "System error"));
         }
         return getNextView(request, STATE_NEW_PASSWORD);
+    }
+
+    private void addQuarantinedMessage(MinIDQuarantinedUserException e, Model model) {
+        if (e.getMessage().equalsIgnoreCase("User is closed")) {
+            model.addAttribute("alertMessage", "auth.ui.error.closed.message");
+        } else if (e.getMessage().equalsIgnoreCase("User has been in quarantine for more than one hour.")) {
+            model.addAttribute("alertMessage", "auth.ui.error.locked.message");
+        } else {
+            model.addAttribute("alertMessage", "auth.ui.error.quarantined.message");
+        }
     }
 
     @PostMapping(params = "minidplus.inputbutton.CONTINUE")
