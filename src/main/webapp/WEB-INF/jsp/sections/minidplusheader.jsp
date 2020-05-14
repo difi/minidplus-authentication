@@ -18,9 +18,7 @@
             <!-- NOTE: Present on pages with service provider name and logo. Visible on mobile sreens only. -->
             <span class="h-Main_Content_Provider"><spring:message text="${serviceprovider.name}"/></span>
         </div>
-        <a href='' role='button' class='h-Menu_Trigger-mobile'><span class="fa fa-bars"></span></a>
-        <div class='h-Menu_Container' id='js-menues'>
-        </div>
+
 </header>
 
 <!-- /SECTION: HEADER -->
