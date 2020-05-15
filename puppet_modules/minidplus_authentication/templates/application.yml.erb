@@ -37,7 +37,10 @@ spring:
     base: <%= @ldap_base_minid %>
     maxConnections: 10
     maxWait: 5000
-
+  security:
+    user:
+      name: <%= @basic_auth_client_id %>
+      password: <%= @basic_auth_client_secret %>
 event:
   jmsUrl: <%= @eventlog_jms_url %>
   jmsQueue: <%= @eventlog_jms_queuename %>

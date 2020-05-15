@@ -273,7 +273,7 @@ public class MinidPlusAuthorizeController {
                 UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance()
                         .uri(new URI(ar.getRedirectUri()))
                         .queryParam(HTTP_SESSION_SID, sid)
-                        .queryParam(HTTP_SESSION_SID, serverid);
+                        .queryParam(SERVERID, serverid);
 
                 uriComponentsBuilder.queryParam(HTTP_SESSION_REDIRECT_URI, ar.getRedirectUri())
                         .queryParam(HTTP_SESSION_LOCALE, ar.getLocale())
