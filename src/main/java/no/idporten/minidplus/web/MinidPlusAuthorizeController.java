@@ -7,10 +7,7 @@ import no.difi.resilience.CorrelationId;
 import no.idporten.domain.auth.AuthType;
 import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.minidplus.domain.*;
-import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
-import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
-import no.idporten.minidplus.exception.minid.MinIDPincodeException;
-import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
+import no.idporten.minidplus.exception.minid.*;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.OTCPasswordService;
 import no.idporten.minidplus.service.ServiceproviderService;
@@ -234,6 +231,10 @@ public class MinidPlusAuthorizeController {
                     result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
                 }
             }
+        } catch (MinIDTimeoutException e) {
+            result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.module.minidplus.timeout"}, null, "Timeout"));
+            model.addAttribute("alertMessage", "no.idporten.module.minidplus.timeout");
+            return getNextView(request, STATE_ALERT);
         } catch (MinIDPincodeException e) {
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.format.otc.locked"}, null, "Too many attempts"));
             model.addAttribute("alertMessage", "auth.ui.error.quarantined.message");
@@ -279,7 +280,7 @@ public class MinidPlusAuthorizeController {
                 UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance()
                         .uri(new URI(ar.getRedirectUri()))
                         .queryParam(HTTP_SESSION_SID, sid)
-                        .queryParam(HTTP_SESSION_SID, serverid);
+                        .queryParam(SERVERID, serverid);
 
                 uriComponentsBuilder.queryParam(HTTP_SESSION_REDIRECT_URI, ar.getRedirectUri())
                         .queryParam(HTTP_SESSION_LOCALE, ar.getLocale())

@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
+@SpringBootTest(properties = {"minid-plus.serverid=testserver"})
 @RunWith(SpringRunner.class)
 @AutoConfigureMockMvc
 public class MinIdPlusAuthorizeControllerTest {
@@ -210,6 +210,8 @@ public class MinIdPlusAuthorizeControllerTest {
         )
                 .andExpect(status().isOk())
                 .andExpect(view().name("redirect_to_idporten"))
+                .andExpect(model().attribute("redirectUrl", containsString("sid=" + code)))
+                .andExpect(model().attribute("redirectUrl", containsString("serverid=testserver")))
                 .andReturn();
     }
 

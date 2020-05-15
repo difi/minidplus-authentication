@@ -13,8 +13,8 @@ spring:
       enabled: false
   security:
     user:
-      name: user
-      password: password
+      name: openam
+      password: clientsecret
   ldap:
     urls: ldap://eid-systest-ldap01.dmz.local:389
     username: cn=directory manager
