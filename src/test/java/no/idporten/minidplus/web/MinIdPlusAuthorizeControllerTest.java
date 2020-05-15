@@ -22,8 +22,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-import java.util.Arrays;
-
 import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.core.StringContains.containsString;
@@ -61,7 +59,7 @@ public class MinIdPlusAuthorizeControllerTest {
     public void test_authorization_session_parameters_set() throws Exception {
         ServiceProvider serviceProvider = new ServiceProvider("NAV");
         when(authenticationService.authenticateUser(anyString(), anyString(), anyString(), eq(serviceProvider), any(LevelOfAssurance.class))).thenReturn(true);
-        when(serviceproviderService.findByEntityIdFilter(anyString())).thenReturn(Arrays.asList(serviceProvider));
+        when(serviceproviderService.getServiceProvider(anyString(), anyString())).thenReturn(serviceProvider);
         AuthorizationRequest ar = getAuthorizationRequest();
         MvcResult mvcResult = mockMvc.perform(get("/authorize")
                 .param(HTTP_SESSION_CLIENT_ID, ar.getSpEntityId())
@@ -81,7 +79,7 @@ public class MinIdPlusAuthorizeControllerTest {
                 .andExpect(request().sessionAttribute("session.state", is(1)))
                 .andExpect(request().sessionAttribute("sid", is(notNullValue())))
                 .andExpect(model().attribute("authorizationRequest", equalTo(ar)))
-                .andExpect(model().attribute("serviceprovider", equalTo(serviceProvider)))
+                .andExpect(request().sessionAttribute("serviceprovider", equalTo(serviceProvider)))
                 .andReturn();
         assertEquals("nb", mvcResult.getResponse().getLocale().toString());
     }

@@ -4,7 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import no.difi.resilience.CorrelationId;
 import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
-import no.idporten.minidplus.domain.MinidState;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.http.HttpStatus;
@@ -16,8 +15,6 @@ import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.http.HttpServletRequest;
-
-import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.HTTP_SESSION_STATE;
 
 @Controller
 @Slf4j
@@ -52,7 +49,6 @@ public class CustomErrorController implements ErrorController {
             log.warn(CorrelationId.get() + " Exception occurred " + errorMsg, e);
         }
         errorPage.addObject("errorMsg", errorMsg);
-        request.getSession().setAttribute(HTTP_SESSION_STATE, MinidState.STATE_CONTINUE); //todo make generic
 
         return errorPage;
     }

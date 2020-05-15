@@ -46,12 +46,12 @@ import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
 @Slf4j
 @RequiredArgsConstructor
 public class MinidPlusPasswordController {
-    protected static final int STATE_PASSWORD_CHANGED = -101;
-    protected static final int STATE_PERSONID = 101;
-    protected static final int STATE_VERIFICATION_CODE_SMS = 102;
-    protected static final int STATE_VERIFICATION_CODE_EMAIL = 103;
-    protected static final int STATE_NEW_PASSWORD = 104;
-    protected static final int STATE_ALERT = 105;
+    static final int STATE_PASSWORD_CHANGED = -101;
+    static final int STATE_PERSONID = 101;
+    static final int STATE_VERIFICATION_CODE_SMS = 102;
+    static final int STATE_VERIFICATION_CODE_EMAIL = 103;
+    static final int STATE_NEW_PASSWORD = 104;
+    static final int STATE_ALERT = 105;
 
     private static final String ABORTED_BY_USER = "aborted_by_user";
 

@@ -22,7 +22,7 @@
                 <form:errors path="password"/>
             </c:set>
 
-            <form:form action="#" class="login" modelAttribute="userCredentials" method="post">
+            <form:form action="authorize" class="login" modelAttribute="userCredentials" method="post">
                 <form:errors path="*" class="notification notification-error with-Icon icon-error" element="div" htmlEscape="false"/>
 
                 <fieldset>

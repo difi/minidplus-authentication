@@ -39,7 +39,10 @@ import javax.validation.Valid;
 import javax.validation.ValidatorFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -104,28 +107,32 @@ public class MinidPlusAuthorizeController {
             request.getSession().invalidate();
             request.getSession().setAttribute(HTTP_SESSION_AUTH_TYPE, AuthType.MINID_PLUS);
             request.getSession().setAttribute(HTTP_SESSION_SID, UUID.randomUUID().toString());
+
+
             setLocale(request, response, authorizationRequest);
             Set<ConstraintViolation<AuthorizationRequest>> violations = validatorFactory.getValidator().validate(authorizationRequest);
             if (!violations.isEmpty()) {
+                log.error(violations.size() + " contraint violation(s) on request: " + violations.toString());
                 return getNextView(request, STATE_CONSTRAINT_VIOLATIONS);
             }
             request.getSession().setAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST, authorizationRequest);
         }
-
-        ServiceProvider sp;
-        try {
-            List<ServiceProvider> serviceProviders = serviceproviderService.findByEntityIdFilter(authorizationRequest.getSpEntityId());
-            serviceProviders = serviceProviders.stream().filter(e -> e.getEntityId().equalsIgnoreCase(authorizationRequest.getSpEntityId())).collect(Collectors.toList());
-            sp = serviceProviders.get(0);
-            model.addAttribute("serviceprovider", sp);
+        if (request.getSession().getAttribute(SERVICEPROVIDER) == null) {
+            ServiceProvider sp = getServiceProvider(authorizationRequest.getSpEntityId(), request.getHeader("host"));
             request.getSession().setAttribute(SERVICEPROVIDER, sp);
-        } catch (Exception e) {
-            warn("Exception handling otp: " + e.getMessage());
         }
-
         UserCredentials userCredentials = new UserCredentials();
         model.addAttribute(MODEL_USER_CREDENTIALS, userCredentials);
         return getNextView(request, STATE_USERDATA);
+    }
+
+    private ServiceProvider getServiceProvider(String entityId, String hostName) {
+        try {
+            return serviceproviderService.getServiceProvider(entityId, hostName);
+        } catch (Exception e) {
+            warn("Exception getting service provider info: " + e.getMessage());
+            return new ServiceProvider("idporten");
+        }
     }
 
     private void setLocale(HttpServletRequest request, HttpServletResponse response, AuthorizationRequest authorizationRequest) {

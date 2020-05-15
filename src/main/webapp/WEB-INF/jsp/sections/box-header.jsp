@@ -4,8 +4,10 @@
 The one above title is displayed on desktop only. the one below on mobile only. -->
 
 <div class='Box_Section Box_Section-ServiceProvider'>
-    <div class='Box_Section_Title'><spring:message text="${serviceprovider.name}"/></div>
-    <img src="/opensso/images/${serviceprovider.logoPath}" alt='${serviceprovider.name}' />
+    <c:if test="${sessionScope.serviceprovider !=null }">
+        <div class='Box_Section_Title'>${sessionScope.serviceprovider.name}</div>
+        <img src="${sessionScope.serviceprovider.logoPath}" alt='${sessionScope.serviceprovider.name}'/>
+    </c:if>
 </div>
 <div class='Box_header'>
     <h1 class='Box_header-title with-logo logo-eid-gray'><spring:message code="no.idporten.module.minid.header" text="Logg inn med MinId"/></h1>
