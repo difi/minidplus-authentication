@@ -51,7 +51,7 @@ minid-plus:
   cache:
     otp-ttl-in-s: <%= @sms_onetimepassword_ttl_seconds %>
   registrationUri: <%= @minidonthefly_registrationUri %>
-  serverid: <% if !(@serverid.empty?) %>/<%= @serverid %>/<% end %>
+  serverid: <% if !(@serverid.empty?) %><%= @serverid %><% end %>
   context-path: /<%= @application %>
 email:
   url: <%= @email_url %>

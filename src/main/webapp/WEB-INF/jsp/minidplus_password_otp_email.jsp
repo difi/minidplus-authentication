@@ -45,7 +45,6 @@
                                         autofocus="autofocus"
                                         maxlength="5"
                                         path="otpCode"
-                                        type="tel"
                                         id="otpCode"
                                         placeholder="${pincodeHelpText}"
                                         value="${otpCode}"
