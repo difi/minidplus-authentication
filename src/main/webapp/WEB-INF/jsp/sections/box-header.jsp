@@ -6,7 +6,7 @@ The one above title is displayed on desktop only. the one below on mobile only. 
 <div class='Box_Section Box_Section-ServiceProvider'>
     <c:if test="${sessionScope.serviceprovider !=null }">
         <div class='Box_Section_Title'>${sessionScope.serviceprovider.name}</div>
-        <img src="${sessionScope.serviceprovider.logoPath}" alt='${sessionScope.serviceprovider.name}'/>
+        <!--<img src="${sessionScope.serviceprovider.logoPath}" alt='${sessionScope.serviceprovider.name}'/>-->
     </c:if>
 </div>
 <div class='Box_header'>
