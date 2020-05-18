@@ -18,5 +18,5 @@ public class MinidPlusSessionAttributes {
     public static final String HTTP_SESSION_SID = "sid";
     public static final String SERVERID = "serverid";
     public static final String AUTHORIZATION_REQUEST = "AUTHORIZATION_REQUEST";
-    public static final String SERVICEPROVIDER = "SERVICEPROVIDER";
+    public static final String SERVICEPROVIDER = "serviceprovider";
 }

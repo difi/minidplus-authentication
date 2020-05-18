@@ -1,6 +1,7 @@
 package no.idporten.minidplus.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import no.idporten.domain.auth.IDPortenSAMLAttributeVersion;
 import no.idporten.domain.sp.EidasSupport;
 import no.idporten.domain.sp.ServiceProvider;
@@ -15,39 +16,73 @@ import org.springframework.ldap.filter.EqualsFilter;
 import org.springframework.ldap.filter.LikeFilter;
 import org.springframework.ldap.support.LdapUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ServiceproviderService {
 
-    private final LdapTemplate ldapTemplate;
+    public static final String DEFAULT_SP_URL = "https://digdir.no";
+    public static final String DEFAULT_SP_NAME = "idporten";
+    public static final String DEFAULT_SP_LOGO_PATH = "images/svg/eid-gray.svg";
+    public static final String OPENSSO_IMAGES_FOLDER = "/opensso/images/";
 
-    private final ServiceProviderContextMapper contextMapper= new ServiceProviderContextMapper();
+    private final LdapTemplate ldapTemplate;
+    private final RestTemplate restTemplate;
+    private final ServiceProviderContextMapper contextMapper = new ServiceProviderContextMapper();
 
     /**
      * Retrieves the service providers associated with the given filter.
+     *
      * @param entityIdFilter a string for filtering the selection based on entity id using wildcards (*)
+     *                       nb: cachen virker ikke
      */
-    @Cacheable(cacheNames = "spCache", unless = "#result == null")
-    public List<ServiceProvider> findByEntityIdFilter(final String entityIdFilter) {
+    @Cacheable(cacheNames = "spCache", key = "#entityIdFilter")
+    public ServiceProvider getServiceProvider(String entityIdFilter, final String hostName) {
+        List<ServiceProvider> sps = findByEntityIdFilter(entityIdFilter);
+        if (sps.isEmpty()) {
+            ServiceProvider sp = new ServiceProvider("idporten");
+            sp.setName(DEFAULT_SP_NAME);
+            sp.setLogoPath(DEFAULT_SP_LOGO_PATH);
+            sp.setUrl(DEFAULT_SP_URL);
+            return sp;
+        }
+        ServiceProvider sp = sps.get(0);
+        try {
+            String fullPath = (hostName != null ? hostName : "") + OPENSSO_IMAGES_FOLDER + sp.getLogoPath();
+            if (log.isDebugEnabled()) {
+                log.debug("Fetching logo from path " + fullPath);
+            }
+            //preflight test
+            this.restTemplate.getForObject(fullPath, Object.class);
+            sp.setLogoPath(OPENSSO_IMAGES_FOLDER + sp.getLogoPath());
+        } catch (Exception e) {
+            sp.setLogoPath(DEFAULT_SP_LOGO_PATH);
+        }
+        return sp;
+    }
+
+    protected List<ServiceProvider> findByEntityIdFilter(String entityIdFilter) {
         final AndFilter andFilter = new AndFilter();
         andFilter.and(new EqualsFilter("objectclass", "idporten-serviceprovider"));
         andFilter.and(new LikeFilter(LdapAttribute.ENTITYID.getName(), '*' + entityIdFilter + '*'));
         final List<ServiceProvider> list = ldapTemplate.search(LdapUtils.emptyLdapName(), andFilter.encode(), contextMapper);
-        Collections.sort(list, (o1, o2) -> o1.getName().compareTo(o2.getName()));
-        return list;
+        return list.stream().filter(e -> e.getEntityId().equalsIgnoreCase(entityIdFilter)).collect(Collectors.toList());
     }
+
 
     /**
      * Retrieves all service providers from LDAP.
      *
      * @return service providers
      */
-    @Cacheable(cacheNames="spCache", unless = "#result == null")
+    @Cacheable(cacheNames = "spCache", unless = "#result == null")
     public List<ServiceProvider> findAll() {
         final AndFilter andFilter = new AndFilter();
         andFilter.and(new EqualsFilter("objectclass", "idporten-serviceprovider"));
@@ -83,7 +118,7 @@ public class ServiceproviderService {
             sp.setAlternativeTextSe(ctx.getStringAttribute(LdapAttribute.ALTERNATIVE_TEXT_SE.getName()));
             sp.setIdportenSamlAttributeVersion(IDPortenSAMLAttributeVersion.resolve(ctx.getStringAttribute(LdapAttribute.IDPORTEN_SAML_ATTRIBUTE_VERSION.getName())));
             sp.setEidasSupport(EidasSupport.resolve(ctx.getStringAttribute(LdapAttribute.EIDAS_SUPPORT.getName())));
-            sp.setTurnOffDpiInformation(Boolean.valueOf(ctx.getStringAttribute(LdapAttribute.TURN_OFF_DPI_INFORMATION.getName())));
+            sp.setTurnOffDpiInformation(Boolean.parseBoolean(ctx.getStringAttribute(LdapAttribute.TURN_OFF_DPI_INFORMATION.getName())));
             sp.setOrgNumber(ctx.getStringAttribute(LdapAttribute.ORG_NUMBER.getName()));
             sp.setSupplierOrgNumber(ctx.getStringAttribute(LdapAttribute.SUPPLIER_ORG_NUMBER.getName()));
             sp.setActive(getBoolean(ctx.getStringAttribute(LdapAttribute.ACTIVE.getName()), true));
@@ -94,12 +129,14 @@ public class ServiceproviderService {
             if (StringUtils.isEmpty(value)) {
                 return defaultIfEmpty;
             }
-            return Boolean.valueOf(value);
+            return Boolean.parseBoolean(value);
         }
 
     }
 
-    /** LDAP attributes for a service provider. */
+    /**
+     * LDAP attributes for a service provider.
+     */
     enum LdapAttribute {
 
         ENTITYID("serviceprovider-entityid"),
@@ -129,7 +166,7 @@ public class ServiceproviderService {
         private final String name;
 
         LdapAttribute(final String name) {
-            this.name= name;
+            this.name = name;
         }
 
         public String getName() {

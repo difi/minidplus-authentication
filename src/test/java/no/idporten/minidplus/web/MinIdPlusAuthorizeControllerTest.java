@@ -17,12 +17,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-
-import java.util.Arrays;
 
 import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
 import static org.hamcrest.CoreMatchers.*;
@@ -37,7 +36,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(properties = { "minid-plus.serverid=testserver" })
+@SpringBootTest(properties = {"minid-plus.serverid=testserver"})
 @RunWith(SpringRunner.class)
 @AutoConfigureMockMvc
 public class MinIdPlusAuthorizeControllerTest {
@@ -61,9 +60,10 @@ public class MinIdPlusAuthorizeControllerTest {
     public void test_authorization_session_parameters_set() throws Exception {
         ServiceProvider serviceProvider = new ServiceProvider("NAV");
         when(authenticationService.authenticateUser(anyString(), anyString(), anyString(), eq(serviceProvider), any(LevelOfAssurance.class))).thenReturn(true);
-        when(serviceproviderService.findByEntityIdFilter(anyString())).thenReturn(Arrays.asList(serviceProvider));
+        when(serviceproviderService.getServiceProvider(eq("NAV"), eq("localhost"))).thenReturn(serviceProvider);
         AuthorizationRequest ar = getAuthorizationRequest();
         MvcResult mvcResult = mockMvc.perform(get("/authorize")
+                .header(HttpHeaders.HOST, "localhost")
                 .param(HTTP_SESSION_CLIENT_ID, ar.getSpEntityId())
                 .param(HTTP_SESSION_REDIRECT_URI, ar.getRedirectUri())
                 .param(HTTP_SESSION_RESPONSE_TYPE, ar.getResponseType())
@@ -81,7 +81,7 @@ public class MinIdPlusAuthorizeControllerTest {
                 .andExpect(request().sessionAttribute("session.state", is(1)))
                 .andExpect(request().sessionAttribute("sid", is(notNullValue())))
                 .andExpect(model().attribute("authorizationRequest", equalTo(ar)))
-                .andExpect(model().attribute("serviceprovider", equalTo(serviceProvider)))
+                .andExpect(request().sessionAttribute("serviceprovider", equalTo(serviceProvider)))
                 .andReturn();
         assertEquals("nb", mvcResult.getResponse().getLocale().toString());
     }
