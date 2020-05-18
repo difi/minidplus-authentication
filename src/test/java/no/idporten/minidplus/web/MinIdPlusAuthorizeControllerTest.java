@@ -124,13 +124,13 @@ public class MinIdPlusAuthorizeControllerTest {
     public void test_post_credentials_successful() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
         when(minidPlusCache.getSSN(code)).thenReturn(pid);
-        when(authenticationService.authenticateUser(eq(code), eq(pid), eq("abc"), eq(sp), any(LevelOfAssurance.class))).thenReturn(true);
+        when(authenticationService.authenticateUser(eq(code), eq(pid), eq("abcabcabc3"), eq(sp), any(LevelOfAssurance.class))).thenReturn(true);
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
                 .sessionAttr(HTTP_SESSION_STATE, 1)
                 .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
                 .param("personalIdNumber", pid)
-                .param("password", "abc")
+                .param("password", "abcabcabc3")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .with(csrf())
         )
@@ -180,14 +180,14 @@ public class MinIdPlusAuthorizeControllerTest {
     @Test
     public void test_wrong_acr_level() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
-        when(authenticationService.authenticateUser(eq(code), eq(pid), eq("helloWorld"), eq(sp), any(LevelOfAssurance.class))).thenThrow(new MinIDInvalidAcrLevelException("Dude...wrong level :-/"));
+        when(authenticationService.authenticateUser(eq(code), eq(pid), eq("abcabcabc3"), eq(sp), any(LevelOfAssurance.class))).thenThrow(new MinIDInvalidAcrLevelException("Dude...wrong level :-/"));
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
                 .sessionAttr(HTTP_SESSION_STATE, 1)
                 .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
                 .sessionAttr(SERVICEPROVIDER, sp)
                 .param("personalIdNumber", pid)
-                .param("password", "helloWorld")
+                .param("password", "abcabcabc3")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .with(csrf())
         )
