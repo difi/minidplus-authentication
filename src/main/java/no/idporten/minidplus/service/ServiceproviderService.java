@@ -54,16 +54,31 @@ public class ServiceproviderService {
             return sp;
         }
         ServiceProvider sp = sps.get(0);
-        try {
-            String fullPath = (hostName != null ? hostName : "") + OPENSSO_IMAGES_FOLDER + sp.getLogoPath();
-            if (log.isDebugEnabled()) {
-                log.debug("Fetching logo from path " + fullPath);
-            }
-            //preflight test
-            this.restTemplate.getForObject(fullPath, Object.class);
-            sp.setLogoPath(OPENSSO_IMAGES_FOLDER + sp.getLogoPath());
-        } catch (Exception e) {
+        StringBuilder fullPath = new StringBuilder();
+        if (hostName == null) {
+            log.warn("Could not find logo from empty hostname. Setting default.");
             sp.setLogoPath(DEFAULT_SP_LOGO_PATH);
+            return sp;
+        } else {
+            if (hostName.startsWith("localhost")) {
+                fullPath.append("http://");
+            } else {
+                fullPath.append("https://");
+            }
+            try {
+                fullPath.append(hostName);
+                fullPath.append(OPENSSO_IMAGES_FOLDER);
+                fullPath.append(sp.getLogoPath());
+                if (log.isDebugEnabled()) {
+                    log.debug("Fetching logo from path " + fullPath);
+                }
+                //preflight test
+                this.restTemplate.getForObject(fullPath.toString(), Object.class);
+                sp.setLogoPath(OPENSSO_IMAGES_FOLDER + sp.getLogoPath());
+            } catch (Exception e) {
+                log.warn("Could not find logo from url: " + fullPath + ". Setting default to " + DEFAULT_SP_LOGO_PATH);
+                sp.setLogoPath(DEFAULT_SP_LOGO_PATH);
+            }
         }
         return sp;
     }

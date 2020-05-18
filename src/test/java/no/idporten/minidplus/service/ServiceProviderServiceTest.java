@@ -64,7 +64,7 @@ public class ServiceProviderServiceTest {
 
         when(restTemplate.getForObject(eq("http://localhost" + OPENSSO_IMAGES_FOLDER + expected.getLogoPath()), eq(Object.class))).thenThrow(new RuntimeException("not found"));
         when(serviceproviderService.findByEntityIdFilter("nav")).thenReturn(Collections.singletonList(expected));
-        ServiceProvider sp = serviceproviderService.getServiceProvider("nav", "http://localhost");
+        ServiceProvider sp = serviceproviderService.getServiceProvider("nav", "localhost");
         assertEquals(expected.getName(), sp.getName());
         assertEquals(DEFAULT_SP_LOGO_PATH, sp.getLogoPath());
         assertEquals(expected.getUrl(), sp.getUrl());

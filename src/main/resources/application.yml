@@ -82,6 +82,7 @@ server:
     protocol-header: x-forwarded-proto
   servlet:
     session:
+      timeout: 30s
       cookie:
         http-only: true
   forward-headers-strategy: native
