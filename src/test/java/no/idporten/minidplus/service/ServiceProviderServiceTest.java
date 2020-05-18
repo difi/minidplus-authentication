@@ -48,7 +48,7 @@ public class ServiceProviderServiceTest {
         expected.setUrl("https://nav.no");
         expected.setLogoPath("nav.gif");
         when(serviceproviderService.findByEntityIdFilter("nav")).thenReturn(Collections.singletonList(expected));
-        ServiceProvider sp = serviceproviderService.getServiceProvider("nav", "localhost");
+        ServiceProvider sp = serviceproviderService.getServiceProvider("nav", "hei.no");
         assertEquals(expected.getName(), sp.getName());
         assertEquals(OPENSSO_IMAGES_FOLDER + "nav.gif", sp.getLogoPath());
         assertEquals(expected.getUrl(), sp.getUrl());
