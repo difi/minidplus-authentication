@@ -47,6 +47,7 @@ public class ServiceproviderService {
     public ServiceProvider getServiceProvider(String entityIdFilter, final String hostName) {
         List<ServiceProvider> sps = findByEntityIdFilter(entityIdFilter);
         if (sps.isEmpty()) {
+            log.warn("Service provider not found");
             ServiceProvider sp = new ServiceProvider("idporten");
             sp.setName(DEFAULT_SP_NAME);
             sp.setLogoPath(DEFAULT_SP_LOGO_PATH);
@@ -54,33 +55,15 @@ public class ServiceproviderService {
             return sp;
         }
         ServiceProvider sp = sps.get(0);
-        StringBuilder fullPath = new StringBuilder();
-        if (hostName == null) {
-            log.warn("Could not find logo from empty hostname. Setting default.");
+        if (hostName == null || hostName.startsWith("localhost")) {
+            log.warn("Could not find logo from empty hostname or localhost. Setting default.");
             sp.setLogoPath(DEFAULT_SP_LOGO_PATH);
             return sp;
         } else {
-            if (hostName.startsWith("localhost")) {
-                fullPath.append("http://");
-            } else {
-                fullPath.append("https://");
-            }
-            try {
-                fullPath.append(hostName);
-                fullPath.append(OPENSSO_IMAGES_FOLDER);
-                fullPath.append(sp.getLogoPath());
-                if (log.isDebugEnabled()) {
-                    log.debug("Fetching logo from path " + fullPath);
-                }
-                //preflight test
-                this.restTemplate.getForObject(fullPath.toString(), Object.class);
-                sp.setLogoPath(OPENSSO_IMAGES_FOLDER + sp.getLogoPath());
-            } catch (Exception e) {
-                log.warn("Could not find logo from url: " + fullPath + ". Setting default to " + DEFAULT_SP_LOGO_PATH);
-                sp.setLogoPath(DEFAULT_SP_LOGO_PATH);
-            }
+            sp.setLogoPath(OPENSSO_IMAGES_FOLDER + sp.getLogoPath());
+            return sp;
         }
-        return sp;
+
     }
 
     protected List<ServiceProvider> findByEntityIdFilter(String entityIdFilter) {
