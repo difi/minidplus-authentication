@@ -1,11 +1,10 @@
-<%@ page import="no.idporten.minidplus.domain.MinidPlusSessionAttributes" %>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
 <!-- SECTION: FOOTER -->
 <footer class="f-Main">
     <div class='f-Main_Content'>
         <div class='f-Main_Logo' aria-hidden="true"></div>
         <div class='f-Main_Info'>
-            <a href="/opensso/support.jsp?service=<%= MinidPlusSessionAttributes.SERVICE_NAME%>"
+            <a href="<spring:message code='no.idporten.support.openinghours.link'/>"
                class='f-Main_Link'><span><spring:message code="no.idporten.module.common.footer.contactlinktext"
                                                          text="Contact form"/></span></a>
             <a href="tel:+4780030300" class='f-Main_Link'><span><spring:message code="no.idporten.module.common.footer.telephone" text="Tel: 800 30 300"/></span></a>
