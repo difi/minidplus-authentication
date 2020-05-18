@@ -16,6 +16,7 @@ import no.idporten.ui.impl.MinidPlusButtonType;
 import no.minid.exception.MinidUserInvalidException;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -115,7 +116,7 @@ public class MinidPlusAuthorizeController {
             request.getSession().setAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST, authorizationRequest);
         }
         if (request.getSession().getAttribute(SERVICEPROVIDER) == null) {
-            ServiceProvider sp = getServiceProvider(authorizationRequest.getSpEntityId(), request.getHeader("host"));
+            ServiceProvider sp = getServiceProvider(authorizationRequest.getSpEntityId(), request.getHeader(HttpHeaders.HOST));
             request.getSession().setAttribute(SERVICEPROVIDER, sp);
         }
         UserCredentials userCredentials = new UserCredentials();

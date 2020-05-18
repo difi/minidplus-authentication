@@ -18,7 +18,7 @@
             <!-- NOTE: Present on pages with service provider name and logo. Visible on mobile sreens only. -->
             <span class="h-Main_Content_Provider"><spring:message text="${serviceprovider.name}"/></span>
         </div>
-
+    </div>
 </header>
 
 <!-- /SECTION: HEADER -->

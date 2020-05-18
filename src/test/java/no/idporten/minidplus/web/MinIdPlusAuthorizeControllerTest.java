@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
@@ -59,9 +60,10 @@ public class MinIdPlusAuthorizeControllerTest {
     public void test_authorization_session_parameters_set() throws Exception {
         ServiceProvider serviceProvider = new ServiceProvider("NAV");
         when(authenticationService.authenticateUser(anyString(), anyString(), anyString(), eq(serviceProvider), any(LevelOfAssurance.class))).thenReturn(true);
-        when(serviceproviderService.getServiceProvider(anyString(), anyString())).thenReturn(serviceProvider);
+        when(serviceproviderService.getServiceProvider(eq("NAV"), eq("localhost"))).thenReturn(serviceProvider);
         AuthorizationRequest ar = getAuthorizationRequest();
         MvcResult mvcResult = mockMvc.perform(get("/authorize")
+                .header(HttpHeaders.HOST, "localhost")
                 .param(HTTP_SESSION_CLIENT_ID, ar.getSpEntityId())
                 .param(HTTP_SESSION_REDIRECT_URI, ar.getRedirectUri())
                 .param(HTTP_SESSION_RESPONSE_TYPE, ar.getResponseType())

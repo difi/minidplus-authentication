@@ -35,10 +35,11 @@ public class ServiceproviderService {
 
     private final LdapTemplate ldapTemplate;
     private final RestTemplate restTemplate;
-    private final ServiceProviderContextMapper contextMapper= new ServiceProviderContextMapper();
+    private final ServiceProviderContextMapper contextMapper = new ServiceProviderContextMapper();
 
     /**
      * Retrieves the service providers associated with the given filter.
+     *
      * @param entityIdFilter a string for filtering the selection based on entity id using wildcards (*)
      *                       nb: cachen virker ikke
      */
@@ -54,13 +55,13 @@ public class ServiceproviderService {
         }
         ServiceProvider sp = sps.get(0);
         try {
-            String logoPath = hostName + OPENSSO_IMAGES_FOLDER + sp.getLogoPath();
+            String fullPath = (hostName != null ? hostName : "") + OPENSSO_IMAGES_FOLDER + sp.getLogoPath();
             if (log.isDebugEnabled()) {
-                log.debug("Fetching logo from path " + logoPath);
+                log.debug("Fetching logo from path " + fullPath);
             }
             //preflight test
-            this.restTemplate.getForObject(logoPath, Object.class);
-            sp.setLogoPath("../" + OPENSSO_IMAGES_FOLDER + sp.getLogoPath());
+            this.restTemplate.getForObject(fullPath, Object.class);
+            sp.setLogoPath(OPENSSO_IMAGES_FOLDER + sp.getLogoPath());
         } catch (Exception e) {
             sp.setLogoPath(DEFAULT_SP_LOGO_PATH);
         }
@@ -81,7 +82,7 @@ public class ServiceproviderService {
      *
      * @return service providers
      */
-    @Cacheable(cacheNames="spCache", unless = "#result == null")
+    @Cacheable(cacheNames = "spCache", unless = "#result == null")
     public List<ServiceProvider> findAll() {
         final AndFilter andFilter = new AndFilter();
         andFilter.and(new EqualsFilter("objectclass", "idporten-serviceprovider"));
@@ -133,7 +134,9 @@ public class ServiceproviderService {
 
     }
 
-    /** LDAP attributes for a service provider. */
+    /**
+     * LDAP attributes for a service provider.
+     */
     enum LdapAttribute {
 
         ENTITYID("serviceprovider-entityid"),
@@ -163,7 +166,7 @@ public class ServiceproviderService {
         private final String name;
 
         LdapAttribute(final String name) {
-            this.name= name;
+            this.name = name;
         }
 
         public String getName() {
