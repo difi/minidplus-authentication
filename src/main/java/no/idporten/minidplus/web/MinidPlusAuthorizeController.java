@@ -142,7 +142,6 @@ public class MinidPlusAuthorizeController {
                 result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.error.sendingotc.messsage"}, null, "Mobile number not registered on your user"));
             } catch (MinIDInvalidAcrLevelException e) {
                 warn("User attempted to log in with wrong acr: " + e.getMessage());
-                model.addAttribute("serviceprovider", sp);
                 return getNextView(request, STATE_LOGIN_WRONG_ACR);
             } catch (MinIDQuarantinedUserException e) {
                 if (e.getMessage().equalsIgnoreCase("User is closed")) {
