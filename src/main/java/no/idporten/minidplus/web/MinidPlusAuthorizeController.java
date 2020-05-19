@@ -131,12 +131,12 @@ public class MinidPlusAuthorizeController {
                 model.addAttribute(oneTimePassword);
                 return getNextView(request, STATE_LOGIN_VERIFICATION_CODE);
             } catch (MinIDIncorrectCredentialException e) {
+                warn("Incorrect credentials " + e.getMessage());
                 if (e.getMessage().equalsIgnoreCase("Password validation failed, last try.")) {
                     result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.wrong.credentials.lasttry"}, null, "Wrong credentials"));
                 } else {
                     result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.wrong.credentials"}, null, "Wrong credentials"));
                 }
-                return getNextView(request, STATE_START_LOGIN);
             } catch (MinidUserInvalidException e) {
                 warn("User exception occurred " + e.getMessage());
                 result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.error.sendingotc.messsage"}, null, "Mobile number not registered on your user"));
@@ -144,6 +144,7 @@ public class MinidPlusAuthorizeController {
                 warn("User attempted to log in with wrong acr: " + e.getMessage());
                 return getNextView(request, STATE_LOGIN_WRONG_ACR);
             } catch (MinIDQuarantinedUserException e) {
+                warn("User quarantined " + e.getMessage());
                 if (e.getMessage().equalsIgnoreCase("User is closed")) {
                     model.addAttribute("alertMessage", "auth.ui.error.closed.message");
                 } else if (e.getMessage().equalsIgnoreCase("User has been in quarantine for more than one hour.")) {
@@ -156,6 +157,7 @@ public class MinidPlusAuthorizeController {
                 log.error("Unexpected exception occurred during post user credentials", e);
                 result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.error.line1"}, null, "Login failed"));
             }
+            model.addAttribute(new UserCredentials());
             return getNextView(request, STATE_START_LOGIN);
         } else {
             log.error("Illegal state " + state);
@@ -173,6 +175,7 @@ public class MinidPlusAuthorizeController {
             oneTimePassword.setOtpCode("");
 
             if (result.hasErrors()) {
+                warn("There are contraint violations: " + Arrays.toString(result.getAllErrors().toArray()));
                 InputTerminator.clearAllInput(oneTimePassword, result, model);
                 return getNextView(request, STATE_LOGIN_VERIFICATION_CODE);
             }
@@ -184,10 +187,12 @@ public class MinidPlusAuthorizeController {
                 }
             }
         } catch (MinIDTimeoutException e) {
+            warn("User cache timed out " + e.getMessage());
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.module.minidplus.timeout"}, null, "Timeout"));
             model.addAttribute("alertMessage", "no.idporten.module.minidplus.timeout");
             return getNextView(request, STATE_ALERT);
         } catch (MinIDPincodeException e) {
+            warn("User pincode locked " + e.getMessage());
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.format.otc.locked"}, null, "Too many attempts"));
             model.addAttribute("alertMessage", "auth.ui.error.quarantined.message");
             return getNextView(request, STATE_ALERT);
@@ -196,6 +201,7 @@ public class MinidPlusAuthorizeController {
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line1"}, null, "System error"));
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
         }
+        model.addAttribute(new OneTimePassword());
         return getNextView(request, STATE_LOGIN_VERIFICATION_CODE);
     }
 
@@ -264,8 +270,12 @@ public class MinidPlusAuthorizeController {
                 } else {
                     uriComponentsBuilder.queryParam(HTTP_SESSION_SERVICE, SERVICE_NAME);
                 }
-                return uriComponentsBuilder.build()
+                String uri = uriComponentsBuilder.build()
                         .toUriString();
+                if (log.isDebugEnabled()) {
+                    log.debug("Redirecting back to " + uri);
+                }
+                return uri;
             } catch (URISyntaxException e) {
                 log.error(CorrelationId.get() + " Wrong syntax during URI building", e);
             }
