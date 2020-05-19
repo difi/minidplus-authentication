@@ -243,7 +243,11 @@ public class OTCPasswordService {
             user.setQuarantineCounter(user.getQuarantineCounter() + 1);
             if (user.getQuarantineCounter() >= maxNumberOfQuarantineCounters) {
                 user.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant().plusSeconds(3600)));
-                user.setState(MinidUser.State.QUARANTINED);
+                if (user.isDummy()) {
+                    user.setState(MinidUser.State.QUARANTINED_NEW_USER);
+                } else {
+                    user.setState(MinidUser.State.QUARANTINED);
+                }
                 minIDService.setQuarantineCounter(user.getPersonNumber(), user.getQuarantineCounter());
                 minIDService.setUserStateQuarantined(user.getPersonNumber());
                 minIDService.setQuarantineExpiryDate(user.getPersonNumber(), user.getQuarantineExpiryDate());

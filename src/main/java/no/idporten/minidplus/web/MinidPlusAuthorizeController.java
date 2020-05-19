@@ -169,7 +169,11 @@ public class MinidPlusAuthorizeController {
                 model.addAttribute(oneTimePassword);
                 return getNextView(request, STATE_VERIFICATION_CODE);
             } catch (MinIDIncorrectCredentialException e) {
-                result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.wrong.credentials"}, null, "Wrong credentials"));
+                if (e.getMessage().equalsIgnoreCase("Password validation failed, last try.")) {
+                    result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.wrong.credentials.lasttry"}, null, "Wrong credentials"));
+                } else {
+                    result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.wrong.credentials"}, null, "Wrong credentials"));
+                }
                 return getNextView(request, STATE_USERDATA);
             } catch (MinidUserInvalidException e) {
                 warn("User exception occurred " + e.getMessage());

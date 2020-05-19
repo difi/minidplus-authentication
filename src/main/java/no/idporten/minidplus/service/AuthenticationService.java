@@ -73,7 +73,11 @@ public class AuthenticationService {
             identity.setCredentialErrorCounter(identity.getCredentialErrorCounter() + 1);
             if (identity.getCredentialErrorCounter() >= maxNumberOfCredentialErrors) {
                 identity.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant().plusSeconds(3600)));
-                identity.setState(MinidUser.State.QUARANTINED);
+                if (identity.isDummy()) {
+                    identity.setState(MinidUser.State.QUARANTINED_NEW_USER);
+                } else {
+                    identity.setState(MinidUser.State.QUARANTINED);
+                }
                 minIDService.setCredentialErrorCounter(identity.getPersonNumber(), identity.getCredentialErrorCounter());
                 minIDService.setUserStateQuarantined(identity.getPersonNumber());
                 minIDService.setQuarantineExpiryDate(identity.getPersonNumber(), identity.getQuarantineExpiryDate());
@@ -82,6 +86,9 @@ public class AuthenticationService {
             }
             minIDService.setCredentialErrorCounter(identity.getPersonNumber(), identity.getCredentialErrorCounter());
             warn("Password invalid for user");
+            if (isLastTry(identity)) {
+                throw new MinIDIncorrectCredentialException(IDPortenExceptionID.IDENTITY_PASSWORD_INCORRECT, "Password validation failed, last try.");
+            }
             throw new MinIDIncorrectCredentialException(IDPortenExceptionID.IDENTITY_PASSWORD_INCORRECT, "Password validation failed");
         }
 
@@ -166,10 +173,17 @@ public class AuthenticationService {
             warn("User not found. Creating dummy user");
             try {
                 identity = minIDService.createDummyUser(new PersonNumber(pid));
+                minIDService.setCredentialErrorCounter(identity.getPersonNumber(), 0);
             } catch (MinidUserAlreadyExistsException x) {
                 //Should never happen
                 identity =  findUserFromPid(pid);
             }
+        }
+        if (identity.getQuarantineCounter() >= maxNumberOfQuarantineCounters) {
+            throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "pin code is locked");
+        }
+        if (identity.getCredentialErrorCounter() >= maxNumberOfCredentialErrors) {
+            throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User is in quarantine, unauthorized");
         }
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
         otcPasswordService.sendSMSOtp(sid, sp, identity);
@@ -194,6 +208,10 @@ public class AuthenticationService {
             throw new MinidUserNotFoundException("User not found.");
         }
         return identity;
+    }
+
+    private boolean isLastTry(MinidUser user) {
+        return user.getCredentialErrorCounter() == maxNumberOfCredentialErrors - 1;
     }
 
     private void warn(String message) {
