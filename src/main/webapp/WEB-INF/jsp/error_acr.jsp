@@ -13,15 +13,15 @@
         <div id="minidplusswrapper">
             <div class="notification notification-error with-Icon icon-error">
                 <p><spring:message code="no.idporten.module.minidplus.invalidacr.info1"/></p>
-                <form:form id="complete" class="login"
+                <form:form action="authorize" id="complete" class="login"
                            method="post">
-                    <input type="hidden" id="personalIdNumber" name="personalIdNumber" value=""/>
                     <p>
                         <button class='btn btn-Action' tabindex="1" autofocus="autofocus"
                                 id="<%= MinidPlusButtonType.CANCEL.id() %>"
                                 name="<%= MinidPlusButtonType.CANCEL.id() %>">
                             <span><spring:message code="no.idporten.module.minidplus.invalidacr.linktext1"
-                                                  arguments="${serviceprovider.name}" htmlEscape="false"/></span>
+                                                  arguments="${sessionScope.serviceprovider.name}"
+                                                  htmlEscape="false"/></span>
                         </button>
                     </p>
 
