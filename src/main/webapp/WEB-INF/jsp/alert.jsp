@@ -9,8 +9,9 @@
     <section class="Box Box-noBorder">
         <div class="Box_main">
             <div class="notification with-Icon">
+                <spring:message code="no.idporten.module.minidplus.registrationpage" var="regPage"/>
                 <h1><spring:message code="no.idporten.warning.header"/></h1>
-                <spring:message code="${alertMessage}"/>
+                <spring:message code="${alertMessage}" arguments="${regPage}"/>
             </div>
         </div>
     </section>
