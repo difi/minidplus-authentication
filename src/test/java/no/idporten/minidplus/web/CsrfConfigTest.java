@@ -8,6 +8,7 @@ import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.MinidPlusCache;
+import no.idporten.minidplus.util.MinidPlusButtonType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -89,6 +90,7 @@ public class CsrfConfigTest {
                 .sessionAttr(HTTP_SESSION_STATE, 2)
                 .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
                 .param("otpCode", otp)
+                .param(MinidPlusButtonType.NEXT.id(), "")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .with(csrf())
         )

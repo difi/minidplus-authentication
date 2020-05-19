@@ -2,9 +2,8 @@ package no.idporten.minidplus.web;
 
 import lombok.extern.slf4j.Slf4j;
 import no.difi.resilience.CorrelationId;
-import no.idporten.minidplus.domain.AuthorizationRequest;
-import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
-import org.springframework.beans.factory.annotation.Value;
+import no.idporten.minidplus.domain.MinidState;
+import no.idporten.minidplus.domain.UserCredentials;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -16,12 +15,11 @@ import org.springframework.web.servlet.ModelAndView;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.http.HttpServletRequest;
 
+import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.HTTP_SESSION_STATE;
+
 @Controller
 @Slf4j
 public class CustomErrorController implements ErrorController {
-
-    @Value("${minid-plus.context-path}")
-    public String contextPath = "";
 
     @GetMapping("/error")
     public ModelAndView handleError(HttpServletRequest request) {
@@ -53,21 +51,11 @@ public class CustomErrorController implements ErrorController {
         return errorPage;
     }
 
-    @PostMapping("/error")
+    @PostMapping("/retry")
     public String handleRetry(HttpServletRequest request, Model model) {
-        if (request.getSession().getAttribute("retry") == null) {
-            request.getSession().setAttribute("retry", true);
-            return "redirect:" + contextPath + "/authorize";
-        } else {
-            if (request.getSession().getAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST) != null) {
-                AuthorizationRequest ar = (AuthorizationRequest) request.getSession().getAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST);
-                request.getSession().removeAttribute("retry");
-                return "redirect:" + ar.getGotoParam();
-            } else {
-                model.addAttribute("dontRetry", true);
-                return "error";
-            }
-        }
+        model.addAttribute(MinidPlusAuthorizeController.MODEL_USER_CREDENTIALS, new UserCredentials());
+        request.getSession().setAttribute(HTTP_SESSION_STATE, MinidState.STATE_START_LOGIN);
+        return "minidplus_enter_credentials";
     }
 
     @GetMapping("/testerror")

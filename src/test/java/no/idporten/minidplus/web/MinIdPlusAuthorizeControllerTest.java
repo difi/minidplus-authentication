@@ -4,13 +4,14 @@ import no.idporten.domain.auth.AuthType;
 import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.LevelOfAssurance;
+import no.idporten.minidplus.domain.MinidState;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.MinidPlusCache;
 import no.idporten.minidplus.service.ServiceproviderService;
-import no.idporten.ui.impl.MinidPlusButtonType;
+import no.idporten.minidplus.util.MinidPlusButtonType;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,7 +79,7 @@ public class MinIdPlusAuthorizeControllerTest {
                 .andExpect(model().attributeExists("authorizationRequest"))
                 .andExpect(request().sessionAttribute("session.authenticationType", equalTo(AuthType.MINID_PLUS)))
                 .andExpect(model().attributeExists("userCredentials"))
-                .andExpect(request().sessionAttribute("session.state", is(1)))
+                .andExpect(request().sessionAttribute("session.state", is(MinidState.STATE_START_LOGIN)))
                 .andExpect(request().sessionAttribute("sid", is(notNullValue())))
                 .andExpect(model().attribute("authorizationRequest", equalTo(ar)))
                 .andExpect(request().sessionAttribute("serviceprovider", equalTo(serviceProvider)))
@@ -127,7 +128,7 @@ public class MinIdPlusAuthorizeControllerTest {
         when(authenticationService.authenticateUser(eq(code), eq(pid), eq("abcabcabc3"), eq(sp), any(LevelOfAssurance.class))).thenReturn(true);
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
-                .sessionAttr(HTTP_SESSION_STATE, 1)
+                .sessionAttr(HTTP_SESSION_STATE, MinidState.STATE_START_LOGIN)
                 .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
                 .param("personalIdNumber", pid)
                 .param("password", "abcabcabc3")
@@ -144,7 +145,7 @@ public class MinIdPlusAuthorizeControllerTest {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
-                .sessionAttr(HTTP_SESSION_STATE, 1)
+                .sessionAttr(HTTP_SESSION_STATE, MinidState.STATE_START_LOGIN)
                 .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
                 .param("personalIdNumber", "123")
                 .param("password", "abc")
@@ -163,7 +164,7 @@ public class MinIdPlusAuthorizeControllerTest {
         when(authenticationService.authenticateUser(eq(code), eq(pid), eq("helloWorld"), eq(sp), any(LevelOfAssurance.class))).thenThrow(new MinIDIncorrectCredentialException(IDPortenExceptionID.IDENTITY_PASSWORD_INCORRECT, "Password validation failed"));
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
-                .sessionAttr(HTTP_SESSION_STATE, 1)
+                .sessionAttr(HTTP_SESSION_STATE, MinidState.STATE_START_LOGIN)
                 .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
                 .sessionAttr(SERVICEPROVIDER, sp)
                 .param("personalIdNumber", pid)
@@ -183,7 +184,7 @@ public class MinIdPlusAuthorizeControllerTest {
         when(authenticationService.authenticateUser(eq(code), eq(pid), eq("abcabcabc3"), eq(sp), any(LevelOfAssurance.class))).thenThrow(new MinIDInvalidAcrLevelException("Dude...wrong level :-/"));
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
-                .sessionAttr(HTTP_SESSION_STATE, 1)
+                .sessionAttr(HTTP_SESSION_STATE, MinidState.STATE_START_LOGIN)
                 .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
                 .sessionAttr(SERVICEPROVIDER, sp)
                 .param("personalIdNumber", pid)
@@ -204,7 +205,7 @@ public class MinIdPlusAuthorizeControllerTest {
         when(authenticationService.authenticateOtpStep(eq(code), eq(otp))).thenReturn(true);
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
-                .sessionAttr(HTTP_SESSION_STATE, 2)
+                .sessionAttr(HTTP_SESSION_STATE, MinidPlusAuthorizeController.STATE_LOGIN_VERIFICATION_CODE)
                 .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
                 .param("otpCode", otp)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
@@ -224,7 +225,7 @@ public class MinIdPlusAuthorizeControllerTest {
         when(authenticationService.authenticateOtpStep(eq(code), eq(code))).thenReturn(false);
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
-                .sessionAttr(HTTP_SESSION_STATE, 2)
+                .sessionAttr(HTTP_SESSION_STATE, MinidPlusAuthorizeController.STATE_LOGIN_VERIFICATION_CODE)
                 .param("otpCode", code)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .with(csrf())
@@ -240,7 +241,7 @@ public class MinIdPlusAuthorizeControllerTest {
         mockMvc.perform(post("/authorize")
                 .param("otpCode", "")
                 .param(MinidPlusButtonType.CANCEL.id(), "")
-                .sessionAttr(HTTP_SESSION_STATE, 2)
+                .sessionAttr(HTTP_SESSION_STATE, MinidPlusAuthorizeController.STATE_LOGIN_VERIFICATION_CODE)
         )
                 .andExpect(status().isOk())
                 .andExpect(view().name("redirect_to_idporten"));

@@ -4,21 +4,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.difi.resilience.CorrelationId;
 import no.idporten.domain.sp.ServiceProvider;
-import no.idporten.minidplus.domain.MinidState;
-import no.idporten.minidplus.domain.OneTimePassword;
-import no.idporten.minidplus.domain.PasswordChange;
-import no.idporten.minidplus.domain.PersonIdInput;
+import no.idporten.minidplus.domain.*;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
 import no.idporten.minidplus.exception.minid.MinIDTimeoutException;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.OTCPasswordService;
 import no.idporten.minidplus.validator.InputTerminator;
-import no.idporten.ui.impl.MinidPlusButtonType;
 import no.minid.exception.MinidUserInvalidException;
 import no.minid.exception.MinidUserNotFoundException;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -37,6 +32,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
+import static no.idporten.minidplus.domain.MinidState.STATE_ALERT;
 
 /**
  * Handles password change
@@ -51,13 +47,10 @@ public class MinidPlusPasswordController {
     static final int STATE_VERIFICATION_CODE_SMS = 102;
     static final int STATE_VERIFICATION_CODE_EMAIL = 103;
     static final int STATE_NEW_PASSWORD = 104;
-    static final int STATE_ALERT = 105;
 
-    private static final String ABORTED_BY_USER = "aborted_by_user";
-
-    public static final String MODEL_USER_PERSONID = "personIdInput";
-    public static final String MODEL_ONE_TIME_CODE = "oneTimePassword";
-    public static final String MODEL_PASSWORDCHANGE = "passwordChange";
+    private static final String MODEL_USER_PERSONID = "personIdInput";
+    private static final String MODEL_ONE_TIME_CODE = "oneTimePassword";
+    private static final String MODEL_PASSWORDCHANGE = "passwordChange";
 
     private final LocaleResolver localeResolver;
 
@@ -65,8 +58,6 @@ public class MinidPlusPasswordController {
 
     private final OTCPasswordService otcPasswordService;
 
-    @Value("${minid-plus.context-path}")
-    public String contextPath = "";
 
     @GetMapping(produces = "text/html; charset=utf-8")
     public String doGet(HttpServletRequest request, HttpServletResponse response, Model model) {
@@ -85,17 +76,14 @@ public class MinidPlusPasswordController {
         request.getSession().setAttribute("locale", locale);
     }
 
-    @PostMapping(params = "personalIdNumber")
+    @PostMapping(params = {"personalIdNumber"})
     public String postPersonId(HttpServletRequest request, @Valid @ModelAttribute(MODEL_USER_PERSONID) PersonIdInput personId, BindingResult result, Model model, RedirectAttributes redirectAttributes) {
 
         int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
         String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
         String pid = personId.getPersonalIdNumber();
         personId.setPersonalIdNumber("");
-        // Check cancel
-        if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
-            return getNextView(request, MinidState.STATE_CANCEL);
-        }
+
         if (state == STATE_PERSONID) {
             if (result.hasErrors()) {
                 InputTerminator.clearAllInput(personId, result, model);
@@ -122,7 +110,7 @@ public class MinidPlusPasswordController {
             }
             return getNextView(request, STATE_PERSONID);
         } else {
-            log.error("invalid state : " + state);
+            log.error("invalid state posting person id: " + state);
             result.addError(new ObjectError(MODEL_USER_PERSONID, new String[]{"no.idporten.error.line1"}, null, "System error"));
             result.addError(new ObjectError(MODEL_USER_PERSONID, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
             return getNextView(request, MinidState.STATE_ERROR);
@@ -130,17 +118,13 @@ public class MinidPlusPasswordController {
 
     }
 
-    @PostMapping(params = "otpType=sms")
+    @PostMapping(params = {"otpType=sms"})
     public String postOTP(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
             String otp = oneTimePassword.getOtpCode();
             oneTimePassword.setOtpCode("");
-            // Check cancel
-            if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
-                return getNextView(request, MinidState.STATE_CANCEL);
-            }
 
             if (result.hasErrors()) {
                 InputTerminator.clearAllInput(oneTimePassword, result, model);
@@ -180,17 +164,14 @@ public class MinidPlusPasswordController {
         return getNextView(request, STATE_VERIFICATION_CODE_SMS);
     }
 
-    @PostMapping(params = "otpType=email")
+    @PostMapping(params = {"otpType=email"})
     public String postOTPEmail(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
             String otp = oneTimePassword.getOtpCode();
             oneTimePassword.setOtpCode("");
-            // Check cancel
-            if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
-                return getNextView(request, MinidState.STATE_CANCEL);
-            }
+
             if (result.hasErrors()) {
                 InputTerminator.clearAllInput(oneTimePassword, result, model);
                 return getNextView(request, STATE_VERIFICATION_CODE_EMAIL);
@@ -220,7 +201,7 @@ public class MinidPlusPasswordController {
         return getNextView(request, STATE_VERIFICATION_CODE_EMAIL);
     }
 
-    @PostMapping(params = "newPassword")
+    @PostMapping(params = {"newPassword"})
     public String postPasswordChange(HttpServletRequest request, @Valid @ModelAttribute(MODEL_PASSWORDCHANGE) PasswordChange newPassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
@@ -230,10 +211,6 @@ public class MinidPlusPasswordController {
             newPassword.setNewPassword("");
             newPassword.setReenterPassword("");
 
-            // Check cancel
-            if (buttonIsPushed(request, MinidPlusButtonType.CANCEL)) {
-                return getNextView(request, MinidState.STATE_CANCEL);
-            }
             if (result.hasErrors()) {
                 InputTerminator.clearAllInput(newPassword, result, model);
                 return getNextView(request, STATE_NEW_PASSWORD);
@@ -254,27 +231,12 @@ public class MinidPlusPasswordController {
         return getNextView(request, STATE_NEW_PASSWORD);
     }
 
-    private void addQuarantinedMessage(MinIDQuarantinedUserException e, Model model) {
-        if (e.getMessage().equalsIgnoreCase("User is closed")) {
-            model.addAttribute("alertMessage", "auth.ui.error.closed.message");
-        } else if (e.getMessage().equalsIgnoreCase("User has been in quarantine for more than one hour.")) {
-            model.addAttribute("alertMessage", "auth.ui.error.locked.message");
-        } else {
-            model.addAttribute("alertMessage", "auth.ui.error.quarantined.message");
-        }
-    }
 
-    @PostMapping(params = "minidplus.inputbutton.CONTINUE")
-    public String postPasswordChange(HttpServletRequest request) {
-        int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
-        if (state == STATE_PASSWORD_CHANGED) {
-            return getNextView(request, MinidState.STATE_CONTINUE);
-        } else {
-            warn("Illegal state " + state);
-            return getNextView(request, MinidState.STATE_ERROR);
-        }
+    @PostMapping(params = {"cancel", "!next"})
+    public String cancel(HttpServletRequest request, Model model) {
+        model.addAttribute(MinidPlusAuthorizeController.MODEL_USER_CREDENTIALS, new UserCredentials());
+        return getNextView(request, MinidState.STATE_START_LOGIN);
     }
-
 
     private String getNextView(HttpServletRequest request, int state) {
         setSessionState(request, state);
@@ -290,18 +252,24 @@ public class MinidPlusPasswordController {
             return "alert";
         } else if (state == STATE_PASSWORD_CHANGED) {
             return "minidplus_password_success";
-        } else if (state == MinidState.STATE_CONTINUE || state == MinidState.STATE_CANCEL) {
-            return "redirect:" + contextPath + "/authorize";
+        } else if (state == MinidState.STATE_START_LOGIN) {
+            return "minidplus_enter_credentials";
         }
         return "error";
     }
 
-    private void setSessionState(HttpServletRequest request, int state) {
-        request.getSession().setAttribute(HTTP_SESSION_STATE, state);
+    private void addQuarantinedMessage(MinIDQuarantinedUserException e, Model model) {
+        if (e.getMessage().equalsIgnoreCase("User is closed")) {
+            model.addAttribute("alertMessage", "auth.ui.error.closed.message");
+        } else if (e.getMessage().equalsIgnoreCase("User has been in quarantine for more than one hour.")) {
+            model.addAttribute("alertMessage", "auth.ui.error.locked.message");
+        } else {
+            model.addAttribute("alertMessage", "auth.ui.error.quarantined.message");
+        }
     }
 
-    private boolean buttonIsPushed(HttpServletRequest request, MinidPlusButtonType type) {
-        return request.getParameter(type.id()) != null;
+    private void setSessionState(HttpServletRequest request, int state) {
+        request.getSession().setAttribute(HTTP_SESSION_STATE, state);
     }
 
     private void warn(String message) {

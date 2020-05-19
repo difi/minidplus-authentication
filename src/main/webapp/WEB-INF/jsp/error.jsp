@@ -1,4 +1,4 @@
-<%@ page import="no.idporten.ui.impl.MinidPlusButtonType" %>
+<%@ page import="no.idporten.minidplus.util.MinidPlusButtonType" %>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
@@ -16,13 +16,13 @@
                 <p><spring:message code="no.idporten.module.minidplus.error.text3"
                                    arguments="${errorMsg}"/></p>
                 <p>
-                    <form:form action="#"
+                    <form:form action="retry"
                                method="post">
 
-                        <button ${not empty dontRetry ? ' disabled' : ''} class='btn btn-Action' tabindex="1"
-                                                                          id="<%= MinidPlusButtonType.CANCEL.id() %>"
-                                                                          autofocus="autofocus"
-                                                                          name="<%= MinidPlusButtonType.CANCEL.id() %>">
+                        <button class='btn btn-Action' tabindex="1"
+                                id="<%= MinidPlusButtonType.NEXT.id() %>"
+                                autofocus="autofocus"
+                                name="<%= MinidPlusButtonType.NEXT.id() %>">
                             <span><spring:message code="auth.ui.button.retry" text="OK"/></span>
                         </button>
 

@@ -15,11 +15,8 @@
                 <div class="fm-Progress_Dot"></div>
             </div>
 
-            <c:set var="personalIdNumberHasBindError">
-                <form:errors path="personalIdNumber"/>
-            </c:set>
-            <c:set var="passwordHasBindError">
-                <form:errors path="password"/>
+            <c:set var="hasErrors">
+                <form:errors path="*"/>
             </c:set>
 
             <form:form action="authorize" class="login" modelAttribute="userCredentials" method="post">
@@ -27,7 +24,7 @@
 
                 <fieldset>
                     <div class="fm-Fields">
-                        <div class="fm-Field${not empty personalIdNumberHasBindError ? ' error' : ''}">
+                        <div class="fm-Field${not empty hasErrors ? ' error' : ''}">
                             <spring:message code='no.idporten.module.minidplus.input.personalidnumber.help'
                                             text='(11 siffer)' var="personalIdNumberHelpText"/>
                             <label for="personalIdNumber"><spring:message
@@ -43,7 +40,7 @@
                                         autocomplete="off"/>
                         </div>
 
-                        <div class="fm-Field${not empty passwordHasBindError  ? ' error' : ''}">
+                        <div class="fm-Field${not empty hasErrors  ? ' error' : ''}">
                             <spring:message code="no.idporten.module.minidplus.input.password.help"
                                             text="Skriv inn passord" var="passwordHelpText"/>
                             <label for="password"><spring:message code="no.idporten.module.minidplus.input.password"
@@ -59,7 +56,7 @@
                         </div>
 
                         <div class='fm-form_link with-Link'>
-                            <a href="<c:url value='password?locale=${locale}'/>">
+                            <a href="<c:url value='password?locale=${sessionScope.locale}'/>">
                                 <span><spring:message
                                         code="no.idporten.module.minid.settings.menu.fgtpwd"
                                         text="Glemt passord"/></span></a>

@@ -18,7 +18,6 @@ import no.minid.exception.MinidUserInvalidException;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
 import org.springframework.beans.factory.annotation.Value;
-import no.minid.service.impl.util.DummyUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
