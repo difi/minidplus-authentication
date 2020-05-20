@@ -12,8 +12,10 @@ import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.UserCredentials;
 import no.idporten.minidplus.exception.minid.*;
 import no.idporten.minidplus.service.AuthenticationService;
+import no.idporten.minidplus.service.MinidPlusCache;
 import no.idporten.minidplus.service.OTCPasswordService;
 import no.idporten.minidplus.service.ServiceproviderService;
+import no.idporten.minidplus.util.MinIdPlusButtonType;
 import no.idporten.minidplus.util.MinIdState;
 import no.idporten.minidplus.validator.InputTerminator;
 import no.minid.exception.MinidUserInvalidException;
@@ -94,13 +96,15 @@ public class MinIdPlusAuthorizeController {
 
     private final ServiceproviderService serviceproviderService;
 
+    private final MinidPlusCache minidPlusCache;
+
     @GetMapping(produces = "text/html; charset=utf-8")
     public String doGet(HttpServletRequest request, HttpServletResponse response, @Valid AuthorizationRequest authorizationRequest, Model model) {
         if (log.isDebugEnabled()) {
             log.debug("Authorizing user with " + authorizationRequest.toString());
         }
 
-        request.getSession().invalidate();
+        clearSessionAndCache(request);
         request.getSession().setAttribute(HTTP_SESSION_AUTH_TYPE, AuthType.MINID_PLUS);
         request.getSession().setAttribute(HTTP_SESSION_SID, UUID.randomUUID().toString());
         setLocale(request, response, authorizationRequest);
@@ -112,7 +116,7 @@ public class MinIdPlusAuthorizeController {
         return getNextView(request, STATE_START_LOGIN);
     }
 
-    @PostMapping(params = {"personalIdNumber", "!cancel"})
+    @PostMapping(params = {"personalIdNumber"})
     public String postUserCredentials(HttpServletRequest request, @Valid @ModelAttribute(MODEL_USER_CREDENTIALS) UserCredentials userCredentials, BindingResult result, Model model) {
         Object state = request.getSession().getAttribute(HTTP_SESSION_STATE);
 
@@ -121,6 +125,10 @@ public class MinIdPlusAuthorizeController {
         String pwd = userCredentials.getPassword();
         String pid = userCredentials.getPersonalIdNumber();
         userCredentials.clearValues();
+        // Check cancel
+        if (buttonIsPushed(request, MinIdPlusButtonType.CANCEL)) {
+            return backToIdporten(request, model, MinIdState.STATE_CANCEL);
+        }
         AuthorizationRequest ar = (AuthorizationRequest) request.getSession().getAttribute(AUTHORIZATION_REQUEST);
 
         if (state != null && ((int) state == STATE_START_LOGIN)) {
@@ -146,6 +154,7 @@ public class MinIdPlusAuthorizeController {
                 result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.error.sendingotc.messsage"}, null, "Mobile number not registered on your user"));
             } catch (MinIDInvalidAcrLevelException e) {
                 warn("User attempted to log in with wrong acr: " + e.getMessage());
+                model.addAttribute(SERVICEPROVIDER, sp);
                 return getNextView(request, STATE_LOGIN_WRONG_ACR);
             } catch (MinIDQuarantinedUserException e) {
                 warn("User quarantined " + e.getMessage());
@@ -169,14 +178,17 @@ public class MinIdPlusAuthorizeController {
         }
     }
 
-    @PostMapping(params = {"otpCode", "!cancel"})
+    @PostMapping(params = {"otpCode"})
     public String postOTP(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
             String otp = oneTimePassword.getOtpCode();
             oneTimePassword.clearValues();
-
+            // Check cancel
+            if (buttonIsPushed(request, MinIdPlusButtonType.CANCEL)) {
+                return backToIdporten(request, model, MinIdState.STATE_CANCEL);
+            }
             if (result.hasErrors()) {
                 warn("There are contraint violations: " + Arrays.toString(result.getAllErrors().toArray()));
                 InputTerminator.clearAllInput(oneTimePassword, result, model);
@@ -208,11 +220,6 @@ public class MinIdPlusAuthorizeController {
         return getNextView(request, STATE_LOGIN_VERIFICATION_CODE);
     }
 
-    @PostMapping(params = {"cancel", "!next"})
-    public String cancel(HttpServletRequest request, Model model) {
-        return backToIdporten(request, model, MinIdState.STATE_CANCEL);
-    }
-
     private ServiceProvider getServiceProvider(String entityId, String hostName) {
         try {
             return serviceproviderService.getServiceProvider(entityId, hostName);
@@ -238,11 +245,12 @@ public class MinIdPlusAuthorizeController {
         } else if (state == STATE_START_LOGIN) {
             return VIEW_START_LOGIN;
         } else if (state == STATE_AUTHENTICATED || state == MinIdState.STATE_CANCEL) {
-            request.getSession().invalidate();
+            clearSessionAndCache(request);
             return VIEW_REDIRECT_TO_IDPORTEN;
         } else if (state == STATE_ALERT) {
             return VIEW_ALERT;
         } else if (state == STATE_LOGIN_WRONG_ACR) {
+            clearSessionAndCache(request);
             return VIEW_ERROR_ACR;
         } else if (state == STATE_ERROR) {
             return VIEW_GENERIC_ERROR;
@@ -251,9 +259,20 @@ public class MinIdPlusAuthorizeController {
         return VIEW_GENERIC_ERROR;
     }
 
+    private void clearSessionAndCache(HttpServletRequest request) {
+        Object sid = request.getSession().getAttribute(HTTP_SESSION_SID);
+        if (sid != null) {
+            minidPlusCache.removeSSN((String) sid);
+        }
+        request.getSession().invalidate();
+    }
 
     private void setSessionState(HttpServletRequest request, int state) {
         request.getSession().setAttribute(HTTP_SESSION_STATE, state);
+    }
+
+    private boolean buttonIsPushed(HttpServletRequest request, MinIdPlusButtonType type) {
+        return request.getParameter(type.id()) != null;
     }
 
     private String buildUrl(HttpServletRequest request, int state) {

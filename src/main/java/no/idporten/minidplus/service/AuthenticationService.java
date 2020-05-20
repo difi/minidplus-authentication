@@ -49,7 +49,7 @@ public class AuthenticationService {
     private final String minidplusSourcePrefix = "minid-on-the-fly";
 
     public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp, LevelOfAssurance levelOfAssurance) throws MinidUserNotFoundException, MinIDQuarantinedUserException, MinIDIncorrectCredentialException, MinIDSystemException, MinIDInvalidAcrLevelException, MinidUserInvalidException {
-        LevelOfAssurance assignedLevelOfAssurance = LevelOfAssurance.LEVEL4; //default
+
         MinidUser identity;
         try {
             identity =  findUserFromPid(pid);
@@ -93,7 +93,7 @@ public class AuthenticationService {
             throw new MinIDIncorrectCredentialException(IDPortenExceptionID.IDENTITY_PASSWORD_INCORRECT, "Password validation failed");
         }
 
-        assignedLevelOfAssurance = getLevelOfAssurance(identity.getSource(), levelOfAssurance);
+        LevelOfAssurance assignedLevelOfAssurance = getLevelOfAssurance(identity.getSource(), levelOfAssurance);
 
         identity.setCredentialErrorCounter(0);
         minIDService.setCredentialErrorCounter(identity.getPersonNumber(), identity.getCredentialErrorCounter());

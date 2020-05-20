@@ -27,10 +27,11 @@
 
             <form:form action="#" class="login" method="post">
                 <fieldset>
+                    <input type="hidden" id="type" name="success" value="true"/>
                     <div class='fm-Controls with-Action with-Action-centered'>
                         <button autofocus="autofocus" type="submit" class='btn btn-Normal' tabindex="11"
-                                id="<%= MinIdPlusButtonType.CANCEL.id() %>"
-                                name="<%= MinIdPlusButtonType.CANCEL.id() %>">
+                                id="<%= MinIdPlusButtonType.NEXT.id() %>"
+                                name="<%= MinIdPlusButtonType.NEXT.id() %>">
                             <span><spring:message code="no.idporten.button.continue"/></span>
                         </button>
                     </div>

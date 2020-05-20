@@ -207,7 +207,8 @@ public class MinIdPlusPasswordControllerTest {
     public void test_success_receipt_continue_returns_to_authorization() throws Exception {
 
         mockMvc.perform(post("/password")
-                .param(MinIdPlusButtonType.CANCEL.id(), "")
+                .param("success", "true")
+                .param(MinIdPlusButtonType.NEXT.id(), "")
                 .sessionAttr(HTTP_SESSION_STATE, MinIdPlusPasswordController.STATE_PASSWORD_CHANGED)
                 .with(csrf())
         )
@@ -219,7 +220,7 @@ public class MinIdPlusPasswordControllerTest {
     public void test_user_cancels_otp_returns_to_login() throws Exception {
 
         mockMvc.perform(post("/password")
-                .param("otpCode", "")
+                .param("otpType", "sms")
                 .param(MinIdPlusButtonType.CANCEL.id(), "")
                 .sessionAttr(HTTP_SESSION_STATE, MinIdPlusPasswordController.STATE_PERSONID)
                 .with(csrf())

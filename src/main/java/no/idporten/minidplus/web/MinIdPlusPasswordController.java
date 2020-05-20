@@ -13,6 +13,7 @@ import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
 import no.idporten.minidplus.exception.minid.MinIDTimeoutException;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.OTCPasswordService;
+import no.idporten.minidplus.util.MinIdPlusButtonType;
 import no.idporten.minidplus.util.MinIdState;
 import no.idporten.minidplus.validator.InputTerminator;
 import no.minid.exception.MinidUserInvalidException;
@@ -91,14 +92,17 @@ public class MinIdPlusPasswordController {
         request.getSession().setAttribute("locale", locale);
     }
 
-    @PostMapping(params = {"personalIdNumber", "!cancel"})
+    @PostMapping(params = {"personalIdNumber"})
     public String postPersonId(HttpServletRequest request, @Valid @ModelAttribute(MODEL_USER_PERSONID) PersonIdInput personId, BindingResult result, Model model, RedirectAttributes redirectAttributes) {
 
         int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
         String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
         String pid = personId.getPersonalIdNumber();
         personId.clearValues();
-
+        // Check cancel
+        if (buttonIsPushed(request, MinIdPlusButtonType.CANCEL)) {
+            return backToLogin(request, model);
+        }
         if (state == STATE_PERSONID) {
             if (result.hasErrors()) {
                 InputTerminator.clearAllInput(personId, result, model);
@@ -133,14 +137,17 @@ public class MinIdPlusPasswordController {
 
     }
 
-    @PostMapping(params = {"otpType=sms", "!cancel"})
+    @PostMapping(params = {"otpType=sms"})
     public String postOTP(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
             String otp = oneTimePassword.getOtpCode();
             oneTimePassword.clearValues();
-
+            // Check cancel
+            if (buttonIsPushed(request, MinIdPlusButtonType.CANCEL)) {
+                return backToLogin(request, model);
+            }
             if (result.hasErrors()) {
                 InputTerminator.clearAllInput(oneTimePassword, result, model);
                 return getNextView(request, STATE_VERIFICATION_CODE_SMS);
@@ -179,14 +186,17 @@ public class MinIdPlusPasswordController {
         return getNextView(request, STATE_VERIFICATION_CODE_SMS);
     }
 
-    @PostMapping(params = {"otpType=email", "!cancel"})
+    @PostMapping(params = {"otpType=email"})
     public String postOTPEmail(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
             String otp = oneTimePassword.getOtpCode();
             oneTimePassword.clearValues();
-
+            // Check cancel
+            if (buttonIsPushed(request, MinIdPlusButtonType.CANCEL)) {
+                return backToLogin(request, model);
+            }
             if (result.hasErrors()) {
                 InputTerminator.clearAllInput(oneTimePassword, result, model);
                 return getNextView(request, STATE_VERIFICATION_CODE_EMAIL);
@@ -216,7 +226,7 @@ public class MinIdPlusPasswordController {
         return getNextView(request, STATE_VERIFICATION_CODE_EMAIL);
     }
 
-    @PostMapping(params = {"newPassword", "!cancel"})
+    @PostMapping(params = {"newPassword"})
     public String postPasswordChange(HttpServletRequest request, @Valid @ModelAttribute(MODEL_PASSWORD_CHANGE) PasswordChange newPassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
@@ -224,7 +234,10 @@ public class MinIdPlusPasswordController {
             String newPwd = newPassword.getNewPassword();
             String reenter = newPassword.getReenterPassword();
             newPassword.clearValues();
-
+            // Check cancel
+            if (buttonIsPushed(request, MinIdPlusButtonType.CANCEL)) {
+                return backToLogin(request, model);
+            }
             if (result.hasErrors()) {
                 InputTerminator.clearAllInput(newPassword, result, model);
                 return getNextView(request, STATE_NEW_PASSWORD);
@@ -246,8 +259,16 @@ public class MinIdPlusPasswordController {
     }
 
 
-    @PostMapping(params = {"cancel", "!next"})
-    public String cancel(HttpServletRequest request, Model model) {
+    @PostMapping(params = {"success"})
+    public String goBackToLogin(HttpServletRequest request, Model model) {
+        return backToLogin(request, model);
+
+    }
+    private boolean buttonIsPushed(HttpServletRequest request, MinIdPlusButtonType type) {
+        return request.getParameter(type.id()) != null;
+    }
+
+    private String backToLogin(HttpServletRequest request, Model model) {
         model.addAttribute(MODEL_USER_CREDENTIALS, new UserCredentials());
         return getNextView(request, MinIdState.STATE_START_LOGIN);
     }
