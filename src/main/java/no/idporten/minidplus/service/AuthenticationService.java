@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Date;
+import java.util.Objects;
 
 @RequiredArgsConstructor
 @Service
@@ -179,10 +180,10 @@ public class AuthenticationService {
                 identity =  findUserFromPid(pid);
             }
         }
-        if (identity.getQuarantineCounter() >= maxNumberOfQuarantineCounters) {
+        if (Objects.equals(identity.getQuarantineCounter(), maxNumberOfQuarantineCounters)) {
             throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "pin code is locked");
         }
-        if (identity.getCredentialErrorCounter() >= maxNumberOfCredentialErrors) {
+        if (Objects.equals(identity.getCredentialErrorCounter(), maxNumberOfCredentialErrors)) {
             throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User is in quarantine, unauthorized");
         }
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
