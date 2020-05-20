@@ -74,11 +74,12 @@ public class AuthenticationService {
                 identity.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant().plusSeconds(3600)));
                 if (identity.isDummy()) {
                     identity.setState(MinidUser.State.QUARANTINED_NEW_USER);
+                    minIDService.setUserStateQuarantinedNewUser(identity.getPersonNumber());
                 } else {
                     identity.setState(MinidUser.State.QUARANTINED);
+                    minIDService.setUserStateQuarantined(identity.getPersonNumber());
                 }
                 minIDService.setCredentialErrorCounter(identity.getPersonNumber(), identity.getCredentialErrorCounter());
-                minIDService.setUserStateQuarantined(identity.getPersonNumber());
                 minIDService.setQuarantineExpiryDate(identity.getPersonNumber(), identity.getQuarantineExpiryDate());
                 warn("User set in quarantined.");
                 throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User is in quarantine, unauthorized");

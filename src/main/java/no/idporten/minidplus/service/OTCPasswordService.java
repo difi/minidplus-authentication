@@ -245,11 +245,12 @@ public class OTCPasswordService {
                 user.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant().plusSeconds(3600)));
                 if (user.isDummy()) {
                     user.setState(MinidUser.State.QUARANTINED_NEW_USER);
+                    minIDService.setUserStateQuarantinedNewUser(user.getPersonNumber());
                 } else {
                     user.setState(MinidUser.State.QUARANTINED);
+                    minIDService.setUserStateQuarantined(user.getPersonNumber());
                 }
                 minIDService.setQuarantineCounter(user.getPersonNumber(), user.getQuarantineCounter());
-                minIDService.setUserStateQuarantined(user.getPersonNumber());
                 minIDService.setQuarantineExpiryDate(user.getPersonNumber(), user.getQuarantineExpiryDate());
                 warn("Locking pincode for ssn=", user.getPersonNumber().getSsn());
                 throw new MinIDPincodeException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "pin code is locked");

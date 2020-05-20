@@ -264,6 +264,27 @@ public class AuthenticationServiceTest {
     }
 
     @Test
+    public void testDummyUserGetQuarantinedNewUser() {
+        when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
+        PersonNumber personNumber = new PersonNumber(pid);
+        MinidUser minidUser = new MinidUser(personNumber);
+        minidUser.setState(MinidUser.State.NEW_USER);
+        minidUser.setDummy(true);
+        minidUser.setCredentialErrorCounter(2);
+        minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
+        when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(false);
+        try {
+            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
+            fail("should have failed");
+        } catch (Exception e) {
+            assertTrue(e instanceof MinIDQuarantinedUserException);
+            assertEquals(minidUser.getState(), MinidUser.State.QUARANTINED_NEW_USER);
+            assertEquals("User is in quarantine, unauthorized", e.getMessage());
+        }
+    }
+
+    @Test
     public void test_source_doesnt_start_with_minid_on_the_fly_should_allow_level3() throws MinIDInvalidAcrLevelException, MinIDSystemException {
         assertEquals(LevelOfAssurance.LEVEL3, authenticationService.getLevelOfAssurance("minid-pinbrev", LevelOfAssurance.LEVEL3));
     }
