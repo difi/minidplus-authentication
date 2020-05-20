@@ -1,4 +1,4 @@
-<%@ page import="no.idporten.minidplus.util.MinidPlusButtonType" %>
+<%@ page import="no.idporten.minidplus.util.MinIdPlusButtonType" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
 <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
@@ -21,8 +21,8 @@
             <form:form id="complete" action="${redirectUrl}" class="login"
                        method="post">
             <div class='fm-Controls with-Normal with-Action'>
-                <button disabled class='btn btn-Action' tabindex="10" id="<%= MinidPlusButtonType.NEXT.id() %>"
-                        name="<%= MinidPlusButtonType.NEXT.id() %>"
+                <button disabled class='btn btn-Action' tabindex="10" id="<%= MinIdPlusButtonType.NEXT.id() %>"
+                        name="<%= MinIdPlusButtonType.NEXT.id() %>"
                         type='submit'><span><spring:message code="no.idporten.button.next" text="Neste"/></span>
                 </button>
                 </form:form>

@@ -43,7 +43,7 @@ public class ServiceproviderService {
      * @param entityIdFilter a string for filtering the selection based on entity id using wildcards (*)
      *                       nb: cachen virker ikke
      */
-    @Cacheable(cacheNames = "spCache", key = "#entityIdFilter")
+    // @Cacheable(cacheNames = "spCache", key = "#entityIdFilter")
     public ServiceProvider getServiceProvider(String entityIdFilter, final String hostName) {
         List<ServiceProvider> sps = findByEntityIdFilter(entityIdFilter);
         if (sps.isEmpty()) {

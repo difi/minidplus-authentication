@@ -6,14 +6,14 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 
 @SpringBootApplication
-public class MinidplusApplication extends SpringBootServletInitializer {
+public class MinIdplusApplication extends SpringBootServletInitializer {
 
     @Override
     protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
-        return application.sources(MinidplusApplication.class);
+        return application.sources(MinIdplusApplication.class);
     }
     public static void main(String[] args) {
-        SpringApplication.run(MinidplusApplication.class, args);
+        SpringApplication.run(MinIdplusApplication.class, args);
     }
 
 }

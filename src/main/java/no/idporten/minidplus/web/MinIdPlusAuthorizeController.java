@@ -6,11 +6,15 @@ import lombok.extern.slf4j.Slf4j;
 import no.difi.resilience.CorrelationId;
 import no.idporten.domain.auth.AuthType;
 import no.idporten.domain.sp.ServiceProvider;
-import no.idporten.minidplus.domain.*;
+import no.idporten.minidplus.domain.AuthorizationRequest;
+import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
+import no.idporten.minidplus.domain.OneTimePassword;
+import no.idporten.minidplus.domain.UserCredentials;
 import no.idporten.minidplus.exception.minid.*;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.OTCPasswordService;
 import no.idporten.minidplus.service.ServiceproviderService;
+import no.idporten.minidplus.util.MinIdState;
 import no.idporten.minidplus.validator.InputTerminator;
 import no.minid.exception.MinidUserInvalidException;
 import org.apache.commons.lang.StringUtils;
@@ -19,7 +23,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -43,7 +46,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
-import static no.idporten.minidplus.domain.MinidState.*;
+import static no.idporten.minidplus.util.MinIdPlusViews.*;
+import static no.idporten.minidplus.util.MinIdState.*;
 
 /**
  * Logic implementation of MinIdPluss web client module.
@@ -53,29 +57,32 @@ import static no.idporten.minidplus.domain.MinidState.*;
 @Slf4j
 @Getter
 @RequiredArgsConstructor
-public class MinidPlusAuthorizeController {
+public class MinIdPlusAuthorizeController {
+
+    @Value("${minid-plus.serverid}")
+    private String serverid;
+
+    @Value("${minid-plus.registrationUri}")
+    private String registrationUri;
+
+    //internal states
     protected static final int STATE_AUTHENTICATED = -1;
     protected static final int STATE_LOGIN_VERIFICATION_CODE = 2;
     protected static final int STATE_LOGIN_WRONG_ACR = 4;
 
-    private static final String MOBILE_NUMBER = "mobileNumber";
-    private static final String PERSONAL_ID_NUMBER = "personalIdNumber";
-    private static final String PIN_CODE = "otpCode";
-    private static final String PASSWORD = "password";
-    private static final String EMAIL_ADDRESS = "emailAddress";
-    private static final String IDPORTEN_INPUTBUTTON_PREFIX = "idporten.inputbutton.";
+    //private models
+    private static final String MODEL_AUTHORIZATION_REQUEST = "authorizationRequest";
+    private static final String MODEL_ONE_TIME_CODE = "oneTimePassword";
 
-    public static final String MODEL_AUTHORIZATION_REQUEST = "authorizationRequest";
-    public static final String MODEL_ONE_TIME_CODE = "oneTimePassword";
-    public static final String MODEL_USER_CREDENTIALS = "userCredentials";
 
+    //states to idporten
     private static final String ABORTED_BY_USER = "aborted_by_user";
-    private static final String CONSTRAINT_VIOLATIONS = "contraint_violations_in_authorize_request";
     private static final String START_SERVICE = "start-service";
+
     private static final Set<String> supportedLocales = Stream.of("nb", "nn", "en", "se").collect(Collectors.toSet());
 
-    @Value("${minid-plus.serverid}")
-    private String serverid;
+    //internal views
+    protected static final String VIEW_LOGIN_ENTER_OTP = "minidplus_enter_otp";
 
     private final LocaleResolver localeResolver;
 
@@ -84,10 +91,8 @@ public class MinidPlusAuthorizeController {
     private final ValidatorFactory validatorFactory;
 
     private final OTCPasswordService otcPasswordService;
-    private final ServiceproviderService serviceproviderService;
 
-    @Value("${minid-plus.registrationUri}")
-    private String registrationUri;
+    private final ServiceproviderService serviceproviderService;
 
     @GetMapping(produces = "text/html; charset=utf-8")
     public String doGet(HttpServletRequest request, HttpServletResponse response, @Valid AuthorizationRequest authorizationRequest, Model model) {
@@ -107,7 +112,7 @@ public class MinidPlusAuthorizeController {
         return getNextView(request, STATE_START_LOGIN);
     }
 
-    @PostMapping(params = {"personalIdNumber"})
+    @PostMapping(params = {"personalIdNumber", "!cancel"})
     public String postUserCredentials(HttpServletRequest request, @Valid @ModelAttribute(MODEL_USER_CREDENTIALS) UserCredentials userCredentials, BindingResult result, Model model) {
         Object state = request.getSession().getAttribute(HTTP_SESSION_STATE);
 
@@ -115,8 +120,7 @@ public class MinidPlusAuthorizeController {
         ServiceProvider sp = (ServiceProvider) request.getSession().getAttribute(SERVICEPROVIDER);
         String pwd = userCredentials.getPassword();
         String pid = userCredentials.getPersonalIdNumber();
-        userCredentials.setPersonalIdNumber("");
-        userCredentials.setPassword("");
+        userCredentials.clearValues();
         AuthorizationRequest ar = (AuthorizationRequest) request.getSession().getAttribute(AUTHORIZATION_REQUEST);
 
         if (state != null && ((int) state == STATE_START_LOGIN)) {
@@ -133,9 +137,9 @@ public class MinidPlusAuthorizeController {
             } catch (MinIDIncorrectCredentialException e) {
                 warn("Incorrect credentials " + e.getMessage());
                 if (e.getMessage().equalsIgnoreCase("Password validation failed, last try.")) {
-                    result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.wrong.credentials.lasttry"}, null, "Wrong credentials"));
+                    result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.usererror.wrong.credentials.lasttry"}, null, "Wrong credentials"));
                 } else {
-                    result.addError(new FieldError(MODEL_AUTHORIZATION_REQUEST, PASSWORD, null, true, new String[]{"auth.ui.usererror.wrong.credentials"}, null, "Wrong credentials"));
+                    result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"auth.ui.usererror.wrong.credentials"}, null, "Wrong credentials"));
                 }
             } catch (MinidUserInvalidException e) {
                 warn("User exception occurred " + e.getMessage());
@@ -146,11 +150,11 @@ public class MinidPlusAuthorizeController {
             } catch (MinIDQuarantinedUserException e) {
                 warn("User quarantined " + e.getMessage());
                 if (e.getMessage().equalsIgnoreCase("User is closed")) {
-                    model.addAttribute("alertMessage", "auth.ui.error.closed.message");
+                    model.addAttribute(MODEL_ALERT_MESSAGE, "auth.ui.error.closed.message");
                 } else if (e.getMessage().equalsIgnoreCase("User has been in quarantine for more than one hour.")) {
-                    model.addAttribute("alertMessage", "auth.ui.error.locked.message");
+                    model.addAttribute(MODEL_ALERT_MESSAGE, "auth.ui.error.locked.message");
                 } else {
-                    model.addAttribute("alertMessage", "auth.ui.error.quarantined.message");
+                    model.addAttribute(MODEL_ALERT_MESSAGE, "auth.ui.error.quarantined.message");
                 }
                 return getNextView(request, STATE_ALERT);
             } catch (Exception e) {
@@ -165,13 +169,13 @@ public class MinidPlusAuthorizeController {
         }
     }
 
-    @PostMapping(params = {"otpCode"})
+    @PostMapping(params = {"otpCode", "!cancel"})
     public String postOTP(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
             String otp = oneTimePassword.getOtpCode();
-            oneTimePassword.setOtpCode("");
+            oneTimePassword.clearValues();
 
             if (result.hasErrors()) {
                 warn("There are contraint violations: " + Arrays.toString(result.getAllErrors().toArray()));
@@ -188,12 +192,12 @@ public class MinidPlusAuthorizeController {
         } catch (MinIDTimeoutException e) {
             warn("User cache timed out " + e.getMessage());
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.module.minidplus.timeout"}, null, "Timeout"));
-            model.addAttribute("alertMessage", "no.idporten.module.minidplus.timeout");
+            model.addAttribute(MODEL_ALERT_MESSAGE, "no.idporten.module.minidplus.timeout");
             return getNextView(request, STATE_ALERT);
         } catch (MinIDPincodeException e) {
             warn("User pincode locked " + e.getMessage());
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.format.otc.locked"}, null, "Too many attempts"));
-            model.addAttribute("alertMessage", "auth.ui.error.quarantined.message");
+            model.addAttribute(MODEL_ALERT_MESSAGE, "auth.ui.error.quarantined.message");
             return getNextView(request, STATE_ALERT);
         } catch (Exception e) {
             warn("Exception handling otp: " + e.getMessage());
@@ -206,7 +210,7 @@ public class MinidPlusAuthorizeController {
 
     @PostMapping(params = {"cancel", "!next"})
     public String cancel(HttpServletRequest request, Model model) {
-        return backToIdporten(request, model, MinidState.STATE_CANCEL);
+        return backToIdporten(request, model, MinIdState.STATE_CANCEL);
     }
 
     private ServiceProvider getServiceProvider(String entityId, String hostName) {
@@ -230,19 +234,23 @@ public class MinidPlusAuthorizeController {
     private String getNextView(HttpServletRequest request, int state) {
         setSessionState(request, state);
         if (state == STATE_LOGIN_VERIFICATION_CODE) {
-            return "minidplus_enter_otp";
+            return VIEW_LOGIN_ENTER_OTP;
         } else if (state == STATE_START_LOGIN) {
-            return "minidplus_enter_credentials";
-        } else if (state == STATE_AUTHENTICATED || state == MinidState.STATE_CANCEL) {
+            return VIEW_START_LOGIN;
+        } else if (state == STATE_AUTHENTICATED || state == MinIdState.STATE_CANCEL) {
             request.getSession().invalidate();
-            return "redirect_to_idporten";
+            return VIEW_REDIRECT_TO_IDPORTEN;
         } else if (state == STATE_ALERT) {
-            return "alert";
+            return VIEW_ALERT;
         } else if (state == STATE_LOGIN_WRONG_ACR) {
-            return "error_acr";
+            return VIEW_ERROR_ACR;
+        } else if (state == STATE_ERROR) {
+            return VIEW_GENERIC_ERROR;
         }
-        return "error";
+        log.error("Illegal state " + state);
+        return VIEW_GENERIC_ERROR;
     }
+
 
     private void setSessionState(HttpServletRequest request, int state) {
         request.getSession().setAttribute(HTTP_SESSION_STATE, state);
@@ -263,7 +271,7 @@ public class MinidPlusAuthorizeController {
                         .queryParam(HTTP_SESSION_LOCALE, ar.getLocale())
                         .queryParam(HTTP_SESSION_GOTO, ar.getGotoParam())
                         .queryParam(HTTP_SESSION_CLIENT_STATE, ar.getState());
-                if (state == MinidState.STATE_CANCEL) {
+                if (state == MinIdState.STATE_CANCEL) {
                     uriComponentsBuilder.queryParam("error", ABORTED_BY_USER);
                     uriComponentsBuilder.queryParam(HTTP_SESSION_SERVICE, START_SERVICE);
                 } else {
@@ -283,7 +291,7 @@ public class MinidPlusAuthorizeController {
     }
 
     private String backToIdporten(HttpServletRequest request, Model model, int backState) {
-        model.addAttribute("redirectUrl", buildUrl(request, backState));
+        model.addAttribute(MODEL_REDIRECT_URL, buildUrl(request, backState));
         return getNextView(request, backState);
     }
 

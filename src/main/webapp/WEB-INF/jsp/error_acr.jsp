@@ -1,4 +1,4 @@
-<%@ page import="no.idporten.minidplus.util.MinidPlusButtonType" %>
+<%@ page import="no.idporten.minidplus.util.MinIdPlusButtonType" %>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
@@ -17,8 +17,8 @@
                            method="post">
                     <p>
                         <button class='btn btn-Action' tabindex="1" autofocus="autofocus"
-                                id="<%= MinidPlusButtonType.CANCEL.id() %>"
-                                name="<%= MinidPlusButtonType.CANCEL.id() %>">
+                                id="<%= MinIdPlusButtonType.CANCEL.id() %>"
+                                name="<%= MinIdPlusButtonType.CANCEL.id() %>">
                             <span><spring:message code="no.idporten.module.minidplus.invalidacr.linktext1"
                                                   arguments="${sessionScope.serviceprovider.name}"
                                                   htmlEscape="false"/></span>

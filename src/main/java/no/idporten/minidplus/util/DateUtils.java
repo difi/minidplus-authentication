@@ -1,7 +1,6 @@
 package no.idporten.minidplus.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -12,6 +11,7 @@ import java.time.format.DateTimeParseException;
 import java.util.Date;
 
 /** Date utility methods. */
+@Slf4j
 public final class DateUtils {
 
     /** Default LDAP date format. */
@@ -23,7 +23,6 @@ public final class DateUtils {
     /** Date formatter, Java 8. */
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(DEFAULT_DATE_FORMAT);
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DateUtils.class);
 
     /** Private constructor because this is a utility class with only static methods. */
     private DateUtils() {
@@ -52,7 +51,7 @@ public final class DateUtils {
             return dateFormat.parse(dateString);
         }
         catch (final ParseException pae) {
-            LOGGER.warn("Error parsing date string: '" + dateString + "'", pae);
+            log.warn("Error parsing date string: '" + dateString + "'", pae);
             return null;
         }
     }
@@ -80,7 +79,7 @@ public final class DateUtils {
             return LocalDateTime.parse(dateString, dateFormat);
         }
         catch (final DateTimeParseException pae) {
-            LOGGER.warn("Error parsing date string: '" + dateString + "'", pae);
+            log.warn("Error parsing date string: '" + dateString + "'", pae);
             return null;
         }
     }

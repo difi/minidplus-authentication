@@ -6,10 +6,12 @@ import no.idporten.domain.user.MobilePhoneNumber;
 import no.idporten.domain.user.PersonNumber;
 import no.idporten.log.audit.AuditLogger;
 import no.idporten.minidplus.domain.LevelOfAssurance;
-import no.idporten.minidplus.exception.minid.*;
+import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
+import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
+import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
+import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
 import no.idporten.minidplus.logging.audit.AuditID;
-import no.idporten.minidplus.util.FeatureSwitches;
 import no.minid.exception.MinidUserAlreadyExistsException;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
@@ -51,9 +53,6 @@ public class AuthenticationServiceTest {
 
     @MockBean
     LINKMobilityClient linkMobilityClient;
-
-    @MockBean
-    FeatureSwitches featureSwitches;
 
     @MockBean
     AuditLogger auditLogger;

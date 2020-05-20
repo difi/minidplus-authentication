@@ -30,7 +30,7 @@ import java.time.Instant;
 @RequestMapping(value = "/token")
 @Slf4j
 @RequiredArgsConstructor
-public class MinidPlusTokenController {
+public class MinIdPlusTokenController {
 
     private static final String INVALID_GRANT = "invalid_grant";
     private final MinidPlusCache minidPlusCache;

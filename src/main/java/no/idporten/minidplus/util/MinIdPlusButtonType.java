@@ -3,7 +3,7 @@ package no.idporten.minidplus.util;
 /**
  * Button types.
  */
-public enum MinidPlusButtonType {
+public enum MinIdPlusButtonType {
 
     NEXT,
     CANCEL; // cancel button

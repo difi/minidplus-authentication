@@ -1,4 +1,4 @@
-<%@ page import="no.idporten.minidplus.util.MinidPlusButtonType" %>
+<%@ page import="no.idporten.minidplus.util.MinIdPlusButtonType" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
 <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
@@ -29,8 +29,8 @@
                 <fieldset>
                     <div class='fm-Controls with-Action with-Action-centered'>
                         <button autofocus="autofocus" type="submit" class='btn btn-Normal' tabindex="11"
-                                id="<%= MinidPlusButtonType.CANCEL.id() %>"
-                                name="<%= MinidPlusButtonType.CANCEL.id() %>">
+                                id="<%= MinIdPlusButtonType.CANCEL.id() %>"
+                                name="<%= MinIdPlusButtonType.CANCEL.id() %>">
                             <span><spring:message code="no.idporten.button.continue"/></span>
                         </button>
                     </div>

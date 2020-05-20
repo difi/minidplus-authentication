@@ -1,14 +1,14 @@
 package no.idporten.minidplus.web;
 
 import no.idporten.domain.sp.ServiceProvider;
-import no.idporten.minidplus.MinidplusApplication;
+import no.idporten.minidplus.MinIdplusApplication;
 import no.idporten.minidplus.config.SecurityConfiguration;
 import no.idporten.minidplus.domain.Authorization;
 import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.MinidPlusCache;
-import no.idporten.minidplus.util.MinidPlusButtonType;
+import no.idporten.minidplus.util.MinIdPlusButtonType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,7 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Selected tests. Should work for all with form:form
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringBootTest(classes = {MinidplusApplication.class, SecurityConfiguration.class})
+@SpringBootTest(classes = {MinIdplusApplication.class, SecurityConfiguration.class})
 public class CsrfConfigTest {
 
     @Autowired
@@ -90,7 +90,7 @@ public class CsrfConfigTest {
                 .sessionAttr(HTTP_SESSION_STATE, 2)
                 .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
                 .param("otpCode", otp)
-                .param(MinidPlusButtonType.NEXT.id(), "")
+                .param(MinIdPlusButtonType.NEXT.id(), "")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .with(csrf())
         )
