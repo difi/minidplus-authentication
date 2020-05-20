@@ -157,7 +157,6 @@ public class MinidPlusAuthorizeController {
                 log.error("Unexpected exception occurred during post user credentials", e);
                 result.addError(new ObjectError(MODEL_AUTHORIZATION_REQUEST, new String[]{"no.idporten.error.line1"}, null, "Login failed"));
             }
-            model.addAttribute(new UserCredentials());
             return getNextView(request, STATE_START_LOGIN);
         } else {
             log.error("Illegal state " + state);
