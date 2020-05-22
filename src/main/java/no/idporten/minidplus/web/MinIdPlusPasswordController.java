@@ -8,6 +8,7 @@ import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.PasswordChange;
 import no.idporten.minidplus.domain.PersonIdInput;
 import no.idporten.minidplus.domain.UserCredentials;
+import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
 import no.idporten.minidplus.exception.minid.MinIDTimeoutException;
@@ -168,7 +169,6 @@ public class MinIdPlusPasswordController {
             addQuarantinedMessage(e, model);
             return getNextView(request, STATE_ALERT);
         } catch (MinIDPincodeException e) {
-            result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.format.otc.locked"}, null, "Too many attempts"));
             model.addAttribute(MODEL_ALERT_MESSAGE, "auth.ui.error.quarantined.message");
             return getNextView(request, STATE_ALERT);
         } catch (MinidUserInvalidException e) {
@@ -295,12 +295,13 @@ public class MinIdPlusPasswordController {
     }
 
     private void addQuarantinedMessage(MinIDQuarantinedUserException e, Model model) {
-        if (e.getMessage().equalsIgnoreCase("User is closed")) {
+        warn("User quarantined " + e.getMessage());
+        if (IDPortenExceptionID.IDENTITY_CLOSED.equals(e.getExceptionID())) {
             model.addAttribute(MODEL_ALERT_MESSAGE, "auth.ui.error.closed.message");
-        } else if (e.getMessage().equalsIgnoreCase("User has been in quarantine for more than one hour.")) {
-            model.addAttribute(MODEL_ALERT_MESSAGE, "auth.ui.error.locked.message");
+            model.addAttribute(MODEL_LINK_TO_OTHER_SERVICE, "");
         } else {
             model.addAttribute(MODEL_ALERT_MESSAGE, "auth.ui.error.quarantined.message");
+            model.addAttribute(MODEL_LINK_TO_OTHER_SERVICE, "password");
         }
     }
 

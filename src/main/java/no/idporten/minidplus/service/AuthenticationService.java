@@ -107,20 +107,20 @@ public class AuthenticationService {
         if (identity.getCredentialErrorCounter() == null) {
             identity.setCredentialErrorCounter(0);
         }
-        if (identity.getCredentialErrorCounter() >= maxNumberOfCredentialErrors) {
+        if (MinidUser.State.QUARANTINED.equals(identity.getState())) {
             if (identity.getQuarantineExpiryDate() != null) {
-                if (identity.getQuarantineExpiryDate().before(Date.from(Clock.systemUTC().instant().minusSeconds(3600)))) {
+                if (identity.getQuarantineExpiryDate().before(Date.from(Clock.systemUTC().instant()))) {
                     warn("User has been in quarantine for more than one hour.");
-                    throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User has been in quarantine for more than one hour.");
+                    throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED_ONE_HOUR, "User has been in quarantine for more than one hour.");
                 }
             }
             warn("User is quarantined.");
             throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User is in quarantine, unauthorized");
         }
 
-        if (identity.getState().equals(MinidUser.State.CLOSED)) {
+        if (MinidUser.State.CLOSED.equals(identity.getState())) {
             warn("User has state CLOSED.");
-            throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User is closed");
+            throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_CLOSED, "User is closed");
         }
     }
 
@@ -148,6 +148,7 @@ public class AuthenticationService {
     public boolean changePassword(String sid, String password) throws MinidUserNotFoundException {
         String pid = minidPlusCache.getSSN(sid);
         minIDService.updatePassword(new PersonNumber(pid), password);
+        //todo bør vel resette tilstand og tellere om i karantene? = minIDService.setUserStateNormal(new PersonNumber(pid));
         auditLogger.log(AuditID.PASSWORD_CHANGED.auditId(), null, pid, CorrelationId.get());
         eventService.logUserPasswordChanged(pid);
         return true;
@@ -183,12 +184,16 @@ public class AuthenticationService {
         if (Objects.equals(identity.getQuarantineCounter(), maxNumberOfQuarantineCounters)) {
             throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "pin code is locked");
         }
-        if (Objects.equals(identity.getCredentialErrorCounter(), maxNumberOfCredentialErrors)) {
+        if (isQuarantined(identity)) {
             throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User is in quarantine, unauthorized");
         }
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
         otcPasswordService.sendSMSOtp(sid, sp, identity);
         return true;
+    }
+
+    private boolean isQuarantined(MinidUser identity) {
+        return MinidUser.State.QUARANTINED.equals(identity.getState()) && identity.getQuarantineExpiryDate().after(Date.from(Clock.systemUTC().instant()));
     }
 
     public boolean authenticateOtpStep(String sid, String inputOneTimeCode) throws MinidUserNotFoundException, MinIDPincodeException, MinIDTimeoutException, MinIDQuarantinedUserException {

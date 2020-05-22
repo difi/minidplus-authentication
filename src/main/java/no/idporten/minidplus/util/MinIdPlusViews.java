@@ -14,4 +14,5 @@ public class MinIdPlusViews {
     public static final String MODEL_REDIRECT_URL = "redirectUrl";
     public static final String MODEL_ERROR_MSG = "errorMsg";
     public static final String MODEL_ALERT_MESSAGE = "alertMsg";
+    public static final String MODEL_LINK_TO_OTHER_SERVICE = "linkValue";
 }

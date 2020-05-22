@@ -6,6 +6,7 @@ import no.idporten.domain.user.MobilePhoneNumber;
 import no.idporten.domain.user.PersonNumber;
 import no.idporten.log.audit.AuditLogger;
 import no.idporten.minidplus.domain.LevelOfAssurance;
+import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
 import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
@@ -22,6 +23,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit4.SpringRunner;
+
+import java.time.Clock;
+import java.util.Date;
 
 import static junit.framework.TestCase.*;
 import static org.mockito.ArgumentMatchers.eq;
@@ -258,7 +262,48 @@ public class AuthenticationServiceTest {
             fail("should have failed");
         } catch (Exception e) {
             assertTrue(e instanceof MinIDQuarantinedUserException);
+            assertEquals(IDPortenExceptionID.IDENTITY_CLOSED, ((MinIDQuarantinedUserException) e).getExceptionID());
             assertEquals("User is closed", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testUserQuarantinedOneHourAuthentication() {
+        when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
+        PersonNumber personNumber = new PersonNumber(pid);
+        MinidUser minidUser = new MinidUser(personNumber);
+        minidUser.setCredentialErrorCounter(10);
+        minidUser.setState(MinidUser.State.QUARANTINED);
+        minidUser.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant().minusSeconds(1)));
+        minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        minidUser.setSource(MINID_ON_THE_FLY_PASSPORT);
+        when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
+        when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(true);
+        try {
+            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
+            fail("should have failed");
+        } catch (Exception e) {
+            assertTrue(e instanceof MinIDQuarantinedUserException);
+            assertEquals(IDPortenExceptionID.IDENTITY_QUARANTINED_ONE_HOUR, ((MinIDQuarantinedUserException) e).getExceptionID());
+        }
+    }
+
+    @Test
+    public void testUserQuarantinedOneHourPasswordChange() {
+        when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
+        PersonNumber personNumber = new PersonNumber(pid);
+        MinidUser minidUser = new MinidUser(personNumber);
+        minidUser.setCredentialErrorCounter(10);
+        minidUser.setState(MinidUser.State.QUARANTINED);
+        minidUser.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant().minusSeconds(1)));
+        minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        minidUser.setSource(MINID_ON_THE_FLY_PASSPORT);
+        when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
+        when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(true);
+        try {
+            assertTrue(authenticationService.authenticatePid(sid, pid, eq(sp)));
+        } catch (Exception e) {
+            fail("should not have failed");
         }
     }
 

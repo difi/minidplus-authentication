@@ -23,7 +23,7 @@ services:
     configs:
       - log_config
     ports:
-      - 443:443
+      - 443
     networks:
       atest:
         aliases:
