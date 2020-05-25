@@ -23,6 +23,24 @@ spring:
     maxConnections: 10
     maxWait: 5000
     serviceproviderBase: ou=serviceproviders,dc=idporten,dc=no
+  mail:
+    host: lekex1.domain.local
+    port: 25
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail:
+        # not sure if this has ever been used
+        #allowedFilter: '.*digi\.no|.*hostingtjenester\.no'
+        smtp:
+          from: noreply@digdir.no
+          to:
+            smoketest: utvtest@digdir.no
+          auth: false
+          connectiontimeout: 5000
+          writetimeout: 2000
+          starttls:
+            enable: true
 
 management:
   health:
@@ -69,12 +87,6 @@ linkmobility:
   readTimeout: 10000 #ms?
   sender: Digdir
   ttl: 600 #s
-
-# Email
-email:
-  url: http://eid-systest-admin01.dmz.local:10002/kontaktinfo-backend/rest/notifyUser/
-  connectTimeout: 5000
-  readTimeout: 10000
 
 server:
   tomcat:
