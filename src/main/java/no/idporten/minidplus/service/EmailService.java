@@ -26,6 +26,10 @@ public class EmailService {
     private final MessageSource messageSource;
 
     void sendOtc(String to, String otc, LocalDateTime expire) {
+        if (!inWhitelist(to)) {
+            log.warn("Email ignored since the domain of " + to + " is not in whitelist");
+            return;
+        }
         if (log.isDebugEnabled()) {
             log.debug("Sending otp to email " + to);
         }
@@ -33,6 +37,11 @@ public class EmailService {
         message.setTo(to);
         message.setSubject(messageSource.getMessage("no.idporten.forgottenpassword.email.subject", null, Locale.getDefault()));
         message.setText(messageSource.getMessage("no.idporten.forgottenpassword.email.message", new String[]{otc, DateTimeFormatter.ofPattern("HH:mm").format(expire)}, Locale.getDefault()));
+
         javaMailSender.send(message);
+    }
+
+    private boolean inWhitelist(String to) {
+        return to.matches(allowedFilter);
     }
 }
