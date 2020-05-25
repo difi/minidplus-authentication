@@ -30,7 +30,7 @@ class minidplus_authentication::params {
   $ldap_base_minid                  = hiera('idporten_opensso_opendj::minid_base')
   $eventlog_jms_queuename           = hiera('idporten_logwriter::jms_queueName')
   $eventlog_jms_url                 = hiera('platform::jms_url')
-  $email_url                        = join([hiera('kontaktinfo_backend::url'), 'rest/notifyUser/'])
+  $email_url = 'lekex1.domain.local'
   $email_connect_timeout            = 5000
   $email_read_timeout               = 10000
   $email_allowed_filter = '.*digdir\.no|.*hostingtjenester\.no'
