@@ -145,10 +145,21 @@ public class AuthenticationService {
         return true;
     }
 
-    public boolean changePassword(String sid, String password) throws MinidUserNotFoundException {
+    public boolean changePassword(String sid, String password) throws MinidUserNotFoundException, MinIDTimeoutException {
         String pid = minidPlusCache.getSSN(sid);
-        minIDService.updatePassword(new PersonNumber(pid), password);
-        //todo bør vel resette tilstand og tellere om i karantene? = minIDService.setUserStateNormal(new PersonNumber(pid));
+        PersonNumber personNumber = new PersonNumber(pid);
+        MinidUser identity;
+        if (pid != null) {
+            identity = minIDService.findByPersonNumber(personNumber);
+        } else {
+            throw new MinIDTimeoutException("Otc code timed out");
+        }
+        if (isQarantinedButExpired(identity)) {
+            minIDService.setCredentialErrorCounter(personNumber, 0);
+            minIDService.setQuarantineExpiryDate(personNumber, null);
+            minIDService.setUserStateNormal(personNumber, identity.getUid());
+        }
+        minIDService.updatePassword(personNumber, password);
         auditLogger.log(AuditID.PASSWORD_CHANGED.auditId(), null, pid, CorrelationId.get());
         eventService.logUserPasswordChanged(pid);
         return true;
@@ -194,6 +205,10 @@ public class AuthenticationService {
 
     private boolean isQuarantined(MinidUser identity) {
         return MinidUser.State.QUARANTINED.equals(identity.getState()) && identity.getQuarantineExpiryDate().after(Date.from(Clock.systemUTC().instant()));
+    }
+
+    private boolean isQarantinedButExpired(MinidUser identity) {
+        return MinidUser.State.QUARANTINED.equals(identity.getState()) && identity.getQuarantineExpiryDate().before(Date.from(Clock.systemUTC().instant()));
     }
 
     public boolean authenticateOtpStep(String sid, String inputOneTimeCode) throws MinidUserNotFoundException, MinIDPincodeException, MinIDTimeoutException, MinIDQuarantinedUserException {

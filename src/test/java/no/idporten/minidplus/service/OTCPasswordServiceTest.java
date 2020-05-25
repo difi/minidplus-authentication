@@ -8,6 +8,7 @@ import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
 import no.idporten.minidplus.exception.minid.MinIDTimeoutException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
+import no.idporten.minidplus.logging.event.EventService;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
 import org.junit.Test;
@@ -49,6 +50,9 @@ public class OTCPasswordServiceTest {
 
     @MockBean
     LINKMobilityClient linkMobilityClient;
+
+    @MockBean
+    EventService eventService;
 
     @Test
     public void checkOTCCodePositiveTest() throws MinidUserNotFoundException, MinIDPincodeException, MinIDTimeoutException, MinIDQuarantinedUserException {

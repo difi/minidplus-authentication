@@ -13,6 +13,7 @@ import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
 import no.idporten.minidplus.exception.minid.MinIDSystemException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
 import no.idporten.minidplus.logging.audit.AuditID;
+import no.idporten.minidplus.logging.event.EventService;
 import no.minid.exception.MinidUserAlreadyExistsException;
 import no.minid.exception.MinidUserNotFoundException;
 import no.minid.service.MinIDService;
@@ -60,6 +61,9 @@ public class AuthenticationServiceTest {
 
     @MockBean
     AuditLogger auditLogger;
+
+    @MockBean
+    EventService eventService;
 
     @Test
     public void testAuthentication() {
@@ -288,9 +292,10 @@ public class AuthenticationServiceTest {
         }
     }
 
+
     @Test
-    public void testUserQuarantinedOneHourPasswordChange() {
-        when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
+    public void testUserQuarantinedOneHourPasswordChange() throws MinidUserNotFoundException {
+        when(minidPlusCache.getSSN(eq(sid))).thenReturn(pid);
         PersonNumber personNumber = new PersonNumber(pid);
         MinidUser minidUser = new MinidUser(personNumber);
         minidUser.setCredentialErrorCounter(10);
@@ -299,12 +304,15 @@ public class AuthenticationServiceTest {
         minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
         minidUser.setSource(MINID_ON_THE_FLY_PASSPORT);
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
-        when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(true);
         try {
             assertTrue(authenticationService.authenticatePid(sid, pid, eq(sp)));
+            assertTrue(authenticationService.changePassword(sid, "newPassword"));
         } catch (Exception e) {
-            fail("should not have failed");
+            fail("should not have failed with " + e.getMessage());
         }
+        verify(minIDService, times(1)).setUserStateNormal(eq(personNumber), anyString());
+        verify(auditLogger, times(1)).log(eq(AuditID.PASSWORD_CHANGED.auditId()), isNull(), eq(pid), anyString());
+        verify(eventService, times(1)).logUserPasswordChanged(eq(pid));
     }
 
     @Test
