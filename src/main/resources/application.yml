@@ -30,8 +30,6 @@ spring:
     default-encoding: UTF-8
     properties:
       mail:
-        # not sure if this has ever been used
-        #allowedFilter: '.*digi\.no|.*hostingtjenester\.no'
         smtp:
           from: noreply@digdir.no
           to:
@@ -74,7 +72,9 @@ minid-plus:
     otp-ttl-in-s: 600
   registrationUri:
     https://eid-systest-static-web01
-
+  # not sure if this has ever been used. set to .* in production
+  mail:
+    allowed-filter: '.*digi\.no|.*hostingtjenester\.no'
 event:
   jmsUrl: tcp://eid-systest-admin01.dmz.local:61616
   jmsQueue: logqueue

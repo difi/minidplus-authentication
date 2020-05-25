@@ -11,7 +11,6 @@ import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
 import no.idporten.minidplus.exception.minid.MinIDTimeoutException;
 import no.idporten.minidplus.linkmobility.LINKMobilityClient;
-import no.idporten.minidplus.notification.NotificationService;
 import no.idporten.validation.util.RandomUtil;
 import no.minid.exception.MinidUserInvalidException;
 import no.minid.exception.MinidUserNotFoundException;
@@ -79,7 +78,7 @@ public class OTCPasswordService {
 
     private final LINKMobilityClient linkMobilityClient;
 
-    private final NotificationService notificationService;
+    private final EmailService emailService;
 
     private final MinIDService minIDService;
 
@@ -212,7 +211,7 @@ public class OTCPasswordService {
             String generatedOneTimeCode = generateOTCPassword();
             minidPlusCache.putOTP(sid, generatedOneTimeCode);
             final String email = identity.getEmail().getAddress();
-            notificationService.sendForgottenPasswordEmail(email, generatedOneTimeCode, now().plusSeconds(otpTtl));
+            emailService.sendOtc(email, generatedOneTimeCode, now().plusSeconds(otpTtl));
             if (log.isInfoEnabled()) {
                 log.info(CorrelationId.get() + " " + "Otp sendt to " + email);
             }
