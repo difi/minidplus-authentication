@@ -36,6 +36,8 @@ class minidplus_authentication (
   String $minidonthefly_registrationUri    = $minidplus_authentication::params::minidonthefly_registrationUri,
   String $basic_auth_client_id             = $minidplus_authentication::params::basic_auth_client_id,
   String $basic_auth_client_secret         = $minidplus_authentication::params::basic_auth_client_secret,
+  Boolean $sms_filter_enabled              = $minidplus_authentication::params::sms_filter_enabled,
+  String $sms_filter_filename              = $minidplus_authentication::params::sms_filter_filename,
 
 )inherits minidplus_authentication::params {
 

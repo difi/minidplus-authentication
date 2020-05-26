@@ -1,0 +1,13 @@
+# List of mobile numbers for use with RestrictedSmsGatewayFilter
+
+# Test mobiles
+# Netcom:              
+46444008
+#Tele 2:                  
+41209523
+# Network N:        
+47912996
+#Ventelo:              
+40436656
+
+41749924

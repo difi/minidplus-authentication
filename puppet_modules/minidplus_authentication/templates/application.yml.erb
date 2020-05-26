@@ -61,3 +61,6 @@ minid-plus:
   serverid: <% if !(@serverid.empty?) %><%= @serverid %><% end %>
   mail:
     allowed-filter: <%= @email_allowed_filter %>
+  sms-filter:
+    enabled: <%= @sms_filter_enabled %>
+    filename: <%= @sms_filter_filename %>
