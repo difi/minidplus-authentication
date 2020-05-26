@@ -1,6 +1,7 @@
 package no.idporten.minidplus.service;
 
 import no.idporten.domain.sp.ServiceProvider;
+import no.idporten.domain.user.EmailAddress;
 import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.MobilePhoneNumber;
 import no.idporten.domain.user.PersonNumber;
@@ -64,6 +65,9 @@ public class AuthenticationServiceTest {
 
     @MockBean
     EventService eventService;
+
+    @MockBean
+    EmailService emailService;
 
     @Test
     public void testAuthentication() {
@@ -272,6 +276,25 @@ public class AuthenticationServiceTest {
     }
 
     @Test
+    public void testUserQuarantinedAuthentication() {
+        when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
+        PersonNumber personNumber = new PersonNumber(pid);
+        MinidUser minidUser = new MinidUser(personNumber);
+        minidUser.setCredentialErrorCounter(10);
+        minidUser.setState(MinidUser.State.QUARANTINED);
+        minidUser.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant().plusSeconds(3600)));
+        minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        minidUser.setSource(MINID_ON_THE_FLY_PASSPORT);
+        when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
+        when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(true);
+        try {
+            authenticationService.authenticatePid(sid, pid, eq(sp));
+        } catch (Exception e) {
+            fail("should not have failed");
+        }
+    }
+
+    @Test
     public void testUserQuarantinedOneHourAuthentication() {
         when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
         PersonNumber personNumber = new PersonNumber(pid);
@@ -302,10 +325,12 @@ public class AuthenticationServiceTest {
         minidUser.setState(MinidUser.State.QUARANTINED);
         minidUser.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant().minusSeconds(1)));
         minidUser.setPhoneNumber(new MobilePhoneNumber("123456789"));
+        minidUser.setEmail(new EmailAddress("smoketest@digdir.no"));
         minidUser.setSource(MINID_ON_THE_FLY_PASSPORT);
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         try {
             assertTrue(authenticationService.authenticatePid(sid, pid, eq(sp)));
+            assertTrue(authenticationService.verifyUserByEmail(sid));
             assertTrue(authenticationService.changePassword(sid, "newPassword"));
         } catch (Exception e) {
             fail("should not have failed with " + e.getMessage());
@@ -314,6 +339,7 @@ public class AuthenticationServiceTest {
         verify(auditLogger, times(1)).log(eq(AuditID.PASSWORD_CHANGED.auditId()), isNull(), eq(pid), anyString());
         verify(eventService, times(1)).logUserPasswordChanged(eq(pid));
     }
+
 
     @Test
     public void testDummyUserGetQuarantinedNewUser() {

@@ -139,7 +139,6 @@ public class AuthenticationService {
             throw new MinidUserInvalidException("Email not found not found for user");
         }
 
-        validateUserState(identity);
         otcPasswordService.sendEmailOtp(sid, identity);
 
         return true;
@@ -195,16 +194,10 @@ public class AuthenticationService {
         if (Objects.equals(identity.getQuarantineCounter(), maxNumberOfQuarantineCounters)) {
             throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "pin code is locked");
         }
-        if (isQuarantined(identity)) {
-            throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User is in quarantine, unauthorized");
-        }
+
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
         otcPasswordService.sendSMSOtp(sid, sp, identity);
         return true;
-    }
-
-    private boolean isQuarantined(MinidUser identity) {
-        return MinidUser.State.QUARANTINED.equals(identity.getState()) && identity.getQuarantineExpiryDate().after(Date.from(Clock.systemUTC().instant()));
     }
 
     private boolean isQarantinedButExpired(MinidUser identity) {

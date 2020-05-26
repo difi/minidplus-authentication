@@ -176,8 +176,9 @@ public class OTCPasswordService {
         }
         if (user.getState().equals(MinidUser.State.CLOSED)) {
             warn("User has state CLOSED.", user.getPersonNumber().getSsn());
-            throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User is closed");
+            throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_CLOSED, "User is closed");
         }
+
     }
 
     void sendSMSOtp(String sid, ServiceProvider sp, MinidUser identity) throws MinidUserInvalidException, MinIDQuarantinedUserException {
@@ -230,6 +231,10 @@ public class OTCPasswordService {
             user.setQuarantineCounter(0);
         }
         validateUserOTCState(user);
+        if (isQuarantined(user)) {
+            warn("User has state QUARANTINED.", user.getPersonNumber().getSsn());
+            throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User is quarantined");
+        }
 
         if (otpIsValid(sid, inputOneTimeCode)) {
             minidPlusCache.removeOTP(sid);
@@ -272,6 +277,10 @@ public class OTCPasswordService {
      */
     public static boolean isEmpty(final String string) {
         return (string == null) || (string.trim().length() == 0) || "".equals(string.trim());
+    }
+
+    private boolean isQuarantined(MinidUser identity) {
+        return MinidUser.State.QUARANTINED.equals(identity.getState()) && identity.getQuarantineExpiryDate().after(Date.from(Clock.systemUTC().instant()));
     }
 
     private String getMessageBody(ServiceProvider sp, String otc, LocalDateTime expire) {

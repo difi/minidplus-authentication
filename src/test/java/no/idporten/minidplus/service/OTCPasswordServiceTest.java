@@ -82,7 +82,7 @@ public class OTCPasswordServiceTest {
         when(minidPlusCache.getSSN(anyString())).thenReturn(pid);
         when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
         when(minIDService.findByPersonNumber(any())).thenReturn(user);
-        assertFalse(otcPasswordService.checkOTCCode("otctestWrong", sessionId));
+        assertFalse(otcPasswordService.checkOTCCode(sessionId, "otctestWrong"));
         assert (user.getQuarantineCounter() == 1);
     }
 
@@ -98,7 +98,7 @@ public class OTCPasswordServiceTest {
         when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
         when(minIDService.findByPersonNumber(any())).thenReturn(user);
 
-        assertFalse(otcPasswordService.checkOTCCode("otctestWrong", sessionId));
+        assertFalse(otcPasswordService.checkOTCCode(sessionId, "otctestWrong"));
         assert (user.getQuarantineCounter() == 2);
 
     }
@@ -117,7 +117,7 @@ public class OTCPasswordServiceTest {
         when(minIDService.findByPersonNumber(any())).thenReturn(user);
 
         try {
-            otcPasswordService.checkOTCCode("otctest", sessionId);
+            otcPasswordService.checkOTCCode(sessionId, "otctest");
             fail("Should have thrown MinIdPincodeException");
         } catch (MinIDPincodeException | MinIDTimeoutException | MinIDQuarantinedUserException e) {
             assertEquals(IDPortenExceptionID.IDENTITY_QUARANTINED, e.getExceptionID());
@@ -139,12 +139,53 @@ public class OTCPasswordServiceTest {
         when(minIDService.findByPersonNumber(any())).thenReturn(user);
 
         try {
-            otcPasswordService.checkOTCCode("otctest", sessionId);
+            otcPasswordService.checkOTCCode(sessionId, "otctest");
         } catch (MinIDPincodeException | MinIDTimeoutException | MinIDQuarantinedUserException e) {
             assertEquals(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, e.getExceptionID());
             assertTrue(user.isOneTimeCodeLocked());
         }
     }
 
+    @Test
+    public void checkOTCQuarantinedButExpired() throws MinidUserNotFoundException {
+        MinidUser user = new MinidUser();
+        user.setCredentialErrorCounter(3);
+        user.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant()));
+        user.setOneTimeCodeLocked(false);
+        user.setPersonNumber(new PersonNumber(pid));
+        user.setState(MinidUser.State.QUARANTINED);
+        String sessionId = "123";
 
+        when(minidPlusCache.getSSN(anyString())).thenReturn(pid);
+        when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
+        when(minIDService.findByPersonNumber(any())).thenReturn(user);
+
+        try {
+            assertTrue(otcPasswordService.checkOTCCode(sessionId, "otctest"));
+        } catch (MinIDPincodeException | MinIDTimeoutException | MinIDQuarantinedUserException e) {
+            fail("Should ignore quarantine status if expired");
+        }
+    }
+
+    @Test
+    public void checkOTCQuarantinedAndNotExpired() throws MinidUserNotFoundException {
+        MinidUser user = new MinidUser();
+        user.setCredentialErrorCounter(3);
+        user.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant().plusSeconds(3600)));
+        user.setOneTimeCodeLocked(false);
+        user.setPersonNumber(new PersonNumber(pid));
+        user.setState(MinidUser.State.QUARANTINED);
+        String sessionId = "123";
+
+        when(minidPlusCache.getSSN(anyString())).thenReturn(pid);
+        when(minidPlusCache.getOTP(anyString())).thenReturn("otctest");
+        when(minIDService.findByPersonNumber(any())).thenReturn(user);
+
+        try {
+            otcPasswordService.checkOTCCode(sessionId, "otctest");
+            fail("Should not ignore quarantine status if not expired");
+        } catch (MinIDPincodeException | MinIDTimeoutException | MinIDQuarantinedUserException e) {
+            assertEquals(IDPortenExceptionID.IDENTITY_QUARANTINED, e.getExceptionID());
+        }
+    }
 }
