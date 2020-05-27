@@ -273,7 +273,6 @@ public class MinIdPlusAuthorizeController {
         if (sid != null) {
             minidPlusCache.removeSSN((String) sid);
         }
-        request.getSession().invalidate();
     }
 
     private void setSessionState(HttpServletRequest request, int state) {
