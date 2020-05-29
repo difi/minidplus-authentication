@@ -31,6 +31,9 @@ class minidplus_authentication::params {
   $eventlog_jms_queuename           = hiera('idporten_logwriter::jms_queueName')
   $eventlog_jms_url                 = hiera('platform::jms_url')
   $email_url                        = 'lekex1.domain.local'
+  $email_port                       = 25
+  $email_from_address               = 'noreply@digdir.no'
+  $email_starttls_enabled           = false
   $email_connect_timeout            = 5000
   $email_read_timeout               = 10000
   $email_allowed_filter             = '.*digdir\.no|.*hostingtjenester\.no'

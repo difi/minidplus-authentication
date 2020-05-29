@@ -39,11 +39,17 @@ spring:
     maxWait: 5000
   mail:
     host: <%= @email_url %>
+    port: <%= @email_port %>
     properties:
       mail:
         smtp:
+          from: <%= @email_from_address %>
           connectiontimeout: <%= @email_connect_timeout %>
           writetimeout: <%= @email_read_timeout %>
+          starttls:
+            enable: <%= @email_starttls_enabled %>
+
+
   security:
     user:
       name: <%= @basic_auth_client_id %>
