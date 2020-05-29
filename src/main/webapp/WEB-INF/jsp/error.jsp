@@ -1,4 +1,3 @@
-<%@ page import="no.idporten.minidplus.util.MinIdPlusButtonType" %>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
@@ -18,17 +17,7 @@
                                    arguments="${errorMsg}"/></p>
                 <p>
                     </c:if>
-                    <form:form action="retry"
-                               method="post">
 
-                        <button class='btn btn-Action' tabindex="1"
-                                id="<%= MinIdPlusButtonType.NEXT.id() %>"
-                                autofocus="autofocus"
-                                name="<%= MinIdPlusButtonType.NEXT.id() %>">
-                            <span><spring:message code="auth.ui.button.retry" text="OK"/></span>
-                        </button>
-
-                    </form:form>
                 </p>
             </div>
 
