@@ -41,6 +41,7 @@ class minidplus_authentication (
   String $basic_auth_client_secret         = $minidplus_authentication::params::basic_auth_client_secret,
   Boolean $sms_filter_enabled              = $minidplus_authentication::params::sms_filter_enabled,
   String $sms_filter_filename              = $minidplus_authentication::params::sms_filter_filename,
+  Integer $session_ttl_seconds             = $minidplus_authentication::params::session_ttl_seconds,
 
 ) inherits minidplus_authentication::params {
 

@@ -43,4 +43,5 @@ class minidplus_authentication::params {
   $basic_auth_client_secret         = 'clientsecret'
   $sms_filter_enabled               = true
   $sms_filter_filename              = 'difi-mobile-numbers.txt'
+  $session_ttl_seconds              = 1800
 }

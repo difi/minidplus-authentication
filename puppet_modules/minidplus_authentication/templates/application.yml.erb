@@ -18,7 +18,9 @@ server:
       directory: <%= @log_root%><%= @application %>
     max-threads: <%= @server_tomcat_max_threads%>
     min-spare-threads: <%= @server_tomcat_min_spare_threads%>
-
+  servlet:
+    session:
+      timeout: <%= @session_ttl_seconds%>
 # LINKMobility integration
 linkmobility:
     url: <%= @linkmobility_url %>
@@ -63,6 +65,7 @@ minid-plus:
   code-lifetime-seconds: <%= @code_lifetime_seconds%>
   cache:
     otp-ttl-in-s: <%= @sms_onetimepassword_ttl_seconds %>
+    session-ttl-in-s: <%= @session_ttl_seconds %>
   registrationUri: <%= @minidonthefly_registrationUri %>
   serverid: <% if !(@serverid.empty?) %><%= @serverid %><% end %>
   mail:

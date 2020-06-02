@@ -22,7 +22,10 @@ public class CacheConfiguration {
     public static final String SID_AUTHORIZATION = "sidAuth";
 
     @Value("${minid-plus.cache.otp-ttl-in-s:600}")
-    private int cacheTTL;
+    private int otpCacheTTL;
+
+    @Value("${minid-plus.cache.session-ttl-in-s:1800}")
+    private int sessionCacheTTL;
 
     @Bean
     public CacheManager cacheManager() {
@@ -30,17 +33,17 @@ public class CacheConfiguration {
                 .withCache(SID_SSN,
                         CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
                                 ResourcePoolsBuilder.heap(100))
-                                .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(cacheTTL + 10L)))
+                                .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(sessionCacheTTL)))
                                 .build())
                 .withCache(SID_OTP,
                         CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
                                 ResourcePoolsBuilder.heap(100))
-                                .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(cacheTTL)))
+                                .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(otpCacheTTL)))
                                 .build())
                 .withCache(SID_AUTHORIZATION,
                         CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, Authorization.class,
                                 ResourcePoolsBuilder.heap(100))
-                                .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(cacheTTL)))
+                                .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(sessionCacheTTL)))
                                 .build())
                 .build(true);
     }

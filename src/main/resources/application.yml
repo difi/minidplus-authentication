@@ -70,6 +70,7 @@ minid-plus:
     categoryname: minidplus
   cache:
     otp-ttl-in-s: 600
+    session-ttl-in-s: 1800
   registrationUri:
     https://eid-systest-static-web01
   # nb: set to .* in production
@@ -97,7 +98,7 @@ server:
     protocol-header: x-forwarded-proto
   servlet:
     session:
-      timeout: 30s
+      timeout: 1800s
       cookie:
         http-only: true
   forward-headers-strategy: native
