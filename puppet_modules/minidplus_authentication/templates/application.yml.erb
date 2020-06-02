@@ -40,6 +40,7 @@ spring:
     maxConnections: 10
     maxWait: 5000
   mail:
+    debug: <%= @email_debug_enabled %>
     host: <%= @email_url %>
     port: <%= @email_port %>
     properties:

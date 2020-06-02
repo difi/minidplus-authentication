@@ -37,6 +37,7 @@ class minidplus_authentication::params {
   $email_connect_timeout            = 5000
   $email_read_timeout               = 10000
   $email_allowed_filter             = '.*digdir\.no|.*hostingtjenester\.no'
+  $email_debug_enabled              = false
   $sms_onetimepassword_ttl_seconds  = 600
   $minidonthefly_registrationUri    = 'https://eid-systest-static-web01'
   $basic_auth_client_id             = 'openam'

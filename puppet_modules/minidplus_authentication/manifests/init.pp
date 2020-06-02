@@ -35,6 +35,7 @@ class minidplus_authentication (
   Integer $email_connect_timeout           = $minidplus_authentication::params::email_connect_timeout,
   Integer $email_read_timeout              = $minidplus_authentication::params::email_read_timeout,
   String $email_allowed_filter             = $minidplus_authentication::params::email_allowed_filter,
+  Boolean $email_debug_enabled             = $minidplus_authentication::params::email_debug_enabled,
   Integer $sms_onetimepassword_ttl_seconds = $minidplus_authentication::params::sms_onetimepassword_ttl_seconds,
   String $minidonthefly_registrationUri    = $minidplus_authentication::params::minidonthefly_registrationUri,
   String $basic_auth_client_id             = $minidplus_authentication::params::basic_auth_client_id,
