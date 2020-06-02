@@ -163,19 +163,19 @@ public class OTCPasswordService {
         if (user.getQuarantineCounter() >= maxNumberOfQuarantineCounters) {
             if (user.getQuarantineExpiryDate() != null) {
                 if (user.getQuarantineExpiryDate().before(Date.from(Clock.systemUTC().instant().minusSeconds(3600)))) {
-                    warn("User has been in quarantine for more than one hour.", user.getPersonNumber().getSsn());
+                    warn("User has been in quarantine for more than one hour.");
                     throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User has been in quarantine for more than one hour.");
                 }
             }
-            warn("Pincode locked for ssn=", user.getPersonNumber().getSsn());
+            warn("Pincode locked");
             throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "pin code is locked");
         }
         if (user.isOneTimeCodeLocked()) {
-            warn("One time code is locked", user.getPersonNumber().getSsn());
+            warn("One time code is locked");
             throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "Pincode locked for user");
         }
         if (user.getState().equals(MinidUser.State.CLOSED)) {
-            warn("User has state CLOSED.", user.getPersonNumber().getSsn());
+            warn("User has state CLOSED.");
             throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_CLOSED, "User is closed");
         }
 
@@ -232,7 +232,7 @@ public class OTCPasswordService {
         }
         validateUserOTCState(user);
         if (isQuarantined(user)) {
-            warn("User has state QUARANTINED.", user.getPersonNumber().getSsn());
+            warn("User has state QUARANTINED.");
             throw new MinIDQuarantinedUserException(IDPortenExceptionID.IDENTITY_QUARANTINED, "User is quarantined");
         }
 
@@ -256,7 +256,7 @@ public class OTCPasswordService {
                 }
                 minIDService.setQuarantineCounter(user.getPersonNumber(), user.getQuarantineCounter());
                 minIDService.setQuarantineExpiryDate(user.getPersonNumber(), user.getQuarantineExpiryDate());
-                warn("Locking pincode for ssn=", user.getPersonNumber().getSsn());
+                warn("Locking pincode");
                 throw new MinIDPincodeException(IDPortenExceptionID.IDENTITY_PINCODE_LOCKED, "pin code is locked");
             }
             minIDService.setQuarantineCounter(user.getPersonNumber(), user.getQuarantineCounter());
@@ -265,7 +265,7 @@ public class OTCPasswordService {
                     log.debug("Last attempt for user " + user);
                 }
             }
-            warn("Pincode incorrect for ssn=", user.getPersonNumber().getSsn());
+            warn("Pincode incorrect.");
             return false;
         }
     }
@@ -367,7 +367,7 @@ public class OTCPasswordService {
         return encoded;
     }
 
-    private void warn(String message, String ssn) {
-        log.warn(CorrelationId.get() + " " + ssn + " " + message);
+    private void warn(String message) {
+        log.warn(CorrelationId.get() +  " " + message);
     }
 }
