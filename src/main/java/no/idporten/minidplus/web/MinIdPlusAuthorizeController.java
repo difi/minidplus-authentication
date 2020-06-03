@@ -216,7 +216,6 @@ public class MinIdPlusAuthorizeController {
             return getNextView(request, STATE_ALERT);
         } catch (MinIDPincodeException e) {
             warn("User pincode locked " + e.getMessage());
-            result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.format.otc.locked"}, null, "Too many attempts"));
             model.addAttribute(MODEL_ALERT_MESSAGE, "auth.ui.error.quarantined.message");
             model.addAttribute(MODEL_LINK_TO_OTHER_SERVICE, "password");
             return getNextView(request, STATE_ALERT);
@@ -225,7 +224,6 @@ public class MinIdPlusAuthorizeController {
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line1"}, null, "System error"));
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
         }
-        model.addAttribute(new OneTimePassword());
         return getNextView(request, STATE_LOGIN_VERIFICATION_CODE);
     }
 
