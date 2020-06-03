@@ -17,9 +17,11 @@ import java.util.Locale;
 @Slf4j
 public class EmailService {
 
-    //todo implement http://jira.difi.local/browse/PBLEID-20478
     @Value("${minid-plus.mail.allowed-filter}")
     private String allowedFilter;
+
+    @Value("${spring.mail.properties.mail.smtp.from}")
+    private String fromAddress;
 
     private final JavaMailSender javaMailSender;
 
@@ -35,6 +37,7 @@ public class EmailService {
         }
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
+        message.setFrom(fromAddress);
         message.setSubject(messageSource.getMessage("no.idporten.forgottenpassword.email.subject", null, Locale.getDefault()));
         message.setText(messageSource.getMessage("no.idporten.forgottenpassword.email.message", new String[]{otc, DateTimeFormatter.ofPattern("HH:mm").format(expire)}, Locale.getDefault()));
 
