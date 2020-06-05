@@ -191,6 +191,7 @@ public class MinIdPlusAuthorizeController {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
+            String sp = (String) request.getSession().getAttribute(SERVICEPROVIDER);
             String otp = oneTimePassword.getOtpCode();
             oneTimePassword.clearValues();
             // Check cancel
@@ -203,7 +204,7 @@ public class MinIdPlusAuthorizeController {
                 return getNextView(request, STATE_LOGIN_VERIFICATION_CODE);
             }
             if (state == STATE_LOGIN_VERIFICATION_CODE) {
-                if (authenticationService.authenticateOtpStep(sid, otp)) {
+                if (authenticationService.authenticateOtpStep(sid, otp, sp)) {
                     return backToIdporten(request, model, STATE_AUTHENTICATED);
                 } else {
                     result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));

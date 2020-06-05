@@ -29,22 +29,19 @@ public class EventServiceTest {
     @Captor
     private ArgumentCaptor<LogEntry> logEntryCaptor;
 
-    private void assertIssuer(LogEntry logEntry) {
-        assertEquals("MinID-Plus", logEntry.getIssuer());
-    }
-
-
     @Test
     @DisplayName("authentication of user then person identifier is logged")
     public void testLogAuthenticateUser() {
         String personIdentifier = "xxx";
-        eventService.logUserAuthenticated(personIdentifier);
+        String serviceprovider = "Martas Corona Utsalg";
+        int authlevel = 3;
+        eventService.logUserAuthenticated(serviceprovider, authlevel, personIdentifier);
         verify(eventLogger).log(logEntryCaptor.capture());
         assertEquals(EventService.MINIDPLUS_AUTHENTICATE_USER, logEntryCaptor.getValue().getLogType());
         assertEquals(personIdentifier, logEntryCaptor.getValue().getPersonIdentifierString());
-        assertIssuer(logEntryCaptor.getValue());
+        assertEquals(serviceprovider, logEntryCaptor.getValue().getIssuer());
+        assertEquals(authlevel, logEntryCaptor.getValue().getAuthLevel().getLevel());
     }
-
 
     @Test
     @DisplayName("complete password changed then person identifier is logged")
@@ -54,7 +51,7 @@ public class EventServiceTest {
         verify(eventLogger).log(logEntryCaptor.capture());
         assertEquals(EventService.MINIDPLUS_PASSWORD_CHANGED, logEntryCaptor.getValue().getLogType());
         assertEquals(personIdentifier, logEntryCaptor.getValue().getPersonIdentifierString());
-        assertIssuer(logEntryCaptor.getValue());
+        assertEquals("MinID-Plus", logEntryCaptor.getValue().getIssuer());
     }
 
 }

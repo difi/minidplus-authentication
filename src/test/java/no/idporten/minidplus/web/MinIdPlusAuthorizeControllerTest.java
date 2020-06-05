@@ -204,11 +204,12 @@ public class MinIdPlusAuthorizeControllerTest {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
         String otp = "abc12";
         when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
-        when(authenticationService.authenticateOtpStep(eq(code), eq(otp))).thenReturn(true);
+        when(authenticationService.authenticateOtpStep(eq(code), eq(otp), anyString())).thenReturn(true);
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
                 .sessionAttr(HTTP_SESSION_STATE, MinIdPlusAuthorizeController.STATE_LOGIN_VERIFICATION_CODE)
                 .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
+                .sessionAttr(SERVICEPROVIDER, "KalleKlovnsBallongAsAService")
                 .param("otpCode", otp)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .with(csrf())
@@ -224,7 +225,7 @@ public class MinIdPlusAuthorizeControllerTest {
     public void test_post_otp_unsuccessful() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
         when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
-        when(authenticationService.authenticateOtpStep(eq(code), eq(code))).thenReturn(false);
+        when(authenticationService.authenticateOtpStep(eq(code), eq(code), anyString())).thenReturn(false);
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
                 .sessionAttr(HTTP_SESSION_STATE, MinIdPlusAuthorizeController.STATE_LOGIN_VERIFICATION_CODE)

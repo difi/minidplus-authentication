@@ -1,6 +1,8 @@
 package no.idporten.minidplus.logging.event;
 
 import lombok.RequiredArgsConstructor;
+import no.idporten.domain.auth.AuthLevel;
+import no.idporten.domain.auth.AuthType;
 import no.idporten.domain.log.LogEntry;
 import no.idporten.domain.log.LogEntryData;
 import no.idporten.domain.log.LogEntryLogType;
@@ -20,21 +22,30 @@ public class EventService {
 
     private final EventLogger eventLogger;
 
-    public void logUserAuthenticated(String personIdentifier) {
-        eventLogger.log(logEntry(MINIDPLUS_AUTHENTICATE_USER, personIdentifier));
+    public void logUserAuthenticated(String serviceprovider, int authLevel, String personIdentifier) {
+        eventLogger.log(logAuthEntry(serviceprovider, authLevel, personIdentifier));
     }
 
     public void logUserPasswordChanged(String personIdentifier) {
-        eventLogger.log(logEntry(MINIDPLUS_PASSWORD_CHANGED, personIdentifier));
+        eventLogger.log(logPasswordEntry(personIdentifier));
     }
 
-
-    private LogEntry logEntry(LogEntryLogType logType, String personIdentifier, LogEntryData... logEntryData) {
-        LogEntry logEntry = new LogEntry(logType);
-        logEntry.setIssuer(ISSUER_MINIDPLUS);
+    private LogEntry logAuthEntry(String serviceProvider, int authLevel, String personIdentifier, LogEntryData... logEntryData) {
+        LogEntry logEntry = new LogEntry(MINIDPLUS_AUTHENTICATE_USER);
+        logEntry.setIssuer(serviceProvider);
         logEntry.setPersonIdentifier(personIdentifier);
+        logEntry.setAuthType(AuthType.MINID_PLUS);
+        logEntry.setAuthLevel(AuthLevel.resolve(authLevel));
         logEntry.addAllLogEntryData(Arrays.asList(logEntryData));
         return logEntry;
     }
 
+    private LogEntry logPasswordEntry(String personIdentifier, LogEntryData... logEntryData) {
+        LogEntry logEntry = new LogEntry(MINIDPLUS_PASSWORD_CHANGED);
+        logEntry.setIssuer(ISSUER_MINIDPLUS);
+        logEntry.setPersonIdentifier(personIdentifier);
+        logEntry.setAuthType(AuthType.MINID_PLUS);
+        logEntry.addAllLogEntryData(Arrays.asList(logEntryData));
+        return logEntry;
+    }
 }

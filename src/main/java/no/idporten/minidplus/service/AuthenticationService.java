@@ -204,9 +204,10 @@ public class AuthenticationService {
         return MinidUser.State.QUARANTINED.equals(identity.getState()) && identity.getQuarantineExpiryDate().before(Date.from(Clock.systemUTC().instant()));
     }
 
-    public boolean authenticateOtpStep(String sid, String inputOneTimeCode) throws MinidUserNotFoundException, MinIDPincodeException, MinIDTimeoutException, MinIDQuarantinedUserException {
+    public boolean authenticateOtpStep(String sid, String inputOneTimeCode, String sp) throws MinidUserNotFoundException, MinIDPincodeException, MinIDTimeoutException, MinIDQuarantinedUserException {
         if (otcPasswordService.checkOTCCode(sid, inputOneTimeCode)) {
-            eventService.logUserAuthenticated(minidPlusCache.getSSN(sid));
+            Authorization authorization = minidPlusCache.getAuthorization(sid);
+            eventService.logUserAuthenticated(sp, authorization.getAcrLevel().getLevel(), authorization.getSsn());
             return true;
         }
         return false;

@@ -25,6 +25,7 @@ import org.springframework.web.context.WebApplicationContext;
 import javax.servlet.Filter;
 
 import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -67,7 +68,7 @@ public class CsrfConfigTest {
     public void test_post_otp_forbidden_sans_csrf() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
         when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
-        when(authenticationService.authenticateOtpStep(eq(code), eq(code))).thenReturn(true);
+        when(authenticationService.authenticateOtpStep(eq(code), eq(code), anyString())).thenReturn(true);
         MvcResult mvcResult = mvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
                 .sessionAttr(HTTP_SESSION_STATE, 2)
@@ -84,11 +85,12 @@ public class CsrfConfigTest {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
         String otp = "abc12";
         when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
-        when(authenticationService.authenticateOtpStep(eq(code), eq(otp))).thenReturn(true);
+        when(authenticationService.authenticateOtpStep(eq(code), eq(otp), anyString())).thenReturn(true);
         MvcResult mvcResult = mvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
                 .sessionAttr(HTTP_SESSION_STATE, 2)
                 .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
+                .sessionAttr(SERVICEPROVIDER, "KalleKlovnsBallongAsAService")
                 .param("otpCode", otp)
                 .param(MinIdPlusButtonType.NEXT.id(), "")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
