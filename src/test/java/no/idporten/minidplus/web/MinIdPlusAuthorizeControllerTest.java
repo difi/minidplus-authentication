@@ -204,12 +204,12 @@ public class MinIdPlusAuthorizeControllerTest {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
         String otp = "abc12";
         when(minidPlusCache.getSSN(code)).thenReturn("55555555555");
-        when(authenticationService.authenticateOtpStep(eq(code), eq(otp), anyString())).thenReturn(true);
+        when(authenticationService.authenticateOtpStep(eq(code), eq(otp), eq(sp.getEntityId()))).thenReturn(true);
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
                 .sessionAttr(HTTP_SESSION_STATE, MinIdPlusAuthorizeController.STATE_LOGIN_VERIFICATION_CODE)
                 .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
-                .sessionAttr(SERVICEPROVIDER, "KalleKlovnsBallongAsAService")
+                .sessionAttr(SERVICEPROVIDER, sp)
                 .param("otpCode", otp)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .with(csrf())
