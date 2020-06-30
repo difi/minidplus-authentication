@@ -73,6 +73,7 @@ public class MinIdPlusAuthorizeController {
     protected static final int STATE_LOGIN_VERIFICATION_CODE = 2;
     protected static final int STATE_LOGIN_WRONG_ACR = 4;
 
+    private static final String CODE = "code";
     //private models
     private static final String MODEL_AUTHORIZATION_REQUEST = "authorizationRequest";
     private static final String MODEL_ONE_TIME_CODE = "oneTimePassword";
@@ -128,7 +129,7 @@ public class MinIdPlusAuthorizeController {
         userCredentials.clearValues();
         // Check cancel
         if (buttonIsPushed(request, MinIdPlusButtonType.CANCEL)) {
-            return backToIdporten(request, model, MinIdState.STATE_CANCEL);
+            return backToClient(request, model, MinIdState.STATE_CANCEL);
         }
         AuthorizationRequest ar = (AuthorizationRequest) request.getSession().getAttribute(AUTHORIZATION_REQUEST);
 
@@ -196,7 +197,7 @@ public class MinIdPlusAuthorizeController {
             oneTimePassword.clearValues();
             // Check cancel
             if (buttonIsPushed(request, MinIdPlusButtonType.CANCEL)) {
-                return backToIdporten(request, model, MinIdState.STATE_CANCEL);
+                return backToClient(request, model, MinIdState.STATE_CANCEL);
             }
             if (result.hasErrors()) {
                 warn("There are contraint violations: " + Arrays.toString(result.getAllErrors().toArray()));
@@ -205,7 +206,7 @@ public class MinIdPlusAuthorizeController {
             }
             if (state == STATE_LOGIN_VERIFICATION_CODE) {
                 if (authenticationService.authenticateOtpStep(sid, otp, sp.getEntityId())) {
-                    return backToIdporten(request, model, STATE_AUTHENTICATED);
+                    return backToClient(request, model, STATE_AUTHENTICATED);
                 } else {
                     result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
                 }
@@ -289,20 +290,31 @@ public class MinIdPlusAuthorizeController {
         if (ar != null && StringUtils.isNotEmpty(ar.getRedirectUri())) {
             try {
                 UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance()
-                        .uri(new URI(ar.getRedirectUri()))
-                        .queryParam(HTTP_SESSION_SID, sid)
-                        .queryParam(SERVERID, serverid);
+                        .uri(new URI(ar.getRedirectUri()));
+
 
                 uriComponentsBuilder.queryParam(HTTP_SESSION_REDIRECT_URI, ar.getRedirectUri())
-                        .queryParam(HTTP_SESSION_LOCALE, ar.getLocale())
-                        .queryParam(HTTP_SESSION_GOTO, ar.getGotoParam())
-                        .queryParam(HTTP_SESSION_CLIENT_STATE, ar.getState());
+                        .queryParam(HTTP_SESSION_LOCALE, ar.getLocale());
+
+                if (StringUtils.isNotEmpty(ar.getState() )) {
+                    uriComponentsBuilder.queryParam(HTTP_SESSION_CLIENT_STATE, ar.getState());
+                }
+                //start idporten specifics
+                if (StringUtils.isNotEmpty(ar.getGotoParam())) {
+                    uriComponentsBuilder.queryParam(HTTP_SESSION_GOTO, ar.getGotoParam());
+                }
+                if(StringUtils.isNotEmpty(serverid)) {
+                    uriComponentsBuilder.queryParam(SERVERID, serverid);
+                }
                 if (state == MinIdState.STATE_CANCEL) {
                     uriComponentsBuilder.queryParam("error", ABORTED_BY_USER);
                     uriComponentsBuilder.queryParam(HTTP_SESSION_SERVICE, START_SERVICE);
                 } else {
                     uriComponentsBuilder.queryParam(HTTP_SESSION_SERVICE, SERVICE_NAME);
+                    uriComponentsBuilder.queryParam(CODE, sid);
                 }
+                //end idporten specifics
+
                 String uri = uriComponentsBuilder.build()
                         .toUriString();
                 if (log.isDebugEnabled()) {
@@ -316,7 +328,7 @@ public class MinIdPlusAuthorizeController {
         return null;
     }
 
-    private String backToIdporten(HttpServletRequest request, Model model, int backState) {
+    private String backToClient(HttpServletRequest request, Model model, int backState) {
         model.addAttribute(MODEL_REDIRECT_URL, buildUrl(request, backState));
         return getNextView(request, backState);
     }

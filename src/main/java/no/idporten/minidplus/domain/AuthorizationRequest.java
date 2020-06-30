@@ -24,7 +24,7 @@ import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
 public class AuthorizationRequest implements Serializable {
 
     /**
-     *   Redirect url to something back in idporten...
+     * Redirect url to something back in idporten...
      **/
     @NotEmpty
     @ValidURI(message = "{no.minidplus.validuri}")
@@ -45,29 +45,27 @@ public class AuthorizationRequest implements Serializable {
     private String responseType = "authorization_code";  //will always be code atm
 
     /**
-     *   Which security level that was requested
+     * Which security level that was requested
      **/
     @ValidAcr
     @ParamName(HTTP_SESSION_ACR_VALUES)
     private LevelOfAssurance acrValues = LevelOfAssurance.LEVEL4;
 
-    @NotEmpty
     @Pattern(regexp = "^[\\x20-\\x7E]+$", message = "invalid_request")
     @ParamName(HTTP_SESSION_CLIENT_STATE)
     private String state;
 
     /**
-     *   Redirect uri back to service provider
+     * Redirect uri back to service provider, used internally in idporten
      **/
-    @NotEmpty
     @ValidURI(message = "{no.minidplus.validuri}")
     @ParamName(HTTP_SESSION_GOTO)
-    private String gotoParam="";
+    private String gotoParam = "";
 
 
     /**
-     *   Is actually used here
-     *   Locale to use. Default is english.
+     * Is actually used here
+     * Locale to use. Default is english.
      **/
     @ParamName(HTTP_SESSION_LOCALE)
     @Size(max = 2, message = "Please enter at most {max} characters")

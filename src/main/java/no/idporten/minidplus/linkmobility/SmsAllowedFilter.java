@@ -49,7 +49,9 @@ public class SmsAllowedFilter {
                     }
                 }
             }
-            log.info("Accepting the following numbers: " + mobileNumbers);
+            if(log.isDebugEnabled()) {
+                log.debug("Accepting the following numbers: " + mobileNumbers);
+            }
             authorizedNumbers = mobileNumbers;
         } catch (Exception e) {
             log.error("Failed to read mobile numbers from input file [" + filename + "]", e);

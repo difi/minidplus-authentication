@@ -6,7 +6,7 @@ public class MinidPlusSessionAttributes {
 
     public static final String HTTP_SESSION_REDIRECT_URI = "redirect_uri";
 
-    public static final String HTTP_SESSION_LOCALE = "locale";
+    public static final String HTTP_SESSION_LOCALE = "ui_locales";
     public static final String HTTP_SESSION_GOTO = "goto";
     public static final String HTTP_SESSION_CLIENT_STATE = "state";
     public static final String HTTP_SESSION_ACR_VALUES = "acr_values";

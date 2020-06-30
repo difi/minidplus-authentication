@@ -216,7 +216,7 @@ public class MinIdPlusAuthorizeControllerTest {
         )
                 .andExpect(status().isOk())
                 .andExpect(view().name(VIEW_REDIRECT_TO_IDPORTEN))
-                .andExpect(model().attribute(MODEL_REDIRECT_URL, containsString("sid=" + code)))
+                .andExpect(model().attribute(MODEL_REDIRECT_URL, containsString("code=" + code)))
                 .andExpect(model().attribute(MODEL_REDIRECT_URL, containsString("serverid=testserver")))
                 .andReturn();
     }
