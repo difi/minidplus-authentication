@@ -229,7 +229,7 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void testCredentialErrorCounterUserGetsQuarantined() {
+    public void testCredentialErrorCounterResetWhenUserGetsQuarantined() {
         when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
         PersonNumber personNumber = new PersonNumber(pid);
         MinidUser minidUser = new MinidUser(personNumber);
@@ -245,7 +245,7 @@ public class AuthenticationServiceTest {
         } catch (Exception e) {
             assertTrue(e instanceof MinIDQuarantinedUserException);
         }
-        assertEquals(3, (int) minidUser.getCredentialErrorCounter());
+        assertEquals(0, (int) minidUser.getCredentialErrorCounter());
         assertEquals(MinidUser.State.QUARANTINED, minidUser.getState());
         try {
             authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);

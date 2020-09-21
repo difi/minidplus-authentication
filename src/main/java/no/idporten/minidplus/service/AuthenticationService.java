@@ -73,6 +73,7 @@ public class AuthenticationService {
             identity.setCredentialErrorCounter(identity.getCredentialErrorCounter() + 1);
             if (identity.getCredentialErrorCounter() >= maxNumberOfCredentialErrors) {
                 identity.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant().plusSeconds(3600)));
+                identity.setCredentialErrorCounter(0);
                 if (identity.isDummy()) {
                     identity.setState(MinidUser.State.QUARANTINED_NEW_USER);
                     minIDService.setUserStateQuarantinedNewUser(identity.getPersonNumber());
