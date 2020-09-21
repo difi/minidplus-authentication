@@ -246,6 +246,7 @@ public class OTCPasswordService {
         } else { // Increments the error counter
             user.setQuarantineCounter(user.getQuarantineCounter() + 1);
             if (user.getQuarantineCounter() >= maxNumberOfQuarantineCounters) {
+                user.setQuarantineCounter(0);
                 user.setQuarantineExpiryDate(Date.from(Clock.systemUTC().instant().plusSeconds(3600)));
                 if (user.isDummy()) {
                     user.setState(MinidUser.State.QUARANTINED_NEW_USER);
