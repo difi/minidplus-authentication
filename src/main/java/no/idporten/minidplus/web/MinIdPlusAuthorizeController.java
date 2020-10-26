@@ -68,6 +68,9 @@ public class MinIdPlusAuthorizeController {
     @Value("${minid-plus.registrationUri}")
     private String registrationUri;
 
+    @Value("${minid-plus.callback-method-post:true}")
+    private boolean postCallBackMethod;
+
     //internal states
     protected static final int STATE_AUTHENTICATED = -1;
     protected static final int STATE_LOGIN_VERIFICATION_CODE = 2;
@@ -255,7 +258,11 @@ public class MinIdPlusAuthorizeController {
             return VIEW_START_LOGIN;
         } else if (state == STATE_AUTHENTICATED || state == MinIdState.STATE_CANCEL) {
             clearSessionAndCache(request);
-            return VIEW_REDIRECT_TO_IDPORTEN;
+            if(postCallBackMethod) {
+                return VIEW_REDIRECT_TO_IDPORTEN;
+            }else{
+                return "redirect:"+buildUrl(request, state);
+            }
         } else if (state == STATE_ALERT) {
             return VIEW_ALERT;
         } else if (state == STATE_LOGIN_WRONG_ACR) {

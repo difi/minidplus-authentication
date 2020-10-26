@@ -45,4 +45,5 @@ class minidplus_authentication::params {
   $sms_filter_enabled               = true
   $sms_filter_filename              = 'difi-mobile-numbers.txt'
   $session_ttl_seconds              = 1800
+  $callback_method_post             = true
 }

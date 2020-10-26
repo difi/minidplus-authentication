@@ -74,6 +74,7 @@ minid-plus:
     session-ttl-in-s: 1800
   registrationUri:
     https://eid-systest-static-web01
+  callback-method-post: true
   # nb: set to .* in production
   mail:
     allowed-filter: '.*digdir\.no|.*hostingtjenester\.no'
