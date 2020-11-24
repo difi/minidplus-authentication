@@ -38,6 +38,7 @@ public class OIDCSDKConfiguration {
         OpenIDConnectSdkConfiguration spiConfiguration = OpenIDConnectSdkConfiguration.builder()
                 .issuer("http://localhost:7071/testid/")
                 .client(openamMetadata)
+                .client(oidcClientMetadata)
                 .cache(cache)
                 .jwk(jwk)
                 .build();
