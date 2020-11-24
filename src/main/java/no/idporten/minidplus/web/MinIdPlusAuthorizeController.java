@@ -11,7 +11,11 @@ import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.UserCredentials;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
-import no.idporten.minidplus.exception.minid.*;
+import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
+import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
+import no.idporten.minidplus.exception.minid.MinIDPincodeException;
+import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
+import no.idporten.minidplus.exception.minid.MinIDTimeoutException;
 import no.idporten.minidplus.service.AuthenticationService;
 import no.idporten.minidplus.service.MinidPlusCache;
 import no.idporten.minidplus.service.OTCPasswordService;
@@ -64,8 +68,9 @@ import java.util.stream.Stream;
 
 import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
 import static no.idporten.minidplus.util.MinIdPlusViews.*;
-import static no.idporten.minidplus.util.MinIdState.*;
-import static org.springframework.boot.Banner.Mode.LOG;
+import static no.idporten.minidplus.util.MinIdState.STATE_ALERT;
+import static no.idporten.minidplus.util.MinIdState.STATE_ERROR;
+import static no.idporten.minidplus.util.MinIdState.STATE_START_LOGIN;
 
 /**
  * Logic implementation of MinIdPluss web client module.
@@ -141,7 +146,7 @@ public class MinIdPlusAuthorizeController {
         } else {
             response.setContentType("text/html;charset=UTF-8");
             response.setCharacterEncoding("UTF-8");
-            response.getWriter().write(authorizationResponse.toAutosubmittingHtmlPage());
+            response.getWriter().write(authorizationResponse.toRedirectForm());
             response.getWriter().close();
         }
     }
