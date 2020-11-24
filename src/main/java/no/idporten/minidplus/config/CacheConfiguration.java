@@ -1,6 +1,7 @@
 package no.idporten.minidplus.config;
 
 import no.idporten.minidplus.domain.Authorization;
+import no.idporten.sdk.oidcserver.protocol.PushedAuthorizationRequest;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -20,6 +21,8 @@ public class CacheConfiguration {
     public static final String SID_OTP = "sidOTP";
     public static final String SID_SSN = "sidSSN";
     public static final String SID_AUTHORIZATION = "sidAuth";
+    public static final String SDK_AUTHORIZATION = "sdkAuth";
+    public static final String SDK_AUTHORIZATION_REQUEST = "sdkAuthRequest";
 
     @Value("${minid-plus.cache.otp-ttl-in-s:600}")
     private int otpCacheTTL;
@@ -42,6 +45,16 @@ public class CacheConfiguration {
                                 .build())
                 .withCache(SID_AUTHORIZATION,
                         CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, Authorization.class,
+                                ResourcePoolsBuilder.heap(100))
+                                .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(sessionCacheTTL)))
+                                .build())
+                .withCache(SDK_AUTHORIZATION,
+                        CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, no.idporten.sdk.oidcserver.protocol.Authorization.class,
+                                ResourcePoolsBuilder.heap(100))
+                                .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(sessionCacheTTL)))
+                                .build())
+                .withCache(SDK_AUTHORIZATION_REQUEST,
+                        CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, PushedAuthorizationRequest.class,
                                 ResourcePoolsBuilder.heap(100))
                                 .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(sessionCacheTTL)))
                                 .build())

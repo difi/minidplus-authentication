@@ -43,7 +43,10 @@ class minidplus_authentication (
   Boolean $sms_filter_enabled              = $minidplus_authentication::params::sms_filter_enabled,
   String $sms_filter_filename              = $minidplus_authentication::params::sms_filter_filename,
   Integer $session_ttl_seconds             = $minidplus_authentication::params::session_ttl_seconds,
-  Boolean $callback_method_post            = $minidplus_authentication::params::callback_method_post
+  Boolean $callback_method_post            = $minidplus_authentication::params::callback_method_post,
+  Boolean $openam_client_id                = $minidplus_authentication::params::openam_client_id,
+  Boolean $openam_client_secret            = $minidplus_authentication::params::openam_client_secret,
+  Boolean $openam_redirect_uri             = $minidplus_authentication::params::openam_redirect_uri
 
 ) inherits minidplus_authentication::params {
 

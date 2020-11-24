@@ -99,7 +99,7 @@ public class AuthenticationService {
         identity.setCredentialErrorCounter(0);
         minIDService.setCredentialErrorCounter(identity.getPersonNumber(), identity.getCredentialErrorCounter());
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
-        minidPlusCache.putAuthorization(sid, new Authorization(pid, assignedLevelOfAssurance, Instant.now().toEpochMilli()));
+        minidPlusCache.putAuthorizationOtp(sid, new Authorization(pid, assignedLevelOfAssurance, Instant.now().toEpochMilli()));
         otcPasswordService.sendSMSOtp(sid, sp, identity);
         return true;
     }
@@ -207,7 +207,7 @@ public class AuthenticationService {
 
     public boolean authenticateOtpStep(String sid, String inputOneTimeCode, String sp) throws MinidUserNotFoundException, MinIDPincodeException, MinIDTimeoutException, MinIDQuarantinedUserException {
         if (otcPasswordService.checkOTCCode(sid, inputOneTimeCode)) {
-            Authorization authorization = minidPlusCache.getAuthorization(sid);
+            Authorization authorization = minidPlusCache.getAuthorizationOtp(sid);
             eventService.logUserAuthenticated(sp, authorization.getAcrLevel().getLevel(), authorization.getSsn());
             return true;
         }

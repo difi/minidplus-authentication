@@ -19,18 +19,31 @@ import no.idporten.minidplus.service.ServiceproviderService;
 import no.idporten.minidplus.util.MinIdPlusButtonType;
 import no.idporten.minidplus.util.MinIdState;
 import no.idporten.minidplus.validator.InputTerminator;
+import no.idporten.sdk.oidcserver.OAuth2Exception;
+import no.idporten.sdk.oidcserver.OpenIDConnectIntegration;
+import no.idporten.sdk.oidcserver.protocol.Authorization;
+import no.idporten.sdk.oidcserver.protocol.AuthorizationResponse;
+import no.idporten.sdk.oidcserver.protocol.ErrorResponse;
+import no.idporten.sdk.oidcserver.protocol.PushedAuthorizationRequest;
+import no.idporten.sdk.oidcserver.protocol.PushedAuthorizationResponse;
+import no.idporten.sdk.oidcserver.protocol.TokenRequest;
+import no.idporten.sdk.oidcserver.protocol.TokenResponse;
 import no.minid.exception.MinidUserInvalidException;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -39,6 +52,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 import javax.validation.ValidatorFactory;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
@@ -51,12 +65,13 @@ import java.util.stream.Stream;
 import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
 import static no.idporten.minidplus.util.MinIdPlusViews.*;
 import static no.idporten.minidplus.util.MinIdState.*;
+import static org.springframework.boot.Banner.Mode.LOG;
 
 /**
  * Logic implementation of MinIdPluss web client module.
  */
 @Controller
-@RequestMapping(value = "/authorize")
+@RequestMapping
 @Slf4j
 @Getter
 @RequiredArgsConstructor
@@ -103,7 +118,51 @@ public class MinIdPlusAuthorizeController {
 
     private final MinidPlusCache minidPlusCache;
 
-    @GetMapping(produces = "text/html; charset=utf-8")
+    private final OpenIDConnectIntegration openIDConnectIntegration;
+
+    @PostMapping(value = "/v2/par", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PushedAuthorizationResponse> par(HttpServletRequest request) {
+        return ResponseEntity.ok(openIDConnectIntegration.process(new PushedAuthorizationRequest(request)));
+    }
+
+    @GetMapping("/v2/authorize")
+    public void authorize(HttpServletRequest req, HttpServletResponse response, @RequestParam(name = "request_uri") String requestUri) throws IOException {
+        PushedAuthorizationRequest authorizationRequest = openIDConnectIntegration.retrieveRequest(requestUri);
+        Authorization authorization = Authorization.builder()
+                .pid("test-pid")
+                .acr("level3.5")
+                .amr("testid")
+                .build();
+        AuthorizationResponse authorizationResponse = openIDConnectIntegration.authorize(authorizationRequest, authorization);
+        req.getSession().invalidate();
+        if (authorizationResponse.isQuery()) {
+            response.sendRedirect(authorizationResponse.toQueryRedirectUri().toString());
+        } else {
+            response.setContentType("text/html;charset=UTF-8");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write(authorizationResponse.toAutosubmittingHtmlPage());
+            response.getWriter().close();
+        }
+    }
+
+    @PostMapping(value = "/v2/token",
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public ResponseEntity<TokenResponse> token(HttpServletRequest request) {
+        return ResponseEntity.ok(openIDConnectIntegration.process(new TokenRequest(request)));
+    }
+
+    @ExceptionHandler(OAuth2Exception.class)
+    public ResponseEntity<ErrorResponse> handleError(HttpSession session, OAuth2Exception exception) {
+        session.invalidate();
+        log.warn(exception.getMessage(), exception.getCause());
+        return ResponseEntity.status(exception.getHttpStatusCode()).body(exception.errorResponse());
+    }
+
+
+
+    @GetMapping(value = "/authorize", produces = "text/html; charset=utf-8")
     public String doGet(HttpServletRequest request, HttpServletResponse response, @Valid AuthorizationRequest authorizationRequest, Model model) {
         if (log.isDebugEnabled()) {
             log.debug("Authorizing user with " + authorizationRequest.toString());
@@ -121,7 +180,7 @@ public class MinIdPlusAuthorizeController {
         return getNextView(request, STATE_START_LOGIN);
     }
 
-    @PostMapping(params = {"personalIdNumber"})
+    @PostMapping(value = "/authorize", params = {"personalIdNumber"})
     public String postUserCredentials(HttpServletRequest request, @Valid @ModelAttribute(MODEL_USER_CREDENTIALS) UserCredentials userCredentials, BindingResult result, Model model) {
         Object state = request.getSession().getAttribute(HTTP_SESSION_STATE);
 
@@ -190,7 +249,7 @@ public class MinIdPlusAuthorizeController {
         }
     }
 
-    @PostMapping(params = {"otpCode"})
+    @PostMapping(value = "/authorize", params = {"otpCode"})
     public String postOTP(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);

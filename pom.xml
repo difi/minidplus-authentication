@@ -153,6 +153,11 @@
             <artifactId>ehcache</artifactId>
         </dependency>
         <dependency>
+            <groupId>no.idporten.sdk</groupId>
+            <artifactId>oidc-server-sdk</artifactId>
+            <version>2020-11-23-1320-77f36b9</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>

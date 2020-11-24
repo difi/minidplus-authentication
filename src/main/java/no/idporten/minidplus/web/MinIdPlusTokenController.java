@@ -48,7 +48,7 @@ public class MinIdPlusTokenController {
     public ResponseEntity handleAuthorizationCodeGrant(TokenRequest tokenRequest) {
         String sid = tokenRequest.getCode();
 
-        Authorization authorization = minidPlusCache.getAuthorization(sid);
+        Authorization authorization = minidPlusCache.getAuthorizationOtp(sid);
 
         if (authorization == null || hasExpired(authorization)) {
             warn("Code not found or expired for code=" + sid);
