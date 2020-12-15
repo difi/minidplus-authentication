@@ -81,3 +81,13 @@ minid-plus:
     enabled: <%= @sms_filter_enabled %>
     filename: <%= @sms_filter_filename %>
   callback-method-post: <%= @callback_method_post %>
+
+jwt:
+  iss: <%= @issuer %>
+  aud: idporten
+  keystore:
+    type: <%= @keystore_type %>
+    location: <%= @keystore_location %>
+    password: <%= @keystore_password %>
+    key_alias: <%= @keystore_key_alias %>
+    key_password: <%= @keystore_key_password %>

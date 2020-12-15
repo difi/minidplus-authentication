@@ -155,7 +155,7 @@
         <dependency>
             <groupId>no.idporten.sdk</groupId>
             <artifactId>oidc-server-sdk</artifactId>
-            <version>2020-11-24-1226-11be8c5</version>
+            <version>2020-12-14-1704-83bc261</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

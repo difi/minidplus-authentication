@@ -10,7 +10,12 @@ import no.idporten.log.audit.AuditLogger;
 import no.idporten.minidplus.domain.Authorization;
 import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
-import no.idporten.minidplus.exception.minid.*;
+import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
+import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
+import no.idporten.minidplus.exception.minid.MinIDPincodeException;
+import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
+import no.idporten.minidplus.exception.minid.MinIDSystemException;
+import no.idporten.minidplus.exception.minid.MinIDTimeoutException;
 import no.idporten.minidplus.logging.audit.AuditID;
 import no.idporten.minidplus.logging.event.EventService;
 import no.minid.exception.MinidUserAlreadyExistsException;
@@ -100,8 +105,18 @@ public class AuthenticationService {
         minIDService.setCredentialErrorCounter(identity.getPersonNumber(), identity.getCredentialErrorCounter());
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
         minidPlusCache.putAuthorizationOtp(sid, new Authorization(pid, assignedLevelOfAssurance, Instant.now().toEpochMilli()));
+        minidPlusCache.putAuthorization(sid, createAuthorization(pid, assignedLevelOfAssurance));
         otcPasswordService.sendSMSOtp(sid, sp, identity);
         return true;
+    }
+
+    private no.idporten.sdk.oidcserver.protocol.Authorization createAuthorization(String pid, LevelOfAssurance acrLevel) {
+        no.idporten.sdk.oidcserver.protocol.Authorization authorization = no.idporten.sdk.oidcserver.protocol.Authorization.builder()
+                .pid(pid)
+                .acr(acrLevel.getExternalName())
+                .amr("MinIDEkstern")
+                .build();
+        return authorization;
     }
 
     private void validateUserState(MinidUser identity) throws MinIDQuarantinedUserException {
