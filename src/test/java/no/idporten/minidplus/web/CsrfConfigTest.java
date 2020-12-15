@@ -105,7 +105,7 @@ public class CsrfConfigTest {
     public void test_token_generated_with_valid_code() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
         Authorization auth = new Authorization("55555555555", LevelOfAssurance.LEVEL4, 1000);
-        when(minidPlusCache.getAuthorization(code)).thenReturn(auth);
+        when(minidPlusCache.getAuthorizationOtp(code)).thenReturn(auth);
         MvcResult mvcResult = mvc.perform(post("/token")
                 .param("grant_type", "authorization_code")
                 .param("code", code)

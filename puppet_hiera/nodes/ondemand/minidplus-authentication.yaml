@@ -5,6 +5,9 @@ classes:
 
 minidplus_authentication::server_port: "8080"
 minidplus_authentication::tomcat_tmp_dir: '/opt/minidplus-authentication/tmp'
+minidplus_authentication::openam_client_id: 'openam'
+minidplus_authentication::openam_client_secret: 'clientsecret'
+minidplus_authentication::openam_redirect_uri: 'https://eid-atest-web01.dmz.local:443/opensso/UI/Login?realm=norge.no'
 
 platform::logstash_enabled:    false
 filebeat::prospectors:

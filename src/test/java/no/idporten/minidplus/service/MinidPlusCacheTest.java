@@ -3,6 +3,7 @@ package no.idporten.minidplus.service;
 import no.idporten.minidplus.config.CacheConfiguration;
 import no.idporten.minidplus.domain.Authorization;
 import no.idporten.minidplus.domain.LevelOfAssurance;
+import no.idporten.sdk.oidcserver.protocol.PushedAuthorizationRequest;
 import org.ehcache.CacheManager;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,6 +42,24 @@ public class MinidPlusCacheTest {
     }
 
     @Test
+    public void getAuthorizationRequest() {
+        MinidPlusCache minidPlusCache = new MinidPlusCache(cacheManager);
+        PushedAuthorizationRequest pushedAuthorizationRequest = new PushedAuthorizationRequest();
+        minidPlusCache.putAuthorizationRequest("uri:test:requestUri", pushedAuthorizationRequest);
+        PushedAuthorizationRequest cacheHit = minidPlusCache.getAuthorizationRequest("uri:test:requestUri");
+        assertEquals(pushedAuthorizationRequest, cacheHit);
+    }
+
+    @Test
+    public void getAuthorization() {
+        MinidPlusCache minidPlusCache = new MinidPlusCache(cacheManager);
+        no.idporten.sdk.oidcserver.protocol.Authorization authorization = new no.idporten.sdk.oidcserver.protocol.Authorization();
+        minidPlusCache.putAuthorization("code", authorization);
+        no.idporten.sdk.oidcserver.protocol.Authorization cacheHit = minidPlusCache.getAuthorization("code");
+        assertEquals(authorization, cacheHit);
+    }
+
+    @Test
     public void testRemoveSession() {
         MinidPlusCache minidPlusCache = new MinidPlusCache(cacheManager);
         String sid = "123";
@@ -51,16 +70,16 @@ public class MinidPlusCacheTest {
 
         minidPlusCache.putSSN(sid, ssn);
         minidPlusCache.putOTP(sid, otp);
-        minidPlusCache.putAuthorization(sid, auth);
+        minidPlusCache.putAuthorizationOtp(sid, auth);
 
         assertEquals(ssn, minidPlusCache.getSSN(sid));
         assertEquals(otp, minidPlusCache.getOTP(sid));
-        assertEquals(auth, minidPlusCache.getAuthorization(sid));
+        assertEquals(auth, minidPlusCache.getAuthorizationOtp(sid));
 
         minidPlusCache.removeSession(sid);
 
         assertNull(minidPlusCache.getSSN(sid));
         assertNull(minidPlusCache.getOTP(sid));
-        assertNull(minidPlusCache.getAuthorization(sid));
+        assertNull(minidPlusCache.getAuthorizationOtp(sid));
     }
 }
