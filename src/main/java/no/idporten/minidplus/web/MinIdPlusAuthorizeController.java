@@ -7,6 +7,7 @@ import no.difi.resilience.CorrelationId;
 import no.idporten.domain.auth.AuthType;
 import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.minidplus.domain.AuthorizationRequest;
+import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
 import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.UserCredentials;
@@ -28,6 +29,7 @@ import no.idporten.sdk.oidcserver.OpenIDConnectIntegration;
 import no.idporten.sdk.oidcserver.protocol.Authorization;
 import no.idporten.sdk.oidcserver.protocol.AuthorizationResponse;
 import no.idporten.sdk.oidcserver.protocol.ErrorResponse;
+import no.idporten.sdk.oidcserver.protocol.OpenIDProviderMetadataResponse;
 import no.idporten.sdk.oidcserver.protocol.PushedAuthorizationRequest;
 import no.idporten.sdk.oidcserver.protocol.PushedAuthorizationResponse;
 import no.idporten.sdk.oidcserver.protocol.TokenRequest;
@@ -42,12 +44,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -125,6 +127,18 @@ public class MinIdPlusAuthorizeController {
 
     private final OpenIDConnectIntegration openIDConnectIntegration;
 
+    @GetMapping(value = {"/v2/jwk","/v2/jwks", "/v2/.well-known/jwks.json"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    @CrossOrigin(origins = "*")
+    public ResponseEntity<String> jwks() {
+        return ResponseEntity.ok(openIDConnectIntegration.getPublicJWKSet().toString());
+    }
+
+    @GetMapping(value = "/v2/.well-known/openid-configuration", produces = MediaType.APPLICATION_JSON_VALUE)
+    @CrossOrigin(origins = "*")
+    public ResponseEntity<OpenIDProviderMetadataResponse> openidConfiguration() {
+        return ResponseEntity.ok(openIDConnectIntegration.getOpenIDProviderMetadata());
+    }
+
     @PostMapping(value = "/v2/par", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PushedAuthorizationResponse> par(HttpServletRequest request) {
@@ -132,23 +146,23 @@ public class MinIdPlusAuthorizeController {
     }
 
     @GetMapping("/v2/authorize")
-    public void authorize(HttpServletRequest req, HttpServletResponse response, @RequestParam(name = "request_uri") String requestUri) throws IOException {
-        PushedAuthorizationRequest authorizationRequest = openIDConnectIntegration.retrieveRequest(requestUri);
-        Authorization authorization = Authorization.builder()
-                .pid("test-pid")
-                .acr("level3.5")
-                .amr("testid")
-                .build();
-        AuthorizationResponse authorizationResponse = openIDConnectIntegration.authorize(authorizationRequest, authorization);
-        req.getSession().invalidate();
-        if (authorizationResponse.isQuery()) {
-            response.sendRedirect(authorizationResponse.toQueryRedirectUri().toString());
-        } else {
-            response.setContentType("text/html;charset=UTF-8");
-            response.setCharacterEncoding("UTF-8");
-            response.getWriter().write(authorizationResponse.toRedirectForm());
-            response.getWriter().close();
-        }
+    public String authorize(HttpServletRequest req, HttpServletResponse response, Model model) throws IOException {
+        PushedAuthorizationRequest authorizationRequest = openIDConnectIntegration.process(new no.idporten.sdk.oidcserver.protocol.AuthorizationRequest(req));
+        req.getSession().setAttribute("authorization_request", authorizationRequest);
+        return mapToAuthorizeRequest(req, response, authorizationRequest, model);
+    }
+
+
+    private String mapToAuthorizeRequest(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
+                                         PushedAuthorizationRequest pushedAuthorizationRequest, Model model) {
+        AuthorizationRequest request = new AuthorizationRequest(pushedAuthorizationRequest.getRedirectUri(),
+                pushedAuthorizationRequest.getClientId(),
+                pushedAuthorizationRequest.getResponseType(),
+                LevelOfAssurance.resolve(pushedAuthorizationRequest.getResolvedAcrValue()),
+                pushedAuthorizationRequest.getState(),
+                pushedAuthorizationRequest.getParameter("X-goto"),
+                pushedAuthorizationRequest.getResolvedUiLocale());
+        return doGet(servletRequest, servletResponse, request, model);
     }
 
     @PostMapping(value = "/v2/token",
@@ -164,8 +178,6 @@ public class MinIdPlusAuthorizeController {
         log.warn(exception.getMessage(), exception.getCause());
         return ResponseEntity.status(exception.getHttpStatusCode()).body(exception.errorResponse());
     }
-
-
 
     @GetMapping(value = "/authorize", produces = "text/html; charset=utf-8")
     public String doGet(HttpServletRequest request, HttpServletResponse response, @Valid AuthorizationRequest authorizationRequest, Model model) {
@@ -183,6 +195,12 @@ public class MinIdPlusAuthorizeController {
         UserCredentials userCredentials = new UserCredentials();
         model.addAttribute(MODEL_USER_CREDENTIALS, userCredentials);
         return getNextView(request, STATE_START_LOGIN);
+    }
+
+    @PostMapping(value = "/v2/authorize", params = {"personalIdNumber"})
+    public String postUserCredentialsV2(HttpServletRequest request, @Valid @ModelAttribute(MODEL_USER_CREDENTIALS) UserCredentials userCredentials, BindingResult result, Model model) {
+//        request.getSession().invalidate();
+        return postUserCredentials(request, userCredentials, result, model);
     }
 
     @PostMapping(value = "/authorize", params = {"personalIdNumber"})
@@ -254,8 +272,8 @@ public class MinIdPlusAuthorizeController {
         }
     }
 
-    @PostMapping(value = "/authorize", params = {"otpCode"})
-    public String postOTP(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result, Model model) {
+    @PostMapping(value = {"/authorize", "/v2/authorize"}, params = {"otpCode"})
+    public String postOTP(HttpServletRequest request, HttpServletResponse response, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
@@ -273,7 +291,12 @@ public class MinIdPlusAuthorizeController {
             }
             if (state == STATE_LOGIN_VERIFICATION_CODE) {
                 if (authenticationService.authenticateOtpStep(sid, otp, sp.getEntityId())) {
-                    return backToClient(request, model, STATE_AUTHENTICATED);
+                    //if minidplus: backToClient,
+                    if (isMinidPlus(request)) {
+                        return backToClient(request, model, STATE_AUTHENTICATED);
+                    } else {
+                        return backToClientV2(request, model, STATE_AUTHENTICATED);
+                    }
                 } else {
                     result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
                 }
@@ -294,6 +317,14 @@ public class MinIdPlusAuthorizeController {
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
         }
         return getNextView(request, STATE_LOGIN_VERIFICATION_CODE);
+    }
+
+    /**
+     * If acr_values = Level4 -> MinidPlus, if acr_values = Level3 -> MinIDEkstern
+     */
+    private boolean isMinidPlus(HttpServletRequest request) {
+        AuthorizationRequest ar = (AuthorizationRequest) request.getSession().getAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST);
+        return ar.getAcrValues().equals(LevelOfAssurance.LEVEL4);
     }
 
     private ServiceProvider getServiceProvider(String entityId, String hostName) {
@@ -397,6 +428,22 @@ public class MinIdPlusAuthorizeController {
             }
         }
         return null;
+    }
+
+    private String backToClientV2(HttpServletRequest request, Model model, int backState) throws IOException {
+        PushedAuthorizationRequest authorizationRequest = (PushedAuthorizationRequest) request.getSession().getAttribute("authorization_request");
+        String sid = (String) request.getSession().getAttribute("sid");
+        Authorization authorization = minidPlusCache.getAuthorization(sid);
+        AuthorizationResponse authorizationResponse = openIDConnectIntegration.authorize(authorizationRequest, authorization);
+
+        if (authorizationResponse.isQuery()) {
+            return "redirect:" + authorizationResponse.toQueryRedirectUri();
+
+        } else {
+            model.addAttribute(MODEL_REDIRECT_URL, authorizationResponse.toQueryRedirectUri().toString());
+            return getNextView(request, backState);
+
+        }
     }
 
     private String backToClient(HttpServletRequest request, Model model, int backState) {

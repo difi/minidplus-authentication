@@ -44,7 +44,7 @@ public class MinidPlusCacheTest {
     @Test
     public void getAuthorizationRequest() {
         MinidPlusCache minidPlusCache = new MinidPlusCache(cacheManager);
-        PushedAuthorizationRequest pushedAuthorizationRequest = new PushedAuthorizationRequest();
+        PushedAuthorizationRequest pushedAuthorizationRequest = new PushedAuthorizationRequest(new org.springframework.mock.web.MockHttpServletRequest());
         minidPlusCache.putAuthorizationRequest("uri:test:requestUri", pushedAuthorizationRequest);
         PushedAuthorizationRequest cacheHit = minidPlusCache.getAuthorizationRequest("uri:test:requestUri");
         assertEquals(pushedAuthorizationRequest, cacheHit);
