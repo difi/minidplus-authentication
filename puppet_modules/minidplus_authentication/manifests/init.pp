@@ -46,7 +46,13 @@ class minidplus_authentication (
   Boolean $callback_method_post            = $minidplus_authentication::params::callback_method_post,
   String $openam_client_id                 = $minidplus_authentication::params::openam_client_id,
   String $openam_client_secret             = $minidplus_authentication::params::openam_client_secret,
-  String $openam_redirect_uri              = $minidplus_authentication::params::openam_redirect_uri
+  String $openam_redirect_uri              = $minidplus_authentication::params::openam_redirect_uri,
+  String $keystore_type                    = $minidplus_authentication::params::keystore_type,
+  String $keystore_location                = $minidplus_authentication::params::keystore_location,
+  String $keystore_password                = $minidplus_authentication::params::keystore_password,
+  String $keystore_key_alias               = $minidplus_authentication::params::keystore_key_alias,
+  String $keystore_key_password            = $minidplus_authentication::params::keystore_key_password,
+  String $issuer                           = $minidplus_authentication::params::issuer
 
 ) inherits minidplus_authentication::params {
 
@@ -56,6 +62,7 @@ class minidplus_authentication (
   class { '::minidplus_authentication::install': } ->
   class { '::minidplus_authentication::deploy': } ->
   class { '::minidplus_authentication::config': } ~>
+  class { '::minidplus_authentication::test_setup': } ~>
   class { '::minidplus_authentication::service': } ->
   anchor { 'minidplus_authentication::end': }
 

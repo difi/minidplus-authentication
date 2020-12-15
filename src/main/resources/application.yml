@@ -105,3 +105,31 @@ server:
         http-only: true
   forward-headers-strategy: native
 
+jwt:
+  keystore:
+    type: JKS
+    location: classpath:./minidauth-env.jks
+    password: changeit
+    key_alias: minidauth
+    key_password: changeit
+
+oidc-sdk:
+#  issuer: https://eid-atest-web01.dmz.local:443/minidplus-authentication/v2
+  issuer: http://localhost:8080/v2
+  clients:
+    -
+      client-id: openam
+      client-secret: clientsecret
+      scopes:
+        - openid
+        - profile
+      redirect-uris:
+        - https://eid-atest-web01.dmz.local:443/opensso/UI/Login?realm=norge.no
+    -
+      client-id: testclient
+      client-secret: password
+      scopes:
+        - openid
+        - profile
+      redirect-uris:
+        - http://localhost:8888/idporten-oidc-client/authorize/response
