@@ -1,3 +1,4 @@
+<%@ taglib prefix="spring" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
 <head>
@@ -7,7 +8,7 @@
 
     <!-- todo: Place favicon.ico and apple-touch-icon.png in the root directory -->
 
-    <link type="text/css" rel="stylesheet" href="../css/style.css" />
+    <link type="text/css" rel="stylesheet" href="<spring:url value="/css/style.css" />" />
 
     <meta charset="utf-8">
 

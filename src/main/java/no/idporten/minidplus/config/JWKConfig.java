@@ -13,8 +13,6 @@ import javax.validation.constraints.Min;
 @ConfigurationProperties(prefix = "jwt", ignoreUnknownFields = false)
 public class JWKConfig {
     private Keystore keystore;
-    private String iss;
-    private String aud;
 
     @Data
     @ConfigurationProperties(prefix = "jwt.keystore")
