@@ -55,4 +55,9 @@ class minidplus_authentication::params {
   $keystore_key_alias               = 'minidauth'
   $keystore_key_password            = 'changeit'
   $issuer                           = 'https://eid-atest-web01.dmz.local:443/minidplus-authentication/v2'
+  $internal_id                      = 'minidplus-authentication'
+  $acr                              = 'Level3'
+  $clients                          = []
+  $par_lifetime_seconds             = 60
+  $authorization_lifetime_seconds   = 60
 }

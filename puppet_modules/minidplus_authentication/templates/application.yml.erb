@@ -37,6 +37,20 @@ idporten:
   redirectUri: <%= @openam_redirect_uri %>
   scope: openid
 
+oidc-sdk:
+  par_lifetime_seconds: <%= @par_lifetime_seconds %>
+  authorization_lifetime_seconds: <%= @authorization_lifetime_seconds %>
+  internal_id: <%= @internal_id %>
+  issuer: <%= @issuer %>
+  acr: <%= @acr %>
+  clients: <% @clients.each do |client| %>
+    - client_id: <%= client['client_id'] %>
+      clientSecret: <%= client['secret'] %>
+      scopes: <%= client['scopes'] %>
+      redirect_uris: <%= client['redirect_uris'] %>
+      <% end -%>
+
+
 spring:
   ldap:
     urls: <%= @ldap_url %>

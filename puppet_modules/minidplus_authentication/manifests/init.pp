@@ -52,7 +52,12 @@ class minidplus_authentication (
   String $keystore_password                = $minidplus_authentication::params::keystore_password,
   String $keystore_key_alias               = $minidplus_authentication::params::keystore_key_alias,
   String $keystore_key_password            = $minidplus_authentication::params::keystore_key_password,
-  String $issuer                           = $minidplus_authentication::params::issuer
+  String $issuer                           = $minidplus_authentication::params::issuer,
+  Array $clients                           = $minidplus_authentication::params::clients,
+  String $internal_id                      = $minidplus_authentication::params::internal_id,
+  String $acr                              = $minidplus_authentication::params::acr,
+  Integer $par_lifetime_seconds            = $minidplus_authentication::params::par_lifetime_seconds,
+  Integer $authorization_lifetime_seconds  = $minidplus_authentication::params::authorization_lifetime_seconds
 
 ) inherits minidplus_authentication::params {
 

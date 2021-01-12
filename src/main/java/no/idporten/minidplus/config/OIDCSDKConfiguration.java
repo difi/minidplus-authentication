@@ -10,10 +10,10 @@ import no.idporten.sdk.oidcserver.config.OpenIDConnectSdkConfiguration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -23,6 +23,9 @@ import java.util.List;
 public class OIDCSDKConfiguration {
 
     private URI issuer;
+    private String acr;
+    private int parLifetimeSeconds;
+    private int authorizationLifetimeSeconds;
     private List<ClientMetadata> clients;
 
     private final KeyStoreProvider keyStoreProvider;
@@ -34,38 +37,19 @@ public class OIDCSDKConfiguration {
     }
 
     @Bean
-    //TODO: Fyll ut hardkodede verdier med riktig konfig
-    public OpenIDConnectIntegration openIDConnectIntegrationSpi(MinidPlusCache cache, ResourceLoader resourceLoader) throws Exception {
-        ClientMetadata openamMetadata = ClientMetadata.builder().
-                clientId("openam")
-                .clientSecret("clientsecret")
-                .scope("openid")
-                .scope("profile")
-                .redirectUri("https://eid-atest-web01.dmz.local:443/opensso/UI/minideksternresponse")
-                .build();
-        ClientMetadata oidcClientMetadata = ClientMetadata.builder().
-                clientId("testid")
-                .clientSecret("clientsecret")
-                .scope("openid")
-                .scope("profile")
-                .redirectUri("http://localhost:8888/idporten-oidc-client/authorize/response")
-                .build();
+    public OpenIDConnectIntegration openIDConnectIntegrationSpi(MinidPlusCache cache)  {
         OpenIDConnectSdkConfiguration spiConfiguration = OpenIDConnectSdkConfiguration.builder()
                 .issuer(issuer)
                 .pushedAuthorizationRequestEndpoint(UriComponentsBuilder.fromUri(issuer).path("/par").build().toUri())
                 .authorizationEndpoint(UriComponentsBuilder.fromUri(issuer).path("/authorize").build().toUri())
                 .tokenEndpoint(UriComponentsBuilder.fromUri(issuer).path("/token").build().toUri())
                 .jwksUri(UriComponentsBuilder.fromUri(issuer).path("/jwks").build().toUri())
-//                .clients(clients)
-                .client(openamMetadata)
-                .client(oidcClientMetadata)
-                .responseMode("form_post")
+                .authorizationRequestLifetimeSeconds(parLifetimeSeconds)
+                .authorizationLifetimeSeconds(authorizationLifetimeSeconds)
+                .clients(clients)
                 .responseMode("query")
-                .acrValue("Level3")
-                .uiLocale("nb")
-                .uiLocale("nn")
-                .uiLocale("en")
-                .uiLocale("se")
+                .acrValue(acr)
+                .uiLocales(getLocales())
                 .cache(cache)
                 .keystore(keyStoreProvider.keyStore(),
                         jwkConfig.getKeystore().getKeyAlias(),
@@ -74,6 +58,9 @@ public class OIDCSDKConfiguration {
         return new OpenIDConnectIntegrationImpl(spiConfiguration);
     }
 
+    private List<String> getLocales() {
+        return Arrays.asList("nb", "nn", "en", "se");
+    }
 
 }
 

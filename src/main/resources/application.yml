@@ -57,6 +57,18 @@ management:
       show-details: always
       enabled: true
 
+oidc-sdk:
+  par_lifetime_seconds: 60
+  authorization_lifetime_seconds: 60
+  internal_id: minidplus-authentication
+  issuer: 'https://eid-atest-web01.dmz.local/idporten-bekreft-kontaktinfo/api/'
+  acr: Level3
+  clients:
+    - client_id: openam
+      clientSecret: password
+      redirect_uris: ['https://eid-atest-web01.dmz.local:443/opensso/UI/minideksternresponse']
+      scopes: [openid]
+
 idporten:
   redirecturl: http://localhost:8080/redirecturl
   serviceprovider:
@@ -112,24 +124,3 @@ jwt:
     password: changeit
     key_alias: minidauth
     key_password: changeit
-
-oidc-sdk:
-#  issuer: https://eid-atest-web01.dmz.local:443/minidplus-authentication/v2
-  issuer: http://localhost:8080/v2
-  clients:
-    -
-      client-id: openam
-      client-secret: clientsecret
-      scopes:
-        - openid
-        - profile
-      redirect-uris:
-        - https://eid-atest-web01.dmz.local:443/opensso/UI/Login?realm=norge.no
-    -
-      client-id: testclient
-      client-secret: password
-      scopes:
-        - openid
-        - profile
-      redirect-uris:
-        - http://localhost:8888/idporten-oidc-client/authorize/response
