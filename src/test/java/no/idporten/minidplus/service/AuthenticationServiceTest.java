@@ -80,7 +80,7 @@ public class AuthenticationServiceTest {
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(true);
         try {
-            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
+            authenticationService.authenticateUser(sid, minidUser, password, LevelOfAssurance.LEVEL4);
         } catch (Exception e) {
             fail("Should not have thrown exception " + e);
         }
@@ -95,7 +95,7 @@ public class AuthenticationServiceTest {
         when(minidPlusCache.getOTP(eq(sid))).thenReturn(otp);
         when(minIDService.createDummyUser(new PersonNumber(pid))).thenReturn(minidUser);
         try {
-            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
+            authenticationService.authenticateUser(sid, minidUser, password, LevelOfAssurance.LEVEL4);
             fail("should have failed");
         } catch (Exception e) {
             assertTrue(e instanceof MinIDIncorrectCredentialException);
@@ -114,7 +114,7 @@ public class AuthenticationServiceTest {
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(false);
         try {
-            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
+            authenticationService.authenticateUser(sid, minidUser, password, LevelOfAssurance.LEVEL4);
             fail("should have failed");
         } catch (Exception e) {
             assertTrue(e instanceof MinIDIncorrectCredentialException);
@@ -132,7 +132,7 @@ public class AuthenticationServiceTest {
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(true);
         try {
-            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
+            authenticationService.authenticateUser(sid, minidUser, password, LevelOfAssurance.LEVEL4);
             fail("should have failed");
         } catch (Exception e) {
             assertTrue(e instanceof MinIDInvalidAcrLevelException);
@@ -201,7 +201,7 @@ public class AuthenticationServiceTest {
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(false);
         try {
-            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
+            authenticationService.authenticateUser(sid, minidUser, password, LevelOfAssurance.LEVEL4);
             fail("should have failed");
         } catch (Exception e) {
             assertTrue(e instanceof MinIDIncorrectCredentialException);
@@ -220,7 +220,7 @@ public class AuthenticationServiceTest {
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(false);
         try {
-            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
+            authenticationService.authenticateUser(sid, minidUser, password, LevelOfAssurance.LEVEL4);
             fail("should have failed");
         } catch (Exception e) {
             assertTrue(e instanceof MinIDIncorrectCredentialException);
@@ -240,7 +240,7 @@ public class AuthenticationServiceTest {
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(false);
         try {
-            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
+            authenticationService.authenticateUser(sid, minidUser, password, LevelOfAssurance.LEVEL4);
             fail("should have failed");
         } catch (Exception e) {
             assertTrue(e instanceof MinIDQuarantinedUserException);
@@ -248,7 +248,7 @@ public class AuthenticationServiceTest {
         assertEquals(0, (int) minidUser.getCredentialErrorCounter());
         assertEquals(MinidUser.State.QUARANTINED, minidUser.getState());
         try {
-            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
+            authenticationService.authenticateUser(sid, minidUser, password, LevelOfAssurance.LEVEL4);
             fail("should have failed");
         } catch (Exception e) {
             assertTrue(e instanceof MinIDQuarantinedUserException);
@@ -266,7 +266,7 @@ public class AuthenticationServiceTest {
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(false);
         try {
-            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
+            authenticationService.authenticateUser(sid, minidUser, password, LevelOfAssurance.LEVEL4);
             fail("should have failed");
         } catch (Exception e) {
             assertTrue(e instanceof MinIDQuarantinedUserException);
@@ -307,7 +307,7 @@ public class AuthenticationServiceTest {
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(true);
         try {
-            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
+            authenticationService.authenticateUser(sid, minidUser, password, LevelOfAssurance.LEVEL4);
             fail("should have failed");
         } catch (Exception e) {
             assertTrue(e instanceof MinIDQuarantinedUserException);
@@ -353,7 +353,7 @@ public class AuthenticationServiceTest {
         when(minIDService.findByPersonNumber(eq(personNumber))).thenReturn(minidUser);
         when(minIDService.validateUserPassword(eq(personNumber), eq(password))).thenReturn(false);
         try {
-            authenticationService.authenticateUser(sid, pid, password, eq(sp), LevelOfAssurance.LEVEL4);
+            authenticationService.authenticateUser(sid, minidUser, password, LevelOfAssurance.LEVEL4);
             fail("should have failed");
         } catch (Exception e) {
             assertTrue(e instanceof MinIDQuarantinedUserException);

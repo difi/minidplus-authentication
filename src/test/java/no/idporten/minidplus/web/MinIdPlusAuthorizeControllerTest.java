@@ -62,7 +62,7 @@ public class MinIdPlusAuthorizeControllerTest {
     @Test
     public void test_authorization_session_parameters_set() throws Exception {
         ServiceProvider serviceProvider = new ServiceProvider("NAV");
-        when(authenticationService.authenticateUser(anyString(), anyString(), anyString(), eq(serviceProvider), any(LevelOfAssurance.class))).thenReturn(true);
+        when(authenticationService.authenticateUser(anyString(), any(), anyString(), any(LevelOfAssurance.class))).thenReturn(true);
         when(serviceproviderService.getServiceProvider(eq("NAV"), eq("localhost"))).thenReturn(serviceProvider);
         AuthorizationRequest ar = getAuthorizationRequest();
         MvcResult mvcResult = mockMvc.perform(get("/authorize")
@@ -92,7 +92,7 @@ public class MinIdPlusAuthorizeControllerTest {
     @Test
     public void test_unsupported_locale_defaults_to_en() throws Exception {
         ServiceProvider serviceProvider = new ServiceProvider("NAV");
-        when(authenticationService.authenticateUser(anyString(), anyString(), anyString(), eq(serviceProvider), any(LevelOfAssurance.class))).thenReturn(true);
+        when(authenticationService.authenticateUser(anyString(), any(), anyString(), any(LevelOfAssurance.class))).thenReturn(true);
         AuthorizationRequest ar = getAuthorizationRequest();
         MvcResult mvcResult = mockMvc.perform(get("/authorize")
                 .param(HTTP_SESSION_CLIENT_ID, ar.getSpEntityId())
@@ -127,7 +127,7 @@ public class MinIdPlusAuthorizeControllerTest {
     public void test_post_credentials_successful() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
         when(minidPlusCache.getSSN(code)).thenReturn(pid);
-        when(authenticationService.authenticateUser(eq(code), eq(pid), eq("abcabcabc3"), eq(sp), any(LevelOfAssurance.class))).thenReturn(true);
+        when(authenticationService.authenticateUser(eq(code), any(), eq("abcabcabc3"), any(LevelOfAssurance.class))).thenReturn(true);
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
                 .sessionAttr(HTTP_SESSION_STATE, MinIdState.STATE_START_LOGIN)
@@ -163,7 +163,7 @@ public class MinIdPlusAuthorizeControllerTest {
     @Test
     public void test_post_pwd_wrong() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
-        when(authenticationService.authenticateUser(eq(code), eq(pid), eq("helloWorld"), eq(sp), any(LevelOfAssurance.class))).thenThrow(new MinIDIncorrectCredentialException(IDPortenExceptionID.IDENTITY_PASSWORD_INCORRECT, "Password validation failed"));
+        when(authenticationService.authenticateUser(eq(code), any(), eq("helloWorld"), any(LevelOfAssurance.class))).thenThrow(new MinIDIncorrectCredentialException(IDPortenExceptionID.IDENTITY_PASSWORD_INCORRECT, "Password validation failed"));
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
                 .sessionAttr(HTTP_SESSION_STATE, MinIdState.STATE_START_LOGIN)
@@ -183,7 +183,7 @@ public class MinIdPlusAuthorizeControllerTest {
     @Test
     public void test_wrong_acr_level() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
-        when(authenticationService.authenticateUser(eq(code), eq(pid), eq("abcabcabc3"), eq(sp), any(LevelOfAssurance.class))).thenThrow(new MinIDInvalidAcrLevelException("Dude...wrong level :-/"));
+        when(authenticationService.authenticateUser(eq(code), any(), eq("abcabcabc3"), any(LevelOfAssurance.class))).thenThrow(new MinIDInvalidAcrLevelException("Dude...wrong level :-/"));
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
                 .sessionAttr(HTTP_SESSION_STATE, MinIdState.STATE_START_LOGIN)

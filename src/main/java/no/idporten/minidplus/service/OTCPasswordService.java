@@ -182,7 +182,7 @@ public class OTCPasswordService {
 
     }
 
-    void sendSMSOtp(String sid, ServiceProvider sp, MinidUser identity) throws MinidUserInvalidException, MinIDQuarantinedUserException {
+    public void sendSMSOtp(String sid, ServiceProvider sp, MinidUser identity) throws MinidUserInvalidException, MinIDQuarantinedUserException {
         if (identity.getQuarantineCounter() == null) {
             identity.setQuarantineCounter(0);
         }

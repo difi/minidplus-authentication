@@ -53,24 +53,11 @@ public class AuthenticationService {
 
     private final String minidplusSourcePrefix = "minid-on-the-fly";
 
-    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp, LevelOfAssurance levelOfAssurance) throws MinidUserNotFoundException, MinIDQuarantinedUserException, MinIDIncorrectCredentialException, MinIDSystemException, MinIDInvalidAcrLevelException, MinidUserInvalidException {
+    private final MinidIdentityService minidIdentityService;
 
-        MinidUser identity;
-        try {
-            identity =  findUserFromPid(pid);
-        } catch (MinidUserNotFoundException e) {
-            warn("User not found. Creating dummy user");
-            try {
-                identity = minIDService.createDummyUser(new PersonNumber(pid));
-            } catch (MinidUserAlreadyExistsException x) {
-                //Should never happen
-                identity =  findUserFromPid(pid);
-            }
-        }
+    public boolean authenticateUser(String sid, MinidUser identity, String password, LevelOfAssurance levelOfAssurance) throws MinidUserNotFoundException, MinIDQuarantinedUserException, MinIDIncorrectCredentialException, MinIDSystemException, MinIDInvalidAcrLevelException, MinidUserInvalidException {
 
-        if (identity.getCredentialErrorCounter() == null) {
-            identity.setCredentialErrorCounter(0);
-        }
+
 
         validateUserState(identity);
 
@@ -104,9 +91,8 @@ public class AuthenticationService {
         identity.setCredentialErrorCounter(0);
         minIDService.setCredentialErrorCounter(identity.getPersonNumber(), identity.getCredentialErrorCounter());
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
-        minidPlusCache.putAuthorizationOtp(sid, new Authorization(pid, assignedLevelOfAssurance, Instant.now().toEpochMilli()));
-        minidPlusCache.putAuthorization(sid, createAuthorization(pid, assignedLevelOfAssurance));
-        otcPasswordService.sendSMSOtp(sid, sp, identity);
+        minidPlusCache.putAuthorizationOtp(sid, new Authorization(identity.getPersonNumber().getSsn(), assignedLevelOfAssurance, Instant.now().toEpochMilli()));
+        minidPlusCache.putAuthorization(sid, createAuthorization(identity.getPersonNumber().getSsn(), assignedLevelOfAssurance));
         return true;
     }
 
@@ -196,7 +182,7 @@ public class AuthenticationService {
     public boolean authenticatePid(String sid, String pid, ServiceProvider sp) throws MinidUserNotFoundException, MinidUserInvalidException, MinIDQuarantinedUserException {
         MinidUser identity;
         try {
-            identity =  findUserFromPid(pid);
+            identity =  minidIdentityService.findUserFromPid(pid);
         } catch (MinidUserNotFoundException e) {
             warn("User not found. Creating dummy user");
             try {
@@ -204,7 +190,7 @@ public class AuthenticationService {
                 minIDService.setCredentialErrorCounter(identity.getPersonNumber(), 0);
             } catch (MinidUserAlreadyExistsException x) {
                 //Should never happen
-                identity =  findUserFromPid(pid);
+                identity =  minidIdentityService.findUserFromPid(pid);
             }
         }
         if (Objects.equals(identity.getQuarantineCounter(), maxNumberOfQuarantineCounters)) {
@@ -228,17 +214,6 @@ public class AuthenticationService {
         }
         return false;
 
-    }
-
-    private MinidUser findUserFromPid(String pid) throws MinidUserNotFoundException {
-        PersonNumber uid = new PersonNumber(pid);
-        MinidUser identity = minIDService.findByPersonNumber(uid);
-
-        if (identity == null) {
-            warn("User not found");
-            throw new MinidUserNotFoundException("User not found.");
-        }
-        return identity;
     }
 
     private boolean isLastTry(MinidUser user) {

@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import no.difi.resilience.CorrelationId;
 import no.idporten.domain.auth.AuthType;
 import no.idporten.domain.sp.ServiceProvider;
+import no.idporten.domain.user.MinidUser;
+import no.idporten.domain.user.PersonNumber;
 import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
@@ -17,10 +19,7 @@ import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
 import no.idporten.minidplus.exception.minid.MinIDTimeoutException;
-import no.idporten.minidplus.service.AuthenticationService;
-import no.idporten.minidplus.service.MinidPlusCache;
-import no.idporten.minidplus.service.OTCPasswordService;
-import no.idporten.minidplus.service.ServiceproviderService;
+import no.idporten.minidplus.service.*;
 import no.idporten.minidplus.util.MinIdPlusButtonType;
 import no.idporten.minidplus.util.MinIdState;
 import no.idporten.minidplus.validator.InputTerminator;
@@ -34,7 +33,10 @@ import no.idporten.sdk.oidcserver.protocol.PushedAuthorizationRequest;
 import no.idporten.sdk.oidcserver.protocol.PushedAuthorizationResponse;
 import no.idporten.sdk.oidcserver.protocol.TokenRequest;
 import no.idporten.sdk.oidcserver.protocol.TokenResponse;
+import no.minid.exception.MinidUserAlreadyExistsException;
 import no.minid.exception.MinidUserInvalidException;
+import no.minid.exception.MinidUserNotFoundException;
+import no.minid.service.MinIDService;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -126,6 +128,8 @@ public class MinIdPlusAuthorizeController {
     private final MinidPlusCache minidPlusCache;
 
     private final OpenIDConnectIntegration openIDConnectIntegration;
+
+    private final MinidIdentityService minidIdentityService;
 
     @GetMapping(value = {"/v2/jwk","/v2/jwks", "/v2/.well-known/jwks.json"}, produces = MediaType.APPLICATION_JSON_VALUE)
     @CrossOrigin(origins = "*")
@@ -225,7 +229,9 @@ public class MinIdPlusAuthorizeController {
                 return getNextView(request, STATE_START_LOGIN);
             }
             try {
-                authenticationService.authenticateUser(sid, pid, pwd, sp, ar.getAcrValues());
+                MinidUser identity = minidIdentityService.getIdentity(pid);
+                authenticationService.authenticateUser(sid, identity, pwd, ar.getAcrValues());
+                otcPasswordService.sendSMSOtp(sid, sp, identity);
                 OneTimePassword oneTimePassword = new OneTimePassword();
                 model.addAttribute(oneTimePassword);
                 return getNextView(request, STATE_LOGIN_VERIFICATION_CODE);
