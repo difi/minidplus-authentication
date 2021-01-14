@@ -7,7 +7,6 @@ import no.difi.resilience.CorrelationId;
 import no.idporten.domain.auth.AuthType;
 import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.domain.user.MinidUser;
-import no.idporten.domain.user.PersonNumber;
 import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
@@ -19,7 +18,11 @@ import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
 import no.idporten.minidplus.exception.minid.MinIDTimeoutException;
-import no.idporten.minidplus.service.*;
+import no.idporten.minidplus.service.AuthenticationService;
+import no.idporten.minidplus.service.MinidIdentityService;
+import no.idporten.minidplus.service.MinidPlusCache;
+import no.idporten.minidplus.service.OTCPasswordService;
+import no.idporten.minidplus.service.ServiceproviderService;
 import no.idporten.minidplus.util.MinIdPlusButtonType;
 import no.idporten.minidplus.util.MinIdState;
 import no.idporten.minidplus.validator.InputTerminator;
@@ -28,15 +31,11 @@ import no.idporten.sdk.oidcserver.OpenIDConnectIntegration;
 import no.idporten.sdk.oidcserver.protocol.Authorization;
 import no.idporten.sdk.oidcserver.protocol.AuthorizationResponse;
 import no.idporten.sdk.oidcserver.protocol.ErrorResponse;
-import no.idporten.sdk.oidcserver.protocol.OpenIDProviderMetadataResponse;
 import no.idporten.sdk.oidcserver.protocol.PushedAuthorizationRequest;
 import no.idporten.sdk.oidcserver.protocol.PushedAuthorizationResponse;
 import no.idporten.sdk.oidcserver.protocol.TokenRequest;
 import no.idporten.sdk.oidcserver.protocol.TokenResponse;
-import no.minid.exception.MinidUserAlreadyExistsException;
 import no.minid.exception.MinidUserInvalidException;
-import no.minid.exception.MinidUserNotFoundException;
-import no.minid.service.MinIDService;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -46,7 +45,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -131,17 +129,6 @@ public class MinIdPlusAuthorizeController {
 
     private final MinidIdentityService minidIdentityService;
 
-    @GetMapping(value = {"/v2/jwk","/v2/jwks", "/v2/.well-known/jwks.json"}, produces = MediaType.APPLICATION_JSON_VALUE)
-    @CrossOrigin(origins = "*")
-    public ResponseEntity<String> jwks() {
-        return ResponseEntity.ok(openIDConnectIntegration.getPublicJWKSet().toString());
-    }
-
-    @GetMapping(value = "/v2/.well-known/openid-configuration", produces = MediaType.APPLICATION_JSON_VALUE)
-    @CrossOrigin(origins = "*")
-    public ResponseEntity<OpenIDProviderMetadataResponse> openidConfiguration() {
-        return ResponseEntity.ok(openIDConnectIntegration.getOpenIDProviderMetadata());
-    }
 
     @PostMapping(value = "/v2/par", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)

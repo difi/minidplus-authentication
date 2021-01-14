@@ -39,7 +39,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Override
     public void configure(HttpSecurity http) throws Exception {
         http
-                .csrf().ignoringAntMatchers("/token", "/v2/par", "/v2/token", "/v2/authorize").and()
+                .csrf().ignoringAntMatchers("/token", "/v2/par", "/v2/token").and()
                 .authorizeRequests()
                 .antMatchers("/token").authenticated()
                 .anyRequest().permitAll()

@@ -61,12 +61,12 @@ oidc-sdk:
   par_lifetime_seconds: 60
   authorization_lifetime_seconds: 60
   internal_id: minidplus-authentication
-  issuer: 'https://eid-atest-web01.dmz.local/idporten-bekreft-kontaktinfo/api/'
+  issuer: 'http://localhost:8080/v2'
   acr: Level3
   clients:
-    - client_id: openam
-      clientSecret: password
-      redirect_uris: ['https://eid-atest-web01.dmz.local:443/opensso/UI/minideksternresponse']
+    - client_id: junit
+      clientSecret: secret
+      redirect_uris: ['https://idporten.no/junit']
       scopes: [openid]
 
 idporten:
