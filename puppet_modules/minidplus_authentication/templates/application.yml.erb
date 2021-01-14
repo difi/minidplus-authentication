@@ -73,10 +73,10 @@ spring:
             enable: <%= @email_starttls_enabled %>
 
 
-  security:
-    user:
-      name: <%= @basic_auth_client_id %>
-      password: <%= @basic_auth_client_secret %>
+#   security:
+#     user:
+#       name: <%= @basic_auth_client_id %>
+#       password: <%= @basic_auth_client_secret %>
 event:
   jmsUrl: <%= @eventlog_jms_url %>
   jmsQueue: <%= @eventlog_jms_queuename %>

@@ -11,12 +11,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+@RequestMapping("/v2")
 @Controller
-@RequestMapping(value = "/api")
 @CrossOrigin(origins = "*")
 @AllArgsConstructor
 @NoArgsConstructor
-public class OpenIDController {
+public class OpenIDMetadataController {
 
     @Autowired
     OpenIDConnectIntegration openIDConnectIntegration;
