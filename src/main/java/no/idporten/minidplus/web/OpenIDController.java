@@ -27,9 +27,9 @@ public class OpenIDController {
         return ResponseEntity.ok().body(openIDConnectIntegration.getOpenIDProviderMetadata());
     }
 
-    @RequestMapping(value = "/jwks", produces = "application/json")
+    @RequestMapping(value = {"/jwk", "/jwks", "/.well-known/jwks.json"}, produces = "application/json")
     @ResponseBody
-    public ResponseEntity jwks() {
-        return ResponseEntity.ok().body(openIDConnectIntegration.getPublicJWKSet());
+    public ResponseEntity<String> jwks() {
+        return ResponseEntity.ok().body(openIDConnectIntegration.getPublicJWKSet().toString());
     }
 }
