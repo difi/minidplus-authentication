@@ -3,7 +3,7 @@ auditlog:
   file: testauditfile.log
 
 project:
-  version: @project.version@
+  version: test
 spring:
   mvc:
     view:
@@ -64,9 +64,9 @@ oidc-sdk:
   issuer: 'http://localhost:8080/v2'
   acr: Level3
   clients:
-    - client_id: openam
-      clientSecret: clientsecret
-      redirect_uris: ['https://idporten.no/testid']
+    - client_id: junit
+      clientSecret: secret
+      redirect_uris: ['https://idporten.no/junit']
       scopes: [openid]
 
 idporten:

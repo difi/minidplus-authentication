@@ -3,6 +3,7 @@ package no.idporten.minidplus.web;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.difi.resilience.CorrelationId;
+import no.idporten.domain.auth.AuthType;
 import no.idporten.minidplus.domain.Authorization;
 import no.idporten.minidplus.domain.ErrorResponse;
 import no.idporten.minidplus.domain.TokenRequest;
@@ -59,6 +60,7 @@ public class MinIdPlusTokenController {
                 .ssn(authorization.getSsn())
                 .acrLevelExternalName(authorization.getAcrLevel().getExternalName())
                 .expiresIn(tokenExpirySeconds)
+                .authType(authorization.getAuthType().name())
                 .build();
 
         minidPlusCache.removeSession(sid);

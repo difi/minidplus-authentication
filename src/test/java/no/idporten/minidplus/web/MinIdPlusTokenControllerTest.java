@@ -1,10 +1,12 @@
 package no.idporten.minidplus.web;
 
+import no.idporten.domain.auth.AuthType;
 import no.idporten.log.audit.AuditLogger;
 import no.idporten.minidplus.domain.Authorization;
 import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.logging.audit.AuditID;
 import no.idporten.minidplus.service.MinidPlusCache;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +41,7 @@ public class MinIdPlusTokenControllerTest {
     @Test
     public void test_token_generated_with_valid_code() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
-        Authorization auth = new Authorization("55555555555", LevelOfAssurance.LEVEL4, 1000);
+        Authorization auth = new Authorization("55555555555", LevelOfAssurance.LEVEL4, AuthType.MINID_OTC, 1000);
         when(minidPlusCache.getAuthorizationOtp(code)).thenReturn(auth);
         MvcResult mvcResult = mockMvc.perform(post("/token")
                 .param("grant_type", "authorization_code")
@@ -50,6 +52,7 @@ public class MinIdPlusTokenControllerTest {
                 .andExpect(jsonPath("$.ssn").value(auth.getSsn()))
                 .andExpect(jsonPath("$.acr_level").value("Level4"))
                 .andExpect(jsonPath("$.expires_in").value(600))
+                .andExpect(jsonPath("$.auth_type").value("MINID_OTC"))
                 .andReturn();
         verify(minidPlusCache).removeSession(code);
         verify(auditLogger).log(

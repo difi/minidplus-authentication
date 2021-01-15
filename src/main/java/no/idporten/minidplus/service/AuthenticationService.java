@@ -3,6 +3,7 @@ package no.idporten.minidplus.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.difi.resilience.CorrelationId;
+import no.idporten.domain.auth.AuthType;
 import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.PersonNumber;
@@ -91,7 +92,7 @@ public class AuthenticationService {
         identity.setCredentialErrorCounter(0);
         minIDService.setCredentialErrorCounter(identity.getPersonNumber(), identity.getCredentialErrorCounter());
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
-        minidPlusCache.putAuthorizationOtp(sid, new Authorization(identity.getPersonNumber().getSsn(), assignedLevelOfAssurance, Instant.now().toEpochMilli()));
+        minidPlusCache.putAuthorizationOtp(sid, new Authorization(identity.getPersonNumber().getSsn(), assignedLevelOfAssurance, AuthType.MINID_OTC, Instant.now().toEpochMilli()));
         minidPlusCache.putAuthorization(sid, createAuthorization(identity.getPersonNumber().getSsn(), assignedLevelOfAssurance));
         return true;
     }

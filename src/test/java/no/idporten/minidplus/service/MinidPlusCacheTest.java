@@ -1,5 +1,6 @@
 package no.idporten.minidplus.service;
 
+import no.idporten.domain.auth.AuthType;
 import no.idporten.minidplus.config.CacheConfiguration;
 import no.idporten.minidplus.domain.Authorization;
 import no.idporten.minidplus.domain.LevelOfAssurance;
@@ -66,7 +67,7 @@ public class MinidPlusCacheTest {
 
         String ssn = "13094812345";
         String otp = "12345";
-        Authorization auth = new Authorization(ssn, LevelOfAssurance.LEVEL4, 1000);
+        Authorization auth = new Authorization(ssn, LevelOfAssurance.LEVEL4, AuthType.MINID_OTC, 1000);
 
         minidPlusCache.putSSN(sid, ssn);
         minidPlusCache.putOTP(sid, otp);

@@ -22,4 +22,7 @@ public class TokenResponse {
     @JsonProperty("acr_level")
     private String acrLevelExternalName;
 
+    @JsonProperty("auth_type")
+    private String authType;
+
 }

@@ -31,12 +31,6 @@ linkmobility:
     sender: <%= @linkmobility_sender %>
     ttl: <%= @sms_onetimepassword_ttl_seconds %>
 
-idporten:
-  client_id: <%= @openam_client_id %>
-  client_secret: <%= @openam_client_secret %>
-  redirectUri: <%= @openam_redirect_uri %>
-  scope: openid
-
 oidc-sdk:
   par_lifetime_seconds: <%= @par_lifetime_seconds %>
   authorization_lifetime_seconds: <%= @authorization_lifetime_seconds %>

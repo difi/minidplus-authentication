@@ -1,5 +1,6 @@
 package no.idporten.minidplus.web;
 
+import no.idporten.domain.auth.AuthType;
 import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.minidplus.MinIdplusApplication;
 import no.idporten.minidplus.config.SecurityConfiguration;
@@ -139,7 +140,7 @@ public class CsrfConfigTest {
     @Test
     public void test_token_generated_with_valid_code() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
-        Authorization auth = new Authorization("55555555555", LevelOfAssurance.LEVEL4, 1000);
+        Authorization auth = new Authorization("55555555555", LevelOfAssurance.LEVEL4, AuthType.MINID_OTC, 1000);
         when(minidPlusCache.getAuthorizationOtp(code)).thenReturn(auth);
         MvcResult mvcResult = mvc.perform(post("/token")
                 .param("grant_type", "authorization_code")
