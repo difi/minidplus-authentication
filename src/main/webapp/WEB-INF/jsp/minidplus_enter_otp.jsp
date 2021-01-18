@@ -20,7 +20,7 @@
                                    text="You will now receive a single-use code by SMS from Digdir."/></p>
             </div>
 
-            <form:form id="complete" action="#" modelAttribute="oneTimePassword" class="login"
+            <form:form id="complete" action="#" modelAttribute="userInputtedCode" class="login"
                        method="post">
                 <form:errors path="*" class="notification notification-error with-Icon icon-error" element="div"
                              htmlEscape="false"/>

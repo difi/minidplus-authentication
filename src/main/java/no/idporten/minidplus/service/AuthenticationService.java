@@ -46,6 +46,8 @@ public class AuthenticationService {
 
     private final MinIDService minIDService;
 
+    private final PinCodeService pinCodeService;
+
     private final MinidPlusCache minidPlusCache;
 
     private final AuditLogger auditLogger;
@@ -92,7 +94,11 @@ public class AuthenticationService {
         identity.setCredentialErrorCounter(0);
         minIDService.setCredentialErrorCounter(identity.getPersonNumber(), identity.getCredentialErrorCounter());
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
-        minidPlusCache.putAuthorizationOtp(sid, new Authorization(identity.getPersonNumber().getSsn(), assignedLevelOfAssurance, AuthType.MINID_OTC, Instant.now().toEpochMilli()));
+        if (identity.isPrefersOtc()) {
+            minidPlusCache.putAuthorizationOtp(sid, new Authorization(identity.getPersonNumber().getSsn(), assignedLevelOfAssurance, AuthType.MINID_OTC, Instant.now().toEpochMilli()));
+        } else {
+            minidPlusCache.putAuthorizationOtp(sid, new Authorization(identity.getPersonNumber().getSsn(), assignedLevelOfAssurance, AuthType.MINID_PINCODE, Instant.now().toEpochMilli()));
+        }
         minidPlusCache.putAuthorization(sid, createAuthorization(identity.getPersonNumber().getSsn(), assignedLevelOfAssurance));
         return true;
     }
@@ -215,6 +221,15 @@ public class AuthenticationService {
         }
         return false;
 
+    }
+
+    public boolean authenticatePinCodeStep(String sid, String inputPinCode, int pinCodeNumber, String sp) {
+        if (pinCodeService.checkPinCode(sid, inputPinCode, pinCodeNumber)) {
+            Authorization authorization = minidPlusCache.getAuthorizationOtp(sid);
+            eventService.logUserAuthenticated(sp, authorization.getAcrLevel().getLevel(), authorization.getSsn());
+            return true;
+        }
+        return false;
     }
 
     private boolean isLastTry(MinidUser user) {

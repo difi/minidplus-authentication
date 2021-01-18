@@ -27,7 +27,7 @@
                 <form:errors path="*"/>
             </c:set>
 
-            <form:form id="complete" action="#" modelAttribute="oneTimePassword" class="login"
+            <form:form id="complete" action="#" modelAttribute="userInputtedCode" class="login"
                        method="post">
                 <input type="hidden" id="type" name="otpType" value="email"/>
                 <form:errors path="*" class="notification notification-error with-Icon icon-error" element="div"
@@ -39,15 +39,15 @@
                                         text='Skriv inn pinkode' var="pincodeHelpText"/>
 
                         <div class="fm-Field${not empty otpCodeHasError ? ' error' : ''}">
-                            <label for="otpCode"><spring:message code="auth.ui.prompt.otc.email"
+                            <label for="codeInput"><spring:message code="auth.ui.prompt.otc.email"
                                                                  text="Kode fra Email"/></label>
                             <form:input tabindex="1"
                                         autofocus="autofocus"
                                         maxlength="5"
-                                        path="otpCode"
-                                        id="otpCode"
+                                        path="codeInput"
+                                        id="codeInput"
                                         placeholder="${pincodeHelpText}"
-                                        value="${otpCode}"
+                                        value="${codeInput}"
                                         autocomplete="off"/>
                         </div>
 

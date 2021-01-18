@@ -10,7 +10,7 @@ import no.idporten.domain.user.MinidUser;
 import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
-import no.idporten.minidplus.domain.OneTimePassword;
+import no.idporten.minidplus.domain.UserInputtedCode;
 import no.idporten.minidplus.domain.UserCredentials;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
@@ -18,11 +18,7 @@ import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
 import no.idporten.minidplus.exception.minid.MinIDTimeoutException;
-import no.idporten.minidplus.service.AuthenticationService;
-import no.idporten.minidplus.service.MinidIdentityService;
-import no.idporten.minidplus.service.MinidPlusCache;
-import no.idporten.minidplus.service.OTCPasswordService;
-import no.idporten.minidplus.service.ServiceproviderService;
+import no.idporten.minidplus.service.*;
 import no.idporten.minidplus.util.MinIdPlusButtonType;
 import no.idporten.minidplus.util.MinIdState;
 import no.idporten.minidplus.validator.InputTerminator;
@@ -97,6 +93,7 @@ public class MinIdPlusAuthorizeController {
     protected static final int STATE_AUTHENTICATED = -1;
     protected static final int STATE_LOGIN_VERIFICATION_CODE = 2;
     protected static final int STATE_LOGIN_WRONG_ACR = 4;
+    protected static final int STATE_LOGIN_PINCODE = 6;
 
     private static final String CODE = "code";
     //private models
@@ -112,6 +109,7 @@ public class MinIdPlusAuthorizeController {
 
     //internal views
     protected static final String VIEW_LOGIN_ENTER_OTP = "minidplus_enter_otp";
+    protected static final String VIEW_LOGIN_ENTER_PINCODE = "minid_enter_pincode";
 
     private final LocaleResolver localeResolver;
 
@@ -128,6 +126,7 @@ public class MinIdPlusAuthorizeController {
     private final OpenIDConnectIntegration openIDConnectIntegration;
 
     private final MinidIdentityService minidIdentityService;
+    private final PinCodeService pinCodeService;
 
 
     @PostMapping(value = "/v2/par", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
@@ -218,10 +217,18 @@ public class MinIdPlusAuthorizeController {
             try {
                 MinidUser identity = minidIdentityService.getIdentity(pid);
                 authenticationService.authenticateUser(sid, identity, pwd, ar.getAcrValues());
-                otcPasswordService.sendSMSOtp(sid, sp, identity);
-                OneTimePassword oneTimePassword = new OneTimePassword();
-                model.addAttribute(oneTimePassword);
-                return getNextView(request, STATE_LOGIN_VERIFICATION_CODE);
+                if (identity.getPrefersOtc()) {
+                    otcPasswordService.sendSMSOtp(sid, sp, identity);
+                    UserInputtedCode userInputtedCode = new UserInputtedCode();
+                    model.addAttribute(userInputtedCode);
+                    return getNextView(request, STATE_LOGIN_VERIFICATION_CODE);
+                } else {
+                    model.addAttribute("pincodeNumber", pinCodeService.getRandomCode(identity));
+                    UserInputtedCode userInputtedCode = new UserInputtedCode();
+                    model.addAttribute(userInputtedCode);
+                    return getNextView(request, STATE_LOGIN_PINCODE);
+
+                }
             } catch (MinIDIncorrectCredentialException e) {
                 warn("Incorrect credentials " + e.getMessage());
                 if (e.getMessage().equalsIgnoreCase("Password validation failed, last try.")) {
@@ -266,30 +273,36 @@ public class MinIdPlusAuthorizeController {
     }
 
     @PostMapping(value = {"/authorize", "/v2/authorize"}, params = {"otpCode"})
-    public String postOTP(HttpServletRequest request, HttpServletResponse response, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result, Model model) {
+    public String postCode(HttpServletRequest request, HttpServletResponse response, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) UserInputtedCode userInputtedCode, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
             ServiceProvider sp = (ServiceProvider) request.getSession().getAttribute(SERVICEPROVIDER);
-            String otp = oneTimePassword.getOtpCode();
-            oneTimePassword.clearValues();
+            String code = userInputtedCode.getOtpCode();
+            int numPinCodes = userInputtedCode.getPinCodeNumber();
             // Check cancel
             if (buttonIsPushed(request, MinIdPlusButtonType.CANCEL)) {
                 return backToClient(request, model, MinIdState.STATE_CANCEL);
             }
             if (result.hasErrors()) {
                 warn("There are contraint violations: " + Arrays.toString(result.getAllErrors().toArray()));
-                InputTerminator.clearAllInput(oneTimePassword, result, model);
+                InputTerminator.clearAllInput(userInputtedCode, result, model);
                 return getNextView(request, STATE_LOGIN_VERIFICATION_CODE);
             }
             if (state == STATE_LOGIN_VERIFICATION_CODE) {
-                if (authenticationService.authenticateOtpStep(sid, otp, sp.getEntityId())) {
+                if (authenticationService.authenticateOtpStep(sid, code, sp.getEntityId())) {
                     //if minidplus: backToClient,
                     if (isMinidPlus(request)) {
                         return backToClient(request, model, STATE_AUTHENTICATED);
                     } else {
                         return backToClientV2(request, model, STATE_AUTHENTICATED);
                     }
+                } else {
+                    result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
+                }
+            } else if (state == STATE_LOGIN_PINCODE) {
+                if (authenticationService.authenticatePinCodeStep(sid, code, numPinCodes, sp.getEntityId())) {
+                    return backToClientV2(request, model, STATE_AUTHENTICATED);
                 } else {
                     result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
                 }
@@ -342,6 +355,8 @@ public class MinIdPlusAuthorizeController {
         setSessionState(request, state);
         if (state == STATE_LOGIN_VERIFICATION_CODE) {
             return VIEW_LOGIN_ENTER_OTP;
+        } else if (state == STATE_LOGIN_PINCODE) {
+            return VIEW_LOGIN_ENTER_PINCODE;
         } else if (state == STATE_START_LOGIN) {
             return VIEW_START_LOGIN;
         } else if (state == STATE_AUTHENTICATED || state == MinIdState.STATE_CANCEL) {

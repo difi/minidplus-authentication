@@ -9,10 +9,12 @@ import javax.validation.constraints.Size;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class OneTimePassword implements ModelAttribute {
+public class UserInputtedCode implements ModelAttribute {
 
     @Size(min = 5, max = 5, message = "{auth.ui.usererror.format.otc}")
     private String otpCode;
+
+    private int pinCodeNumber;
 
     public void clearValues() {
         this.otpCode = "";
