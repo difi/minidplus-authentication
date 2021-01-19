@@ -56,6 +56,8 @@ public class AuthenticationService {
 
     private final String minidplusSourcePrefix = "minid-on-the-fly";
 
+    private final String minidpassportSourcePrefix = "minid-on-the-fly-passport";
+
     private final MinidIdentityService minidIdentityService;
 
     public boolean authenticateUser(String sid, MinidUser identity, String password, LevelOfAssurance levelOfAssurance) throws MinidUserNotFoundException, MinIDQuarantinedUserException, MinIDIncorrectCredentialException, MinIDSystemException, MinIDInvalidAcrLevelException, MinidUserInvalidException {
@@ -174,7 +176,7 @@ public class AuthenticationService {
     }
 
     protected LevelOfAssurance getLevelOfAssurance(String source, LevelOfAssurance requested) throws MinIDInvalidAcrLevelException, MinIDSystemException {
-        if (source.startsWith(minidplusSourcePrefix)) {
+        if (source.startsWith(minidplusSourcePrefix) || source.startsWith(minidpassportSourcePrefix)) {
             return LevelOfAssurance.LEVEL4;
         } else if (requested.equals(LevelOfAssurance.LEVEL4)) {
             throw new MinIDInvalidAcrLevelException("Only minid-on-the-fly-passport users can log in with level 4");
