@@ -89,6 +89,10 @@ public class MinIdPlusAuthorizeController {
     @Value("${minid-plus.callback-method-post:true}")
     private boolean postCallBackMethod;
 
+    private final String minidplusSourcePrefix = "minid-on-the-fly";
+
+    private final String minidpassportSourcePrefix = "minid-on-the-fly-passport";
+
     //internal states
     protected static final int STATE_AUTHENTICATED = -1;
     protected static final int STATE_LOGIN_VERIFICATION_CODE = 2;
@@ -217,7 +221,7 @@ public class MinIdPlusAuthorizeController {
             try {
                 MinidUser identity = minidIdentityService.getIdentity(pid);
                 authenticationService.authenticateUser(sid, identity, pwd, ar.getAcrValues());
-                if (identity.getPrefersOtc()) {
+                if (identity.getPrefersOtc() || identity.getSource().startsWith(minidpassportSourcePrefix) || identity.getSource().startsWith(minidplusSourcePrefix)) {
                     otcPasswordService.sendSMSOtp(sid, sp, identity);
                     UserInputtedCode userInputtedCode = new UserInputtedCode();
                     model.addAttribute(userInputtedCode);
