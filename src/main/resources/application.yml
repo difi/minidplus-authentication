@@ -66,7 +66,11 @@ oidc-sdk:
   clients:
     - client_id: openam
       clientSecret: clientsecret
-      redirect_uris: ['https://idporten.no/testid']
+      redirect_uris: [ 'http://localhost:8888/idporten-oidc-client/authorize/response' ]
+      scopes: [ openid ]
+    - client_id: aase
+      clientSecret: clientsecret
+      redirect_uris: ['http://localhost:8888/idporten-oidc-client/authorize/response']
       scopes: [openid]
 
 idporten:
