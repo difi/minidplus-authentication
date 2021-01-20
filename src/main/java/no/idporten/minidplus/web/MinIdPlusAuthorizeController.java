@@ -74,7 +74,6 @@ import static no.idporten.minidplus.util.MinIdState.STATE_START_LOGIN;
  * Logic implementation of MinIdPluss web client module.
  */
 @Controller
-@RequestMapping
 @Slf4j
 @Getter
 @RequiredArgsConstructor
