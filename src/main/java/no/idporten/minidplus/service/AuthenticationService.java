@@ -223,7 +223,7 @@ public class AuthenticationService {
 
     }
 
-    public boolean authenticatePinCodeStep(String sid, String inputPinCode, int pinCodeNumber, String sp) {
+    public boolean authenticatePinCodeStep(String sid, String inputPinCode, int pinCodeNumber, String sp) throws MinIDQuarantinedUserException {
         if (pinCodeService.checkPinCode(sid, inputPinCode, pinCodeNumber)) {
             Authorization authorization = minidPlusCache.getAuthorizationOtp(sid);
             eventService.logUserAuthenticated(sp, authorization.getAcrLevel().getLevel(), authorization.getSsn());
