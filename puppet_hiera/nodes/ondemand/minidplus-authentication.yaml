@@ -8,23 +8,6 @@ minidplus_authentication::tomcat_tmp_dir: '/opt/minidplus-authentication/tmp'
 minidplus_authentication::openam_client_id: 'openam'
 minidplus_authentication::openam_client_secret: 'clientsecret'
 minidplus_authentication::openam_redirect_uri: 'https://eid-atest-web01.dmz.local:443/opensso/UI/Login?realm=norge.no'
-minidplus_authentication::acr: 'Level3'
-minidplus_authentication::issuer: 'https://eid-atest-web01.dmz.local:443/minidplus-authentication/v2'
-minidplus_authentication::clients: [
-  {
-    client_id: 'openam',
-    redirect_uris: ['https://eid-atest-web01.dmz.local:443/opensso/UI/minideksternresponse'],
-    secret: 'password',
-    scopes: ['openid']
-  },
-  {
-    client_id: 'testid',
-    redirect_uris: ['http://localhost:8888/idporten-oidc-client/authorize/response'],
-    secret: 'clientsecret',
-    scopes: ['openid']
-  }
-]
-
 
 platform::logstash_enabled:    false
 filebeat::prospectors:

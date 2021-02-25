@@ -10,5 +10,5 @@ The one above title is displayed on desktop only. the one below on mobile only. 
 </div>
 <div class='Box_header'>
     <h1 class='Box_header-title with-logo logo-eid-gray'><spring:message code="no.idporten.module.minid.header" text="Logg inn med MinId"/></h1>
-    <div class="Box_header-provider"><img src="<spring:url value='/images/svg/minid-m-kant.svg' />" alt="MinID logo"></div>
+    <div class="Box_header-provider"><img src="images/svg/minid-m-kant.svg" alt="MinID logo"></div>
 </div>

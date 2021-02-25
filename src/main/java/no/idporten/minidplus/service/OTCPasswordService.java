@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import no.difi.resilience.CorrelationId;
 import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.domain.user.MinidUser;
-import no.idporten.domain.user.MobilePhoneNumber;
 import no.idporten.domain.user.PersonNumber;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
@@ -182,7 +181,7 @@ public class OTCPasswordService {
 
     }
 
-    public void sendSMSOtp(String sid, ServiceProvider sp, MinidUser identity) throws MinidUserInvalidException, MinIDQuarantinedUserException {
+    void sendSMSOtp(String sid, ServiceProvider sp, MinidUser identity) throws MinidUserInvalidException, MinIDQuarantinedUserException {
         if (identity.getQuarantineCounter() == null) {
             identity.setQuarantineCounter(0);
         }

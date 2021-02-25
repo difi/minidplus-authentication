@@ -14,7 +14,7 @@ class minidplus_authentication::install inherits minidplus_authentication {
   } ->
   file { "${minidplus_authentication::config_dir}${minidplus_authentication::application}/config":
     ensure => 'directory',
-    owner  => $minidplus_authentication::service_name,
+    owner  => $eminidplus_authentication::service_name,
     group  => $minidplus_authentication::service_name,
     mode   => '0755',
   } ->

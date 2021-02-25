@@ -57,22 +57,6 @@ management:
       show-details: always
       enabled: true
 
-oidc-sdk:
-  par_lifetime_seconds: 60
-  authorization_lifetime_seconds: 60
-  internal_id: minidplus-authentication
-  issuer: 'http://localhost:8080/v2'
-  acr: Level3
-  clients:
-    - client_id: openam
-      clientSecret: clientsecret
-      redirect_uris: [ 'http://localhost:8888/idporten-oidc-client/authorize/response' ]
-      scopes: [ openid ]
-    - client_id: aase
-      clientSecret: clientsecret
-      redirect_uris: ['http://localhost:8888/idporten-oidc-client/authorize/response']
-      scopes: [openid]
-
 idporten:
   redirecturl: http://localhost:8080/redirecturl
   serviceprovider:
@@ -121,10 +105,3 @@ server:
         http-only: true
   forward-headers-strategy: native
 
-jwt:
-  keystore:
-    type: JKS
-    location: classpath:./minidauth-env.jks
-    password: changeit
-    key_alias: minidauth
-    key_password: changeit

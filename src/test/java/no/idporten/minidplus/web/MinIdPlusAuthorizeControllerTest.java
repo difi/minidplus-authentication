@@ -2,25 +2,22 @@ package no.idporten.minidplus.web;
 
 import no.idporten.domain.auth.AuthType;
 import no.idporten.domain.sp.ServiceProvider;
-import no.idporten.domain.user.MinidUser;
-import no.idporten.domain.user.MobilePhoneNumber;
-import no.idporten.domain.user.PersonNumber;
 import no.idporten.minidplus.domain.AuthorizationRequest;
 import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
 import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
-import no.idporten.minidplus.service.*;
+import no.idporten.minidplus.service.AuthenticationService;
+import no.idporten.minidplus.service.MinidPlusCache;
+import no.idporten.minidplus.service.ServiceproviderService;
 import no.idporten.minidplus.util.MinIdPlusButtonType;
 import no.idporten.minidplus.util.MinIdState;
-import no.idporten.validation.util.RandomUtil;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -30,7 +27,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import static no.idporten.minidplus.domain.MinidPlusSessionAttributes.*;
 import static no.idporten.minidplus.util.MinIdPlusViews.*;
 import static no.idporten.minidplus.web.MinIdPlusAuthorizeController.VIEW_LOGIN_ENTER_OTP;
-import static no.idporten.minidplus.web.MinIdPlusAuthorizeController.VIEW_LOGIN_ENTER_PINCODE;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
@@ -55,12 +51,6 @@ public class MinIdPlusAuthorizeControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    PinCodeService pinCodeService;
-
-    @MockBean
-    MinidIdentityService minidIdentityService;
-
-    @MockBean
     AuthenticationService authenticationService;
 
     @MockBean
@@ -72,7 +62,7 @@ public class MinIdPlusAuthorizeControllerTest {
     @Test
     public void test_authorization_session_parameters_set() throws Exception {
         ServiceProvider serviceProvider = new ServiceProvider("NAV");
-        when(authenticationService.authenticateUser(anyString(), any(), anyString(), any(LevelOfAssurance.class))).thenReturn(true);
+        when(authenticationService.authenticateUser(anyString(), anyString(), anyString(), eq(serviceProvider), any(LevelOfAssurance.class))).thenReturn(true);
         when(serviceproviderService.getServiceProvider(eq("NAV"), eq("localhost"))).thenReturn(serviceProvider);
         AuthorizationRequest ar = getAuthorizationRequest();
         MvcResult mvcResult = mockMvc.perform(get("/authorize")
@@ -102,7 +92,7 @@ public class MinIdPlusAuthorizeControllerTest {
     @Test
     public void test_unsupported_locale_defaults_to_en() throws Exception {
         ServiceProvider serviceProvider = new ServiceProvider("NAV");
-        when(authenticationService.authenticateUser(anyString(), any(), anyString(), any(LevelOfAssurance.class))).thenReturn(true);
+        when(authenticationService.authenticateUser(anyString(), anyString(), anyString(), eq(serviceProvider), any(LevelOfAssurance.class))).thenReturn(true);
         AuthorizationRequest ar = getAuthorizationRequest();
         MvcResult mvcResult = mockMvc.perform(get("/authorize")
                 .param(HTTP_SESSION_CLIENT_ID, ar.getSpEntityId())
@@ -134,16 +124,10 @@ public class MinIdPlusAuthorizeControllerTest {
     }
 
     @Test
-    public void test_post_credentials_successful_return_otp() throws Exception {
+    public void test_post_credentials_successful() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
-        MinidUser identity = new MinidUser();
-        identity.setPhoneNumber(new MobilePhoneNumber("12345678"));
-        identity.setPrefersOtc(true);
-        identity.setState(MinidUser.State.NORMAL);
         when(minidPlusCache.getSSN(code)).thenReturn(pid);
-        when(pinCodeService.getRandomCode(any())).thenReturn(1);
-        when(minidIdentityService.getIdentity(pid)).thenReturn(identity);
-        when(authenticationService.authenticateUser(eq(code), any(), eq("abcabcabc3"), any(LevelOfAssurance.class))).thenReturn(true);
+        when(authenticationService.authenticateUser(eq(code), eq(pid), eq("abcabcabc3"), eq(sp), any(LevelOfAssurance.class))).thenReturn(true);
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
                 .sessionAttr(HTTP_SESSION_STATE, MinIdState.STATE_START_LOGIN)
@@ -155,31 +139,6 @@ public class MinIdPlusAuthorizeControllerTest {
         )
                 .andExpect(status().isOk())
                 .andExpect(view().name(VIEW_LOGIN_ENTER_OTP))
-                .andReturn();
-    }
-
-    @Test
-    public void test_post_credentials_successful_return_pincode() throws Exception {
-        String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
-        MinidUser identity = new MinidUser();
-        identity.setPrefersOtc(false);
-        identity.setNumPinCodes(20);
-        identity.setState(MinidUser.State.NORMAL);
-        when(minidPlusCache.getSSN(code)).thenReturn(pid);
-        when(pinCodeService.getRandomCode(any())).thenReturn(1);
-        when(minidIdentityService.getIdentity(pid)).thenReturn(identity);
-        when(authenticationService.authenticateUser(eq(code), any(), eq("abcabcabc3"), any(LevelOfAssurance.class))).thenReturn(true);
-        MvcResult mvcResult = mockMvc.perform(post("/authorize")
-                .sessionAttr(HTTP_SESSION_SID, code)
-                .sessionAttr(HTTP_SESSION_STATE, MinIdState.STATE_START_LOGIN)
-                .sessionAttr(AUTHORIZATION_REQUEST, getAuthorizationRequest())
-                .param("personalIdNumber", pid)
-                .param("password", "abcabcabc3")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .with(csrf())
-        )
-                .andExpect(status().isOk())
-                .andExpect(view().name(VIEW_LOGIN_ENTER_PINCODE))
                 .andReturn();
     }
 
@@ -204,7 +163,7 @@ public class MinIdPlusAuthorizeControllerTest {
     @Test
     public void test_post_pwd_wrong() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
-        when(authenticationService.authenticateUser(eq(code), any(), eq("helloWorld"), any(LevelOfAssurance.class))).thenThrow(new MinIDIncorrectCredentialException(IDPortenExceptionID.IDENTITY_PASSWORD_INCORRECT, "Password validation failed"));
+        when(authenticationService.authenticateUser(eq(code), eq(pid), eq("helloWorld"), eq(sp), any(LevelOfAssurance.class))).thenThrow(new MinIDIncorrectCredentialException(IDPortenExceptionID.IDENTITY_PASSWORD_INCORRECT, "Password validation failed"));
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
                 .sessionAttr(HTTP_SESSION_STATE, MinIdState.STATE_START_LOGIN)
@@ -224,7 +183,7 @@ public class MinIdPlusAuthorizeControllerTest {
     @Test
     public void test_wrong_acr_level() throws Exception {
         String code = "abc123-bcdg-234325235-2436dfh-gsfh34w";
-        when(authenticationService.authenticateUser(eq(code), any(), eq("abcabcabc3"), any(LevelOfAssurance.class))).thenThrow(new MinIDInvalidAcrLevelException("Dude...wrong level :-/"));
+        when(authenticationService.authenticateUser(eq(code), eq(pid), eq("abcabcabc3"), eq(sp), any(LevelOfAssurance.class))).thenThrow(new MinIDInvalidAcrLevelException("Dude...wrong level :-/"));
         MvcResult mvcResult = mockMvc.perform(post("/authorize")
                 .sessionAttr(HTTP_SESSION_SID, code)
                 .sessionAttr(HTTP_SESSION_STATE, MinIdState.STATE_START_LOGIN)

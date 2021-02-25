@@ -31,19 +31,11 @@ linkmobility:
     sender: <%= @linkmobility_sender %>
     ttl: <%= @sms_onetimepassword_ttl_seconds %>
 
-oidc-sdk:
-  par_lifetime_seconds: <%= @par_lifetime_seconds %>
-  authorization_lifetime_seconds: <%= @authorization_lifetime_seconds %>
-  internal_id: <%= @internal_id %>
-  issuer: <%= @issuer %>
-  acr: <%= @acr %>
-  clients: <% @clients.each do |client| %>
-    - client_id: <%= client['client_id'] %>
-      clientSecret: <%= client['secret'] %>
-      scopes: <%= client['scopes'] %>
-      redirect_uris: <%= client['redirect_uris'] %>
-      <% end -%>
-
+idporten:
+  client_id: <%= @openam_client_id %>
+  client_secret: <%= @openam_client_secret %>
+  redirectUri: <%= @openam_redirect_uri %>
+  scope: openid
 
 spring:
   ldap:
@@ -67,10 +59,10 @@ spring:
             enable: <%= @email_starttls_enabled %>
 
 
-#   security:
-#     user:
-#       name: <%= @basic_auth_client_id %>
-#       password: <%= @basic_auth_client_secret %>
+  security:
+    user:
+      name: <%= @basic_auth_client_id %>
+      password: <%= @basic_auth_client_secret %>
 event:
   jmsUrl: <%= @eventlog_jms_url %>
   jmsQueue: <%= @eventlog_jms_queuename %>
@@ -89,13 +81,3 @@ minid-plus:
     enabled: <%= @sms_filter_enabled %>
     filename: <%= @sms_filter_filename %>
   callback-method-post: <%= @callback_method_post %>
-
-jwt:
-  iss: <%= @issuer %>
-  aud: idporten
-  keystore:
-    type: <%= @keystore_type %>
-    location: <%= @keystore_location %>
-    password: <%= @keystore_password %>
-    key_alias: <%= @keystore_key_alias %>
-    key_password: <%= @keystore_key_password %>

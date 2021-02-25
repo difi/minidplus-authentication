@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.difi.resilience.CorrelationId;
 import no.idporten.domain.sp.ServiceProvider;
-import no.idporten.minidplus.domain.UserInputtedCode;
+import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.PasswordChange;
 import no.idporten.minidplus.domain.PersonIdInput;
 import no.idporten.minidplus.domain.UserCredentials;
@@ -112,7 +112,7 @@ public class MinIdPlusPasswordController {
             try {
                 ServiceProvider sp = (ServiceProvider) request.getSession().getAttribute(SERVICEPROVIDER);
                 authenticationService.authenticatePid(sid, pid, sp);
-                model.addAttribute(new UserInputtedCode());
+                model.addAttribute(new OneTimePassword());
                 return getNextView(request, STATE_VERIFICATION_CODE_SMS);
 
             } catch (MinIDQuarantinedUserException e) {
@@ -139,18 +139,18 @@ public class MinIdPlusPasswordController {
     }
 
     @PostMapping(params = {"otpType=sms"})
-    public String postOTP(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) UserInputtedCode userInputtedCode, BindingResult result, Model model) {
+    public String postOTP(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
-            String otp = userInputtedCode.getOtpCode();
-            userInputtedCode.clearValues();
+            String otp = oneTimePassword.getOtpCode();
+            oneTimePassword.clearValues();
             // Check cancel
             if (buttonIsPushed(request, MinIdPlusButtonType.CANCEL)) {
                 return backToLogin(request, model);
             }
             if (result.hasErrors()) {
-                InputTerminator.clearAllInput(userInputtedCode, result, model);
+                InputTerminator.clearAllInput(oneTimePassword, result, model);
                 return getNextView(request, STATE_VERIFICATION_CODE_SMS);
             }
             if (state == STATE_VERIFICATION_CODE_SMS) {
@@ -187,18 +187,18 @@ public class MinIdPlusPasswordController {
     }
 
     @PostMapping(params = {"otpType=email"})
-    public String postOTPEmail(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) UserInputtedCode userInputtedCode, BindingResult result, Model model) {
+    public String postOTPEmail(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
-            String otp = userInputtedCode.getOtpCode();
-            userInputtedCode.clearValues();
+            String otp = oneTimePassword.getOtpCode();
+            oneTimePassword.clearValues();
             // Check cancel
             if (buttonIsPushed(request, MinIdPlusButtonType.CANCEL)) {
                 return backToLogin(request, model);
             }
             if (result.hasErrors()) {
-                InputTerminator.clearAllInput(userInputtedCode, result, model);
+                InputTerminator.clearAllInput(oneTimePassword, result, model);
                 return getNextView(request, STATE_VERIFICATION_CODE_EMAIL);
             }
             if (state == STATE_VERIFICATION_CODE_EMAIL) {

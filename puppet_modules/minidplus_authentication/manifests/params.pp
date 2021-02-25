@@ -49,15 +49,4 @@ class minidplus_authentication::params {
   $openam_client_id                 = 'openam'
   $openam_client_secret             = 'clientsecret'
   $openam_redirect_uri              = 'https://eid-atest-web01.dmz.local:443/opensso/UI/Login?realm=norge.no'
-  $keystore_type                    = 'JKS'
-  $keystore_location                = 'file:/etc/opt/minidplus-authentication/minidauth-env.jks'
-  $keystore_password                = 'changeit'
-  $keystore_key_alias               = 'minidauth'
-  $keystore_key_password            = 'changeit'
-  $issuer                           = 'https://eid-atest-web01.dmz.local:443/minidplus-authentication/v2'
-  $internal_id                      = 'minidplus-authentication'
-  $acr                              = 'Level3'
-  $clients                          = []
-  $par_lifetime_seconds             = 60
-  $authorization_lifetime_seconds   = 60
 }

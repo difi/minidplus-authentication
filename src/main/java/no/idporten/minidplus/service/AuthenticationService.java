@@ -3,7 +3,6 @@ package no.idporten.minidplus.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.difi.resilience.CorrelationId;
-import no.idporten.domain.auth.AuthType;
 import no.idporten.domain.sp.ServiceProvider;
 import no.idporten.domain.user.MinidUser;
 import no.idporten.domain.user.PersonNumber;
@@ -11,12 +10,7 @@ import no.idporten.log.audit.AuditLogger;
 import no.idporten.minidplus.domain.Authorization;
 import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
-import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
-import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
-import no.idporten.minidplus.exception.minid.MinIDPincodeException;
-import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
-import no.idporten.minidplus.exception.minid.MinIDSystemException;
-import no.idporten.minidplus.exception.minid.MinIDTimeoutException;
+import no.idporten.minidplus.exception.minid.*;
 import no.idporten.minidplus.logging.audit.AuditID;
 import no.idporten.minidplus.logging.event.EventService;
 import no.minid.exception.MinidUserAlreadyExistsException;
@@ -46,8 +40,6 @@ public class AuthenticationService {
 
     private final MinIDService minIDService;
 
-    private final PinCodeService pinCodeService;
-
     private final MinidPlusCache minidPlusCache;
 
     private final AuditLogger auditLogger;
@@ -56,11 +48,24 @@ public class AuthenticationService {
 
     private final String minidplusSourcePrefix = "minid-on-the-fly";
 
-    private final MinidIdentityService minidIdentityService;
+    public boolean authenticateUser(String sid, String pid, String password, ServiceProvider sp, LevelOfAssurance levelOfAssurance) throws MinidUserNotFoundException, MinIDQuarantinedUserException, MinIDIncorrectCredentialException, MinIDSystemException, MinIDInvalidAcrLevelException, MinidUserInvalidException {
 
-    public boolean authenticateUser(String sid, MinidUser identity, String password, LevelOfAssurance levelOfAssurance) throws MinidUserNotFoundException, MinIDQuarantinedUserException, MinIDIncorrectCredentialException, MinIDSystemException, MinIDInvalidAcrLevelException, MinidUserInvalidException {
+        MinidUser identity;
+        try {
+            identity =  findUserFromPid(pid);
+        } catch (MinidUserNotFoundException e) {
+            warn("User not found. Creating dummy user");
+            try {
+                identity = minIDService.createDummyUser(new PersonNumber(pid));
+            } catch (MinidUserAlreadyExistsException x) {
+                //Should never happen
+                identity =  findUserFromPid(pid);
+            }
+        }
 
-
+        if (identity.getCredentialErrorCounter() == null) {
+            identity.setCredentialErrorCounter(0);
+        }
 
         validateUserState(identity);
 
@@ -94,22 +99,9 @@ public class AuthenticationService {
         identity.setCredentialErrorCounter(0);
         minIDService.setCredentialErrorCounter(identity.getPersonNumber(), identity.getCredentialErrorCounter());
         minidPlusCache.putSSN(sid, identity.getPersonNumber().getSsn());
-        if (identity.isPrefersOtc()) {
-            minidPlusCache.putAuthorizationOtp(sid, new Authorization(identity.getPersonNumber().getSsn(), assignedLevelOfAssurance, AuthType.MINID_OTC, Instant.now().toEpochMilli()));
-        } else {
-            minidPlusCache.putAuthorizationOtp(sid, new Authorization(identity.getPersonNumber().getSsn(), assignedLevelOfAssurance, AuthType.MINID_PINCODE, Instant.now().toEpochMilli()));
-        }
-        minidPlusCache.putAuthorization(sid, createAuthorization(identity.getPersonNumber().getSsn(), assignedLevelOfAssurance));
+        minidPlusCache.putAuthorizationOtp(sid, new Authorization(pid, assignedLevelOfAssurance, Instant.now().toEpochMilli()));
+        otcPasswordService.sendSMSOtp(sid, sp, identity);
         return true;
-    }
-
-    private no.idporten.sdk.oidcserver.protocol.Authorization createAuthorization(String pid, LevelOfAssurance acrLevel) {
-        no.idporten.sdk.oidcserver.protocol.Authorization authorization = no.idporten.sdk.oidcserver.protocol.Authorization.builder()
-                .pid(pid)
-                .acr(acrLevel.getExternalName())
-                .amr("MinIDEkstern")
-                .build();
-        return authorization;
     }
 
     private void validateUserState(MinidUser identity) throws MinIDQuarantinedUserException {
@@ -189,7 +181,7 @@ public class AuthenticationService {
     public boolean authenticatePid(String sid, String pid, ServiceProvider sp) throws MinidUserNotFoundException, MinidUserInvalidException, MinIDQuarantinedUserException {
         MinidUser identity;
         try {
-            identity =  minidIdentityService.findUserFromPid(pid);
+            identity =  findUserFromPid(pid);
         } catch (MinidUserNotFoundException e) {
             warn("User not found. Creating dummy user");
             try {
@@ -197,7 +189,7 @@ public class AuthenticationService {
                 minIDService.setCredentialErrorCounter(identity.getPersonNumber(), 0);
             } catch (MinidUserAlreadyExistsException x) {
                 //Should never happen
-                identity =  minidIdentityService.findUserFromPid(pid);
+                identity =  findUserFromPid(pid);
             }
         }
         if (Objects.equals(identity.getQuarantineCounter(), maxNumberOfQuarantineCounters)) {
@@ -223,13 +215,15 @@ public class AuthenticationService {
 
     }
 
-    public boolean authenticatePinCodeStep(String sid, String inputPinCode, int pinCodeNumber, String sp) throws MinIDQuarantinedUserException {
-        if (pinCodeService.checkPinCode(sid, inputPinCode, pinCodeNumber)) {
-            Authorization authorization = minidPlusCache.getAuthorizationOtp(sid);
-            eventService.logUserAuthenticated(sp, authorization.getAcrLevel().getLevel(), authorization.getSsn());
-            return true;
+    private MinidUser findUserFromPid(String pid) throws MinidUserNotFoundException {
+        PersonNumber uid = new PersonNumber(pid);
+        MinidUser identity = minIDService.findByPersonNumber(uid);
+
+        if (identity == null) {
+            warn("User not found");
+            throw new MinidUserNotFoundException("User not found.");
         }
-        return false;
+        return identity;
     }
 
     private boolean isLastTry(MinidUser user) {

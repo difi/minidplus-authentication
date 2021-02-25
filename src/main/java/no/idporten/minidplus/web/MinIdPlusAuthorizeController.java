@@ -6,11 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import no.difi.resilience.CorrelationId;
 import no.idporten.domain.auth.AuthType;
 import no.idporten.domain.sp.ServiceProvider;
-import no.idporten.domain.user.MinidUser;
 import no.idporten.minidplus.domain.AuthorizationRequest;
-import no.idporten.minidplus.domain.LevelOfAssurance;
 import no.idporten.minidplus.domain.MinidPlusSessionAttributes;
-import no.idporten.minidplus.domain.UserInputtedCode;
+import no.idporten.minidplus.domain.OneTimePassword;
 import no.idporten.minidplus.domain.UserCredentials;
 import no.idporten.minidplus.exception.IDPortenExceptionID;
 import no.idporten.minidplus.exception.minid.MinIDIncorrectCredentialException;
@@ -18,7 +16,10 @@ import no.idporten.minidplus.exception.minid.MinIDInvalidAcrLevelException;
 import no.idporten.minidplus.exception.minid.MinIDPincodeException;
 import no.idporten.minidplus.exception.minid.MinIDQuarantinedUserException;
 import no.idporten.minidplus.exception.minid.MinIDTimeoutException;
-import no.idporten.minidplus.service.*;
+import no.idporten.minidplus.service.AuthenticationService;
+import no.idporten.minidplus.service.MinidPlusCache;
+import no.idporten.minidplus.service.OTCPasswordService;
+import no.idporten.minidplus.service.ServiceproviderService;
 import no.idporten.minidplus.util.MinIdPlusButtonType;
 import no.idporten.minidplus.util.MinIdState;
 import no.idporten.minidplus.validator.InputTerminator;
@@ -46,6 +47,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -74,6 +76,7 @@ import static no.idporten.minidplus.util.MinIdState.STATE_START_LOGIN;
  * Logic implementation of MinIdPluss web client module.
  */
 @Controller
+@RequestMapping
 @Slf4j
 @Getter
 @RequiredArgsConstructor
@@ -92,7 +95,6 @@ public class MinIdPlusAuthorizeController {
     protected static final int STATE_AUTHENTICATED = -1;
     protected static final int STATE_LOGIN_VERIFICATION_CODE = 2;
     protected static final int STATE_LOGIN_WRONG_ACR = 4;
-    protected static final int STATE_LOGIN_PINCODE = 6;
 
     private static final String CODE = "code";
     //private models
@@ -108,7 +110,6 @@ public class MinIdPlusAuthorizeController {
 
     //internal views
     protected static final String VIEW_LOGIN_ENTER_OTP = "minidplus_enter_otp";
-    protected static final String VIEW_LOGIN_ENTER_PINCODE = "minid_enter_pincode";
 
     private final LocaleResolver localeResolver;
 
@@ -124,10 +125,6 @@ public class MinIdPlusAuthorizeController {
 
     private final OpenIDConnectIntegration openIDConnectIntegration;
 
-    private final MinidIdentityService minidIdentityService;
-    private final PinCodeService pinCodeService;
-
-
     @PostMapping(value = "/v2/par", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PushedAuthorizationResponse> par(HttpServletRequest request) {
@@ -135,23 +132,23 @@ public class MinIdPlusAuthorizeController {
     }
 
     @GetMapping("/v2/authorize")
-    public String authorize(HttpServletRequest req, HttpServletResponse response, Model model) throws IOException {
-        PushedAuthorizationRequest authorizationRequest = openIDConnectIntegration.process(new no.idporten.sdk.oidcserver.protocol.AuthorizationRequest(req));
-        req.getSession().setAttribute("authorization_request", authorizationRequest);
-        return mapToAuthorizeRequest(req, response, authorizationRequest, model);
-    }
-
-
-    private String mapToAuthorizeRequest(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
-                                         PushedAuthorizationRequest pushedAuthorizationRequest, Model model) {
-        AuthorizationRequest request = new AuthorizationRequest(pushedAuthorizationRequest.getRedirectUri(),
-                pushedAuthorizationRequest.getClientId(),
-                pushedAuthorizationRequest.getResponseType(),
-                LevelOfAssurance.resolve(pushedAuthorizationRequest.getResolvedAcrValue()),
-                pushedAuthorizationRequest.getState(),
-                pushedAuthorizationRequest.getParameter("X-goto"),
-                pushedAuthorizationRequest.getResolvedUiLocale());
-        return doGet(servletRequest, servletResponse, request, model);
+    public void authorize(HttpServletRequest req, HttpServletResponse response, @RequestParam(name = "request_uri") String requestUri) throws IOException {
+        PushedAuthorizationRequest authorizationRequest = openIDConnectIntegration.retrieveRequest(requestUri);
+        Authorization authorization = Authorization.builder()
+                .pid("test-pid")
+                .acr("level3.5")
+                .amr("testid")
+                .build();
+        AuthorizationResponse authorizationResponse = openIDConnectIntegration.authorize(authorizationRequest, authorization);
+        req.getSession().invalidate();
+        if (authorizationResponse.isQuery()) {
+            response.sendRedirect(authorizationResponse.toQueryRedirectUri().toString());
+        } else {
+            response.setContentType("text/html;charset=UTF-8");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write(authorizationResponse.toRedirectForm());
+            response.getWriter().close();
+        }
     }
 
     @PostMapping(value = "/v2/token",
@@ -167,6 +164,8 @@ public class MinIdPlusAuthorizeController {
         log.warn(exception.getMessage(), exception.getCause());
         return ResponseEntity.status(exception.getHttpStatusCode()).body(exception.errorResponse());
     }
+
+
 
     @GetMapping(value = "/authorize", produces = "text/html; charset=utf-8")
     public String doGet(HttpServletRequest request, HttpServletResponse response, @Valid AuthorizationRequest authorizationRequest, Model model) {
@@ -184,12 +183,6 @@ public class MinIdPlusAuthorizeController {
         UserCredentials userCredentials = new UserCredentials();
         model.addAttribute(MODEL_USER_CREDENTIALS, userCredentials);
         return getNextView(request, STATE_START_LOGIN);
-    }
-
-    @PostMapping(value = "/v2/authorize", params = {"personalIdNumber"})
-    public String postUserCredentialsV2(HttpServletRequest request, @Valid @ModelAttribute(MODEL_USER_CREDENTIALS) UserCredentials userCredentials, BindingResult result, Model model) {
-//        request.getSession().invalidate();
-        return postUserCredentials(request, userCredentials, result, model);
     }
 
     @PostMapping(value = "/authorize", params = {"personalIdNumber"})
@@ -214,20 +207,10 @@ public class MinIdPlusAuthorizeController {
                 return getNextView(request, STATE_START_LOGIN);
             }
             try {
-                MinidUser identity = minidIdentityService.getIdentity(pid);
-                authenticationService.authenticateUser(sid, identity, pwd, ar.getAcrValues());
-                if (identity.getPrefersOtc()) {
-                    otcPasswordService.sendSMSOtp(sid, sp, identity);
-                    UserInputtedCode userInputtedCode = new UserInputtedCode();
-                    model.addAttribute(userInputtedCode);
-                    return getNextView(request, STATE_LOGIN_VERIFICATION_CODE);
-                } else {
-                    model.addAttribute("pincodeNumber", pinCodeService.getRandomCode(identity));
-                    UserInputtedCode userInputtedCode = new UserInputtedCode();
-                    model.addAttribute(userInputtedCode);
-                    return getNextView(request, STATE_LOGIN_PINCODE);
-
-                }
+                authenticationService.authenticateUser(sid, pid, pwd, sp, ar.getAcrValues());
+                OneTimePassword oneTimePassword = new OneTimePassword();
+                model.addAttribute(oneTimePassword);
+                return getNextView(request, STATE_LOGIN_VERIFICATION_CODE);
             } catch (MinIDIncorrectCredentialException e) {
                 warn("Incorrect credentials " + e.getMessage());
                 if (e.getMessage().equalsIgnoreCase("Password validation failed, last try.")) {
@@ -271,37 +254,26 @@ public class MinIdPlusAuthorizeController {
         }
     }
 
-    @PostMapping(value = {"/authorize", "/v2/authorize"}, params = {"otpCode"})
-    public String postCode(HttpServletRequest request, HttpServletResponse response, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) UserInputtedCode userInputtedCode, BindingResult result, Model model) {
+    @PostMapping(value = "/authorize", params = {"otpCode"})
+    public String postOTP(HttpServletRequest request, @Valid @ModelAttribute(MODEL_ONE_TIME_CODE) OneTimePassword oneTimePassword, BindingResult result, Model model) {
         try {
             int state = (int) request.getSession().getAttribute(HTTP_SESSION_STATE);
             String sid = (String) request.getSession().getAttribute(HTTP_SESSION_SID);
             ServiceProvider sp = (ServiceProvider) request.getSession().getAttribute(SERVICEPROVIDER);
-            String code = userInputtedCode.getOtpCode();
-            int numPinCodes = userInputtedCode.getPinCodeNumber();
+            String otp = oneTimePassword.getOtpCode();
+            oneTimePassword.clearValues();
             // Check cancel
             if (buttonIsPushed(request, MinIdPlusButtonType.CANCEL)) {
                 return backToClient(request, model, MinIdState.STATE_CANCEL);
             }
             if (result.hasErrors()) {
                 warn("There are contraint violations: " + Arrays.toString(result.getAllErrors().toArray()));
-                InputTerminator.clearAllInput(userInputtedCode, result, model);
+                InputTerminator.clearAllInput(oneTimePassword, result, model);
                 return getNextView(request, STATE_LOGIN_VERIFICATION_CODE);
             }
             if (state == STATE_LOGIN_VERIFICATION_CODE) {
-                if (authenticationService.authenticateOtpStep(sid, code, sp.getEntityId())) {
-                    //if minidplus: backToClient,
-                    if (isMinidPlus(request)) {
-                        return backToClient(request, model, STATE_AUTHENTICATED);
-                    } else {
-                        return backToClientV2(request, model, STATE_AUTHENTICATED);
-                    }
-                } else {
-                    result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
-                }
-            } else if (state == STATE_LOGIN_PINCODE) {
-                if (authenticationService.authenticatePinCodeStep(sid, code, numPinCodes, sp.getEntityId())) {
-                    return backToClientV2(request, model, STATE_AUTHENTICATED);
+                if (authenticationService.authenticateOtpStep(sid, otp, sp.getEntityId())) {
+                    return backToClient(request, model, STATE_AUTHENTICATED);
                 } else {
                     result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"auth.ui.usererror.wrong.pincode"}, null, "Try again"));
                 }
@@ -322,14 +294,6 @@ public class MinIdPlusAuthorizeController {
             result.addError(new ObjectError(MODEL_ONE_TIME_CODE, new String[]{"no.idporten.error.line3"}, null, "Please try again"));
         }
         return getNextView(request, STATE_LOGIN_VERIFICATION_CODE);
-    }
-
-    /**
-     * If acr_values = Level4 -> MinidPlus, if acr_values = Level3 -> MinIDEkstern
-     */
-    private boolean isMinidPlus(HttpServletRequest request) {
-        AuthorizationRequest ar = (AuthorizationRequest) request.getSession().getAttribute(MinidPlusSessionAttributes.AUTHORIZATION_REQUEST);
-        return ar.getAcrValues().equals(LevelOfAssurance.LEVEL4);
     }
 
     private ServiceProvider getServiceProvider(String entityId, String hostName) {
@@ -354,8 +318,6 @@ public class MinIdPlusAuthorizeController {
         setSessionState(request, state);
         if (state == STATE_LOGIN_VERIFICATION_CODE) {
             return VIEW_LOGIN_ENTER_OTP;
-        } else if (state == STATE_LOGIN_PINCODE) {
-            return VIEW_LOGIN_ENTER_PINCODE;
         } else if (state == STATE_START_LOGIN) {
             return VIEW_START_LOGIN;
         } else if (state == STATE_AUTHENTICATED || state == MinIdState.STATE_CANCEL) {
@@ -435,22 +397,6 @@ public class MinIdPlusAuthorizeController {
             }
         }
         return null;
-    }
-
-    private String backToClientV2(HttpServletRequest request, Model model, int backState) throws IOException {
-        PushedAuthorizationRequest authorizationRequest = (PushedAuthorizationRequest) request.getSession().getAttribute("authorization_request");
-        String sid = (String) request.getSession().getAttribute("sid");
-        Authorization authorization = minidPlusCache.getAuthorization(sid);
-        AuthorizationResponse authorizationResponse = openIDConnectIntegration.authorize(authorizationRequest, authorization);
-
-        if (authorizationResponse.isQuery()) {
-            return "redirect:" + authorizationResponse.toQueryRedirectUri();
-
-        } else {
-            model.addAttribute(MODEL_REDIRECT_URL, authorizationResponse.toQueryRedirectUri().toString());
-            return getNextView(request, backState);
-
-        }
     }
 
     private String backToClient(HttpServletRequest request, Model model, int backState) {

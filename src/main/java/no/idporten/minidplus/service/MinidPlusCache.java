@@ -1,9 +1,8 @@
 package no.idporten.minidplus.service;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import no.idporten.minidplus.domain.Authorization;
-import no.idporten.sdk.oidcserver.cache.OpenIDConnectCache;
+import no.idporten.sdk.oidcserver.cache.CacheSpi;
 import no.idporten.sdk.oidcserver.protocol.PushedAuthorizationRequest;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
@@ -11,10 +10,9 @@ import org.springframework.stereotype.Component;
 
 import static no.idporten.minidplus.config.CacheConfiguration.*;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
-public class MinidPlusCache implements OpenIDConnectCache {
+public class MinidPlusCache implements CacheSpi {
 
     private final CacheManager cacheManager;
 
@@ -104,7 +102,6 @@ public class MinidPlusCache implements OpenIDConnectCache {
         removeSSN(sid);
         removeOTP(sid);
         removeAuthorizationOtp(sid);
-        removeAuthorization(sid);
     }
 
 }
