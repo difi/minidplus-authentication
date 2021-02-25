@@ -1,13 +1,15 @@
+<%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
+
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
 <head>
     <title>MinID Plus</title>
-    <link rel="stylesheet" href="fonts/open-sans/open-sans.css">
-    <link rel="stylesheet" href="font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="<spring:url value='/fonts/open-sans/open-sans.css' />">
+    <link rel="stylesheet" href="<spring:url value='/font-awesome/css/font-awesome.min.css' />">
 
     <!-- todo: Place favicon.ico and apple-touch-icon.png in the root directory -->
 
-    <link type="text/css" rel="stylesheet" href="../css/style.css" />
+    <link type="text/css" rel="stylesheet" href="<spring:url value='/css/style.css'/>" />
 
     <meta charset="utf-8">
 

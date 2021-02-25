@@ -20,10 +20,10 @@
 
 <!-- /SECTION: FOOTER -->
 
-<script type="text/javascript" src="js/vendor.min.js"></script>
-<script type="text/javascript" src="js/header.js"></script>
+<script type="text/javascript" src="<spring:url value='/js/vendor.min.js' />"></script>
+<script type="text/javascript" src="<spring:url value='/js/header.js' />"></script>
 
-<script src="js/jquery-3.5.1.slim.min.js">
+<script src="<spring:url value='/js/jquery-3.5.1.slim.min.js' />">
 </script>
 
 </body>
