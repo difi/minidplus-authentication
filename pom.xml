@@ -24,7 +24,7 @@
         <eid.common.version>2020-05-22-1149-6ebf996</eid.common.version>
         <org.springframework.ldap>2.3.2.RELEASE</org.springframework.ldap>
         <no.idporten>2019-12-17-0851-b193609</no.idporten>
-        <org.apache.client>4.5.12</org.apache.client>
+        <org.apache.client>4.5.13</org.apache.client>
         <org.apache.core>4.4.13</org.apache.core>
         <commons-lang>2.6</commons-lang>
         <javax.jms>2.0.1</javax.jms>
